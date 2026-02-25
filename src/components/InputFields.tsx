@@ -16,7 +16,7 @@ export default function InputFields({
   value,
   onChangeText,
   secureTextEntry = false,
-  className = ""
+  className = "",
 }: InputFieldsProps) {
   return (
     <View className={`w-full mb-4 ${className}`}>
@@ -24,7 +24,7 @@ export default function InputFields({
         {label}
       </Text>
       <TextInput
-        className="w-full p-4 border border-gray-300 rounded-lg"
+        className="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-[#ECAA00]"
         placeholder={placeholder}
         value={value}
         onChangeText={onChangeText}
