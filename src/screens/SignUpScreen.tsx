@@ -27,7 +27,7 @@ export default function SignUpScreen() {
 
       {/* Form Section */}
       <View className="w-full max-w-md px-6 mt-8">
-        <InputFields label="Full name*" placeholder="Enter full name"/>
+        <InputFields label="Your Full name*" placeholder="Enter full name"/>
         <InputFields label="Your Email*" placeholder="Enter your email"/>
         <InputFields label="Birth date*" placeholder="mm/dd/yyyy" />
         <InputFields label="Phone Number*" placeholder="Enter your phone number" />
