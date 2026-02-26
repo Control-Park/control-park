@@ -1,5 +1,7 @@
-import React from "react";
-import { View, Text, TextInput } from "react-native";
+import React, { useState } from "react";
+import { View, Text, TextInput, Image, TouchableOpacity } from "react-native";
+import showIcon from "../../assets/show.png";
+import hideIcon from "../../assets/hide.png";
 
 interface InputFieldsProps {
   label: string;
@@ -18,6 +20,11 @@ export default function InputFields({
   secureTextEntry = false,
   className = "",
 }: InputFieldsProps) {
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const togglePasswordVisibility = () => {
+    setPasswordVisible(!passwordVisible);
+  };
+
   return (
     <View className={`w-full mb-4 ${className}`}>
       <Text className="text-black mb-1 font-semibold tracking-tight">
@@ -28,8 +35,20 @@ export default function InputFields({
         placeholder={placeholder}
         value={value}
         onChangeText={onChangeText}
-        secureTextEntry={secureTextEntry}
-      />
+        secureTextEntry={passwordVisible}
+      ></TextInput>
+
+      {/* load icon only if true */}
+      {secureTextEntry && (
+        <TouchableOpacity onPress={togglePasswordVisibility}>
+          <Image
+            // source={localImg}
+            source={!passwordVisible ? showIcon : hideIcon}
+            className="!w-[24px] !h-[24px] mr-2 absolute right-2 bottom-3.5 "
+            resizeMode="contain"
+          ></Image>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
