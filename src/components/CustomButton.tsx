@@ -1,11 +1,12 @@
 import React from "react";
-import { Text, TouchableOpacity } from "react-native";
+import { Image, Text, TouchableOpacity } from "react-native";
 
 interface CustomButtonProps {
   title: string;
   color?: string;
   className?: string;
   onPress?: () => void;
+  localImg?: any;
 }
 
 export default function CustomButton({
@@ -13,6 +14,7 @@ export default function CustomButton({
   color = "",
   className = "",
   onPress = () => {},
+  localImg,
 }: CustomButtonProps) {
   return (
     <TouchableOpacity
@@ -20,6 +22,13 @@ export default function CustomButton({
       style={{ backgroundColor: color }}
       onPress={onPress}
     >
+      {localImg && (
+        <Image
+          source={localImg}
+          className="!w-[24px] !h-[24px] mr-2"
+          resizeMode="contain"
+        ></Image>
+      )}
       <Text className="text-black text-md font-bold">{title}</Text>
     </TouchableOpacity>
   );

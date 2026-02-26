@@ -35,7 +35,7 @@ export default function InputFields({
         placeholder={placeholder}
         value={value}
         onChangeText={onChangeText}
-        secureTextEntry={passwordVisible}
+        secureTextEntry={secureTextEntry ? !passwordVisible : false}
       ></TextInput>
 
       {/* load icon only if true */}
@@ -43,7 +43,7 @@ export default function InputFields({
         <TouchableOpacity onPress={togglePasswordVisibility}>
           <Image
             // source={localImg}
-            source={!passwordVisible ? showIcon : hideIcon}
+            source={passwordVisible ? showIcon : hideIcon}
             className="!w-[24px] !h-[24px] mr-2 absolute right-2 bottom-3.5 "
             resizeMode="contain"
           ></Image>

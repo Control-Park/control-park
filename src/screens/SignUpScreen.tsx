@@ -1,7 +1,10 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
 import InputFields from "../components/InputFields";
 import CustomButton from "../components/CustomButton";
+import AppleIcon from "../../assets/apple-logo.png";
+import GoogleIcon from "../../assets/google-logo.png";
+import HidePasswordIcon from "../../assets/hide.png";
 
 export default function SignUpScreen() {
   return (
@@ -49,6 +52,7 @@ export default function SignUpScreen() {
             label=""
             placeholder="Confirm password"
             className="-mt-4"
+            secureTextEntry={true}
           />
 
           {/* Social Login */}
@@ -70,12 +74,14 @@ export default function SignUpScreen() {
             <CustomButton
               title="Login with Apple"
               color="white"
-              className="flex items-center justify-center border-2 border-gray-300 mb-2"
-            />
+              className="flex-row items-center justify-center border-2 border-gray-300 mb-2"
+              localImg={AppleIcon}
+            ></CustomButton>
             <CustomButton
               title="Login with Google"
               color="white"
-              className="flex items-center justify-center border-2 border-gray-300 mb-1"
+              className="flex-row items-center justify-center border-2 border-gray-300 mb-1"
+              localImg={GoogleIcon}
             />
           </View>
         </View>
