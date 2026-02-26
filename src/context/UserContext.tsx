@@ -1,0 +1,1 @@
+// Global state so profile data is accessible everywhere

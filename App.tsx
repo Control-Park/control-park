@@ -1,20 +1,15 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import "./global.css";
+import { View, Text, StatusBar } from "react-native";
+import SignUpScreen from "./src/screens/SignUpScreen";
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
+    <View className="flex-1 bg-gray-300">
+      <StatusBar barStyle="dark-content" />
+      {/* TODO: Build frontend component for splash screen */}
+      {/* <SplashScreen />  */}
+      
+      <SignUpScreen />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
