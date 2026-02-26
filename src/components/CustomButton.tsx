@@ -16,7 +16,7 @@ export default function CustomButton({
 }: CustomButtonProps) {
   return (
     <TouchableOpacity
-      className={`p-4 rounded-lg ${className}`}
+      className={`p-4 rounded-xl ${className}`}
       style={{ backgroundColor: color }}
       onPress={onPress}
     >
