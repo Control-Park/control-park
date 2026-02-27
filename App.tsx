@@ -1,6 +1,7 @@
 import "./global.css";
 import { View, Text, StatusBar } from "react-native";
 import SignUpScreen from "./src/screens/SignUpScreen";
+import HomeScreen from "./src/screens/HomeScreen";
 
 export default function App() {
   return (
@@ -8,8 +9,8 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       {/* TODO: Build frontend component for splash screen */}
       {/* <SplashScreen />  */}
-      
-      <SignUpScreen />
+      <HomeScreen />
+      {/* <SignUpScreen /> */}
     </View>
   );
 }
