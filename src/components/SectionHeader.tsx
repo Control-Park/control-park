@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 24,
+    marginTop: 20,
     marginBottom: 12,
   },
   title: {

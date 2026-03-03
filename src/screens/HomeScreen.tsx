@@ -93,35 +93,80 @@ export default function HomeScreen() {
       <NotificationsButton onPress={() => console.log("Notifications")} />
 
       <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
-        <SearchBar />
+        <View style={styles.topArea}>
+          <SearchBar />
+          <View style={styles.topSpacer} />
+        </View>
 
-        {/* Parking Lots section */}
-        <SectionHeader title="Parking Lots" />
-        <FlatList
-          data={parkingLots}
-          renderItem={renderCard}
-          keyExtractor={(i) => i.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingVertical: 6, paddingRight: 16 }}
-        />
+        {/* Background section */}
+        <View style={styles.sectionsBackground}>
+            
+          {/* Parking Lots section */}
+          <SectionHeader title="Parking Lots" />
+          <FlatList
+            data={parkingLots}
+            renderItem={renderCard}
+            keyExtractor={(i) => i.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.rowContent}
+          />
 
-        {/* Lots Near You section */}
-        <SectionHeader title="Lots Near You" />
-        <FlatList
-          data={lotsNearYou}
-          renderItem={renderCard}
-          keyExtractor={(i) => i.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingVertical: 6, paddingRight: 16 }}
-        />
+          <View style={styles.sectionGap} />
+
+          {/* Lots Near You section */}
+          <SectionHeader title="Lots Near You" />
+          <FlatList
+            data={lotsNearYou}
+            renderItem={renderCard}
+            keyExtractor={(i) => i.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.rowContent}
+          />
+
+          {/* space for navbar */}
+          <View style={{ height: 90 }} />
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F6F6F6" },
-  container: { flex: 1, paddingHorizontal: 16 },
+  safe: {
+    flex: 1,
+    backgroundColor: "#F6F6F6",
+  },
+
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+
+  topArea: {
+    backgroundColor: "#F6F6F6",
+    paddingBottom: 18,
+  },
+
+  topSpacer: {
+    height: 45,
+  },
+
+  sectionsBackground: {
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+    backgroundColor: "#EAEAEA",
+    paddingTop: 6,
+  },
+
+  rowContent: {
+    paddingTop: 4,
+    paddingBottom: 6,
+    paddingRight: 8,
+  },
+
+  sectionGap: {
+    height: 6,
+  },
 });
