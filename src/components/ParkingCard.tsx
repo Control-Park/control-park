@@ -1,0 +1,98 @@
+import React from "react";
+import { View, Text, StyleSheet, Image, ImageSourcePropType } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
+export type ParkingCardData = {
+  id: string;
+  title: string;
+  subtitle: string; // e.g. "$10 for a day, 3.9 miles away"
+  image: ImageSourcePropType;
+  isGuestFavorite?: boolean;
+  isFavorited?: boolean;
+};
+
+type Props = {
+  data: ParkingCardData;
+};
+
+export default function ParkingCard({ data }: Props) {
+  return (
+    <View style={styles.card}>
+      <View style={styles.imageWrap}>
+        <Image source={data.image} style={styles.image} />
+
+        {data.isGuestFavorite && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Guest favorite</Text>
+          </View>
+        )}
+
+        <View style={styles.heart}>
+          <Ionicons
+            name={data.isFavorited ? "heart" : "heart-outline"}
+            size={22}
+            color={data.isFavorited ? "#EF4444" : "#FFFFFF"}
+          />
+        </View>
+      </View>
+
+      <View style={styles.body}>
+        <Text style={styles.title} numberOfLines={1}>
+          {data.title}
+        </Text>
+        <Text style={styles.subtitle} numberOfLines={1}>
+          {data.subtitle}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    width: 175,
+  },
+  imageWrap: {
+    height: 140,
+    borderRadius: 22,
+    overflow: "hidden",
+    backgroundColor: "#E5E7EB",
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  badge: {
+    position: "absolute",
+    left: 10,
+    top: 10,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  heart: {
+    position: "absolute",
+    right: 10,
+    top: 10,
+  },
+  body: {
+    marginTop: 10,
+    gap: 4,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#111827",
+  },
+  subtitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+});

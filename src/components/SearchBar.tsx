@@ -13,7 +13,7 @@ export default function SearchBar({ placeholder = "Start your search" }: Props) 
   return (
     <Pressable
       style={styles.wrapper}
-      onPress={() => inputRef.current?.focus()} // tap anywhere to focus
+      onPress={() => inputRef.current?.focus()}
     >
       <View style={styles.centerRow}>
         <Ionicons name="search" size={18} color="#111827" />
@@ -54,6 +54,6 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 18,
     fontWeight: "600",
-    minWidth: 120, // keeps centered look while allowing typing
+    minWidth: 120,
   },
 });

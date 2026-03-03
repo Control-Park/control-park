@@ -10,8 +10,7 @@ type Props = {
 export default function NotificationsButton({ onPress }: Props) {
   const insets = useSafeAreaInsets();
 
-  // position a little below the top inset and slightly inset from the right edge
-  const top = Math.max(insets.top, 12) + 6; // e.g. statusbar + 6px
+  const top = Math.max(insets.top, 12) + 6;
   const right = 16;
 
   return (
@@ -30,9 +29,8 @@ const styles = StyleSheet.create({
   button: {
     position: "absolute",
 
-    // ✅ make sure it renders above other content
     zIndex: 50,
-    elevation: 10, // Android stacking too
+    elevation: 10,
 
     width: 40,
     height: 40,
