@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useRef, useState } from "react";
+import { View, TextInput, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 type Props = {
@@ -7,13 +7,27 @@ type Props = {
 };
 
 export default function SearchBar({ placeholder = "Start your search" }: Props) {
+  const [value, setValue] = useState("");
+  const inputRef = useRef<TextInput>(null);
+
   return (
-    <View style={styles.wrapper}>
-        <View style={styles.centerRow}>
-      <Ionicons name="search" size={18} color="#111827" />
-      <Text style={styles.text}>{placeholder}</Text>
+    <Pressable
+      style={styles.wrapper}
+      onPress={() => inputRef.current?.focus()} // tap anywhere to focus
+    >
+      <View style={styles.centerRow}>
+        <Ionicons name="search" size={18} color="#111827" />
+
+        <TextInput
+          ref={inputRef}
+          value={value}
+          onChangeText={setValue}
+          placeholder={placeholder}
+          placeholderTextColor="#111827"
+          style={styles.text}
+        />
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -25,7 +39,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
 
-    // Stronger shadow (closer to your design)
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -41,5 +54,6 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 18,
     fontWeight: "600",
+    minWidth: 120, // keeps centered look while allowing typing
   },
 });
