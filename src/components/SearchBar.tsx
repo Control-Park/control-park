@@ -9,31 +9,37 @@ type Props = {
 export default function SearchBar({ placeholder = "Start your search" }: Props) {
   return (
     <View style={styles.wrapper}>
-      <Ionicons name="search" size={18} color="#6B7280" />
+        <View style={styles.centerRow}>
+      <Ionicons name="search" size={18} color="#111827" />
       <Text style={styles.text}>{placeholder}</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrapper: {
-    height: 48,
+    height: 54,
     borderRadius: 999,
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+
+    // Stronger shadow (closer to your design)
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+  centerRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
   },
   text: {
-    color: "#6B7280",
-    fontSize: 16,
+    color: "#111827",
+    fontSize: 18,
     fontWeight: "600",
   },
 });
