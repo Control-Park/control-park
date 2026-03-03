@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { View, StyleSheet, FlatList } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -9,6 +9,9 @@ import ParkingCard, { ParkingCardData } from "../components/ParkingCard";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+
+  // Favorite toggle state: id -> t/f
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   // Data for the top row (Parking Lots)
   const parkingLots = useMemo<ParkingCardData[]>(
@@ -34,7 +37,7 @@ export default function HomeScreen() {
         title: "Lot G12",
         subtitle: "$3 per hour, 4.3 miles away",
         image: require("../../assets/parking3.png"),
-        isGuestFavorite: false,
+        isGuestFavorite: true,
         isFavorited: false,
       },
     ],
@@ -50,7 +53,7 @@ export default function HomeScreen() {
         subtitle: "$3 per hours, 2.9 miles away",
         image: require("../../assets/parking4.png"),
         isGuestFavorite: true,
-        isFavorited: true,
+        isFavorited: false,
       },
       {
         id: "n2",
@@ -65,16 +68,23 @@ export default function HomeScreen() {
         title: "Lot G12",
         subtitle: "$3 per hour, 4.3 miles away",
         image: require("../../assets/parking3.png"),
-        isGuestFavorite: false,
+        isGuestFavorite: true,
         isFavorited: false,
       },
     ],
     []
   );
+  // Toggle favorite function
+  const toggleFavorite = (id: string) => {
+    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const renderCard = ({ item }: { item: ParkingCardData }) => (
     <View style={{ marginRight: 12 }}>
-      <ParkingCard data={item} />
+      <ParkingCard
+        data={{ ...item, isFavorited: !!favorites[item.id] }}
+        onToggleFavorite={() => toggleFavorite(item.id)}
+      />
     </View>
   );
 

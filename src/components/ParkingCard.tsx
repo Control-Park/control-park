@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Image, ImageSourcePropType } from "react-native";
+import { View, Text, StyleSheet, Image, ImageSourcePropType, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export type ParkingCardData = {
@@ -13,9 +13,10 @@ export type ParkingCardData = {
 
 type Props = {
   data: ParkingCardData;
+  onToggleFavorite?: () => void;
 };
 
-export default function ParkingCard({ data }: Props) {
+export default function ParkingCard({ data, onToggleFavorite }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.imageWrap}>
@@ -27,13 +28,13 @@ export default function ParkingCard({ data }: Props) {
           </View>
         )}
 
-        <View style={styles.heart}>
+        <Pressable onPress={onToggleFavorite} hitSlop={10} style={styles.heart}>
           <Ionicons
             name={data.isFavorited ? "heart" : "heart-outline"}
             size={22}
             color={data.isFavorited ? "#EF4444" : "#FFFFFF"}
           />
-        </View>
+        </Pressable>
       </View>
 
       <View style={styles.body}>
@@ -53,7 +54,8 @@ const styles = StyleSheet.create({
     width: 175,
   },
   imageWrap: {
-    height: 140,
+    width: "100%",
+    aspectRatio: 1,
     borderRadius: 22,
     overflow: "hidden",
     backgroundColor: "#E5E7EB",
