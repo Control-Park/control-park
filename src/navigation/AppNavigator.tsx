@@ -4,12 +4,14 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "../screens/HomeScreen";
 import LoginScreen from "../screens/LoginScreen";
 import SignUpScreen from "../screens/SignUpScreen";
+import EmailScreen from "../screens/VerifyEmailScreen";
 
 export type RootStackParamList = {
   // change type based on parameters a screen expects to receive
   Home: undefined;
   Login: undefined;
-  Signup: undefined;
+  Signup: undefined; 
+  Email: undefined; 
   // TODO: add userId and profile and send those as parameters into necessary screens
 };
 
@@ -33,6 +35,11 @@ export default function AppNavigator() {
         name="Signup"
         component={SignUpScreen}
         options={{ title: "Sign up" }}
+      />
+      <Stack.Screen
+        name="Email"
+        component={EmailScreen}
+        options={{ title: "Verify Email" }}
       />
     </Stack.Navigator>
   );
