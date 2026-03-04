@@ -5,7 +5,7 @@ import CustomButton from "../components/CustomButton";
 import AppleIcon from "../../assets/apple-logo.png";
 import GoogleIcon from "../../assets/google-logo.png";
 
-export default function SignUpScreen() {
+export default function LoginScreen() {
   return (
     <ScrollView className="flex-1 bg-white">
       {/* Top section - Tabs */}
@@ -37,7 +37,13 @@ export default function SignUpScreen() {
             placeholder="Enter password"
             secureTextEntry={true}
           />
-          
+         <View className="flex-row items-center justify-end mb-4"> 
+          <TouchableOpacity>
+            <Text className="text-[#ECAA00] font-semibold text-sm">
+              Forgot Password?
+            </Text>
+          </TouchableOpacity>
+         </View>
 
           {/* Social Login */}
           <CustomButton
