@@ -1,23 +1,17 @@
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = {
   onPress?: () => void;
 };
 
 export default function NotificationsButton({ onPress }: Props) {
-  const insets = useSafeAreaInsets();
-
-  const top = Math.max(insets.top, 12) + 6;
-  const right = 16;
-
   return (
     <Pressable
       onPress={onPress}
       hitSlop={10}
-      style={[styles.button, { top, right }]}
+      style={styles.button}
       accessibilityLabel="Notifications"
     >
       <Ionicons name="notifications-outline" size={20} color="#111827" />
@@ -27,11 +21,6 @@ export default function NotificationsButton({ onPress }: Props) {
 
 const styles = StyleSheet.create({
   button: {
-    position: "absolute",
-
-    zIndex: 50,
-    elevation: 10,
-
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -43,5 +32,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
 });

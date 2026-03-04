@@ -12,12 +12,13 @@ import ParkingCard, { ParkingCardData } from "../components/ParkingCard";
 import CustomButton from "../components/CustomButton";
 
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from '../navigation/AppNavigator';
-type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+import { RootStackParamList } from "../navigation/AppNavigator";
+type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
-export default function HomeScreen({navigation}: Props) {
+const MAX_WIDTH = 420;
+
+export default function HomeScreen({ navigation }: Props) {
   // placeholder: move function to another screen once implemented
-
 
   const insets = useSafeAreaInsets();
 
@@ -52,7 +53,7 @@ export default function HomeScreen({navigation}: Props) {
         isFavorited: false,
       },
     ],
-    [],
+    []
   );
 
   // Data for the second row (Lots Near You)
@@ -83,8 +84,9 @@ export default function HomeScreen({navigation}: Props) {
         isFavorited: false,
       },
     ],
-    [],
+    []
   );
+
   // Toggle favorite function
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -101,16 +103,21 @@ export default function HomeScreen({navigation}: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <NotificationsButton onPress={() => console.log("Notifications")} />
-
-      <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
+      {/* top area (centered on large screens) */}
+      <View style={[styles.pageMax, { paddingTop: 5 }]}>
         <View style={styles.topArea}>
+          <View style={styles.topRow}>
+            <NotificationsButton onPress={() => console.log("Notifications")} />
+          </View>
+
           <SearchBar />
           <View style={styles.topSpacer} />
         </View>
+      </View>
 
-        {/* Background section */}
-        <View style={styles.sectionsBackground}>
+      {/* Background section */}
+      <View style={styles.sectionsBackground}>
+        <View style={styles.sectionsInner}>
           {/* Parking Lots section */}
           <SectionHeader title="Parking Lots" />
           <FlatList
@@ -140,7 +147,7 @@ export default function HomeScreen({navigation}: Props) {
             title="signup (placeholder to test)"
             color="#ECAA00"
             className="flex items-center justify-center"
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.navigate("Login")}
           />
 
           {/* space for navbar */}
@@ -157,14 +164,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#F6F6F6",
   },
 
-  container: {
-    flex: 1,
+  pageMax: {
     paddingHorizontal: 16,
+    width: "100%",
+    maxWidth: MAX_WIDTH,
+    alignSelf: "center",
   },
 
   topArea: {
     backgroundColor: "#F6F6F6",
-    paddingBottom: 18,
+    paddingBottom: 12,
+  },
+
+  topRow: {
+    height: 44,
+    justifyContent: "center",
+    alignItems: "flex-end",
+    marginBottom: 10,
   },
 
   topSpacer: {
@@ -172,10 +188,16 @@ const styles = StyleSheet.create({
   },
 
   sectionsBackground: {
-    marginHorizontal: -16,
-    paddingHorizontal: 16,
     backgroundColor: "#EAEAEA",
+    width: "100%",
+  },
+
+  sectionsInner: {
+    paddingHorizontal: 16,
     paddingTop: 6,
+    width: "100%",
+    maxWidth: MAX_WIDTH,
+    alignSelf: "center",
   },
 
   rowContent: {
