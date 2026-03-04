@@ -6,15 +6,22 @@ import AppleIcon from "../../assets/apple-logo.png";
 import GoogleIcon from "../../assets/google-logo.png";
 import HidePasswordIcon from "../../assets/hide.png";
 
-export default function SignUpScreen() {
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
+type Props = NativeStackScreenProps<RootStackParamList, "Signup">;
+
+export default function SignUpScreen({ navigation }: Props) {
   return (
     <ScrollView className="flex-1 bg-white">
       {/* Top section - Tabs */}
       <View className="flex-1 w-full items-center justify-center">
-        <View className="mt-28">
+        <View className="mt-8">
           <View className="flex flex-row justify-center items-center">
             <TouchableOpacity>
-              <Text className="text-[#bbbbbb] text-2xl font-bold mr-28">
+              <Text
+                className="text-[#bbbbbb] text-2xl font-bold mr-28"
+                onPress={() => navigation.navigate("Login")}
+              >
                 Log in
               </Text>
             </TouchableOpacity>
@@ -95,7 +102,10 @@ export default function SignUpScreen() {
             <TouchableOpacity>
               {/* TODO: build log in screen frontend component - hoa */}
               {/* TODO: implement forgot password/password reset frontend component - angel */}
-              <Text className="text-[#ECAA00] font-bold ml-1.5 tracking-wide text-xl">
+              <Text
+                className="text-[#ECAA00] font-bold ml-1.5 tracking-wide text-xl"
+                onPress={() => navigation.navigate("Login")}
+              >
                 Login
               </Text>
             </TouchableOpacity>

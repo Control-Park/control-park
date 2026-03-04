@@ -5,7 +5,11 @@ import CustomButton from "../components/CustomButton";
 import AppleIcon from "../../assets/apple-logo.png";
 import GoogleIcon from "../../assets/google-logo.png";
 
-export default function LoginScreen() {
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
+type Props = NativeStackScreenProps<RootStackParamList, "Login">;
+
+export default function LoginScreen({ navigation }: Props) {
   return (
     <ScrollView className="flex-1 bg-white">
       {/* Top section - Tabs */}
@@ -21,7 +25,8 @@ export default function LoginScreen() {
 
             <View className="flex">
               <TouchableOpacity className="flex items-center justify-center">
-                <Text className="text-[#bbbbbb] text-2xl font-bold">
+                <Text className="text-[#bbbbbb] text-2xl font-bold"
+                onPress={() => navigation.navigate('Signup')}>
                   Sign up
                 </Text>
               </TouchableOpacity>
@@ -31,19 +36,19 @@ export default function LoginScreen() {
 
         {/* Form Section */}
         <View className="px-6 mt-4 max-w-md w-full">
-          <InputFields label="Your Email*" placeholder="Enter your email" /> 
+          <InputFields label="Your Email*" placeholder="Enter your email" />
           <InputFields
             label="Password*"
             placeholder="Enter password"
             secureTextEntry={true}
           />
-         <View className="flex-row items-center justify-end mb-4"> 
-          <TouchableOpacity>
-            <Text className="text-[#ECAA00] font-semibold text-sm">
-              Forgot Password?
-            </Text>
-          </TouchableOpacity>
-         </View>
+          <View className="flex-row items-center justify-end mb-4">
+            <TouchableOpacity>
+              <Text className="text-[#ECAA00] font-semibold text-sm">
+                Forgot Password?
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Social Login */}
           <CustomButton
@@ -79,11 +84,14 @@ export default function LoginScreen() {
         <View className="mb-auto items-center justify-end">
           <View className="flex-row mt-4">
             <Text className="text-gray-500 font-semibold text-xl">
-              Don't have an Account? 
+              Don't have an Account?
             </Text>
             <TouchableOpacity>
               {/* TODO: implement forgot password/password reset frontend component - angel */}
-              <Text className="text-[#ECAA00] font-bold ml-1.5 tracking-wide text-xl">
+              <Text
+                className="text-[#ECAA00] font-bold ml-1.5 tracking-wide text-xl"
+                onPress={() => navigation.navigate("Signup")}
+              >
                 Sign up
               </Text>
             </TouchableOpacity>

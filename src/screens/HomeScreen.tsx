@@ -1,13 +1,24 @@
 import React, { useMemo, useState } from "react";
 import { View, StyleSheet, FlatList } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import SearchBar from "../components/SearchBar";
 import NotificationsButton from "../components/NotificationsButton";
 import SectionHeader from "../components/SectionHeader";
 import ParkingCard, { ParkingCardData } from "../components/ParkingCard";
+import CustomButton from "../components/CustomButton";
 
-export default function HomeScreen() {
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from '../navigation/AppNavigator';
+type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+
+export default function HomeScreen({navigation}: Props) {
+  // placeholder: move function to another screen once implemented
+
+
   const insets = useSafeAreaInsets();
 
   // Favorite toggle state: id -> t/f
@@ -41,7 +52,7 @@ export default function HomeScreen() {
         isFavorited: false,
       },
     ],
-    []
+    [],
   );
 
   // Data for the second row (Lots Near You)
@@ -72,7 +83,7 @@ export default function HomeScreen() {
         isFavorited: false,
       },
     ],
-    []
+    [],
   );
   // Toggle favorite function
   const toggleFavorite = (id: string) => {
@@ -100,7 +111,6 @@ export default function HomeScreen() {
 
         {/* Background section */}
         <View style={styles.sectionsBackground}>
-            
           {/* Parking Lots section */}
           <SectionHeader title="Parking Lots" />
           <FlatList
@@ -123,6 +133,14 @@ export default function HomeScreen() {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.rowContent}
+          />
+
+          {/* placeholder for testing signup and login buttons */}
+          <CustomButton
+            title="signup (placeholder to test)"
+            color="#ECAA00"
+            className="flex items-center justify-center"
+            onPress={() => navigation.navigate('Login')}
           />
 
           {/* space for navbar */}

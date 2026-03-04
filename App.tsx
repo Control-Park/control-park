@@ -2,10 +2,10 @@ import "./global.css";
 import React, { useEffect, useState } from "react";
 import { View, StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-
-import HomeScreen from "./src/screens/HomeScreen";
 import SplashScreen from "./src/screens/SplashScreen";
-// import SignUpScreen from "./src/screens/SignUpScreen";
+
+import AppNavigator from "./src/navigation/AppNavigator";
+import { NavigationContainer } from "@react-navigation/native";
 
 export default function App() {
   const [isShowSplash, setIsShowSplash] = useState(true);
@@ -20,11 +20,12 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <View className="flex-1 bg-gray-300">
-        <StatusBar barStyle="dark-content" />
-        {isShowSplash ? <SplashScreen /> : <HomeScreen />}
-        {/* <SignUpScreen /> */}
-      </View>
+      <NavigationContainer>
+        <View className="flex-1">
+          <StatusBar barStyle="dark-content" />
+          {isShowSplash ? <SplashScreen /> : <AppNavigator />}
+        </View>
+      </NavigationContainer>
     </SafeAreaProvider>
   );
 }
