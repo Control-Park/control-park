@@ -43,6 +43,11 @@ export default function SignUpScreen({ navigation }: Props) {
         {/* TODO: redirect user to next input field when pressing "enter" */}
         {/* TODO: implement input sanitations */}
         <View className="px-6 mt-4 max-w-md w-full">
+          {/* json that can parse all fields */}
+          {/* validation and save the information as json format */}
+          {/* axios // fetch */}
+          {/* special characters */}
+
           <InputFields label="Your Full name*" placeholder="Enter full name" />
           <InputFields label="Your Email*" placeholder="Enter your email" />
           <InputFields label="Birth date*" placeholder="mm/dd/yyyy" />
@@ -107,6 +112,12 @@ export default function SignUpScreen({ navigation }: Props) {
                 onPress={() => navigation.navigate("Login")}
               >
                 Login
+              </Text>
+              <Text
+                className="text-[#ECAA00] font-bold ml-1.5 tracking-wide text-xl"
+                onPress={() => navigation.navigate("Email")}
+              >
+                Verify Email test
               </Text>
             </TouchableOpacity>
           </View>
