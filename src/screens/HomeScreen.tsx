@@ -1,15 +1,13 @@
 import React, { useMemo, useState } from "react";
 import { View, StyleSheet, FlatList } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import SearchBar from "../components/SearchBar";
 import NotificationsButton from "../components/NotificationsButton";
 import SectionHeader from "../components/SectionHeader";
 import ParkingCard, { ParkingCardData } from "../components/ParkingCard";
 import CustomButton from "../components/CustomButton";
+import Navbar, { TabKey } from "../components/Navbar";
 
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -18,14 +16,11 @@ type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 const MAX_WIDTH = 420;
 
 export default function HomeScreen({ navigation }: Props) {
-  // placeholder: move function to another screen once implemented
-
-  const insets = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState<TabKey>("Home");
 
   // Favorite toggle state: id -> t/f
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
-  // Data for the top row (Parking Lots)
   const parkingLots = useMemo<ParkingCardData[]>(
     () => [
       {
@@ -56,7 +51,6 @@ export default function HomeScreen({ navigation }: Props) {
     []
   );
 
-  // Data for the second row (Lots Near You)
   const lotsNearYou = useMemo<ParkingCardData[]>(
     () => [
       {
@@ -87,7 +81,6 @@ export default function HomeScreen({ navigation }: Props) {
     []
   );
 
-  // Toggle favorite function
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
   };
@@ -102,8 +95,8 @@ export default function HomeScreen({ navigation }: Props) {
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* top area (centered on large screens) */}
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+      {/* top area */}
       <View style={[styles.pageMax, { paddingTop: 5 }]}>
         <View style={styles.topArea}>
           <View style={styles.topRow}>
@@ -115,10 +108,9 @@ export default function HomeScreen({ navigation }: Props) {
         </View>
       </View>
 
-      {/* Background section */}
+      {/* content area (fills remaining space above navbar) */}
       <View style={styles.sectionsBackground}>
         <View style={styles.sectionsInner}>
-          {/* Parking Lots section */}
           <SectionHeader title="Parking Lots" />
           <FlatList
             data={parkingLots}
@@ -131,7 +123,6 @@ export default function HomeScreen({ navigation }: Props) {
 
           <View style={styles.sectionGap} />
 
-          {/* Lots Near You section */}
           <SectionHeader title="Lots Near You" />
           <FlatList
             data={lotsNearYou}
@@ -142,18 +133,28 @@ export default function HomeScreen({ navigation }: Props) {
             contentContainerStyle={styles.rowContent}
           />
 
-          {/* placeholder for testing signup and login buttons */}
           <CustomButton
             title="signup (placeholder to test)"
             color="#ECAA00"
             className="flex items-center justify-center"
             onPress={() => navigation.navigate("Login")}
           />
-
-          {/* space for navbar */}
-          <View style={{ height: 90 }} />
         </View>
       </View>
+
+      {/* navbar occupies bottom space (NOT floating) */}
+      <Navbar
+        activeTab={activeTab}
+        onTabPress={(tab) => {
+          setActiveTab(tab);
+
+          if (tab === "Home") navigation.navigate("Home");
+          if (tab === "Explore") console.log("Explore");
+          if (tab === "Listings") console.log("Listings");
+          if (tab === "Messages") console.log("Messages");
+          if (tab === "Profile") console.log("Profile");
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -173,7 +174,6 @@ const styles = StyleSheet.create({
 
   topArea: {
     backgroundColor: "#F6F6F6",
-    paddingBottom: 12,
   },
 
   topRow: {
@@ -190,6 +190,7 @@ const styles = StyleSheet.create({
   sectionsBackground: {
     backgroundColor: "#EAEAEA",
     width: "100%",
+    flex: 1,
   },
 
   sectionsInner: {
