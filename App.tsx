@@ -7,6 +7,9 @@ import SplashScreen from "./src/screens/SplashScreen";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { NavigationContainer } from "@react-navigation/native";
 
+import Toast from "react-native-toast-message";
+import { toastConfig } from "./src/components/ToastConfig";
+
 export default function App() {
   const [isShowSplash, setIsShowSplash] = useState(true);
 
@@ -26,6 +29,7 @@ export default function App() {
           {isShowSplash ? <SplashScreen /> : <AppNavigator />}
         </View>
       </NavigationContainer>
+      <Toast config={toastConfig} />
     </SafeAreaProvider>
   );
 }
