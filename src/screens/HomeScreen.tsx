@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
 
   topSpacer: {
-    height: 45,
+    height: 35,
   },
 
   sectionsBackground: {
