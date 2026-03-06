@@ -10,55 +10,67 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import Toast from "react-native-toast-message";
 import { supabase } from "../lib/supabase";
+import {
+  VALIDATION,
+  showFieldError,
+  isValidName,
+  isValidEmail,
+  isValidBirthDate,
+  formatDate,
+  // isValidPhone,
+  // isValidPassword,
+} from "../utils/validation";
 type Props = NativeStackScreenProps<RootStackParamList, "Signup">;
-
-const NAME_REGEX =
-  /^[a-zA-Z\xC0-\uFFFF]+([ \-']{0,1}[a-zA-Z\xC0-\uFFFF]+){0,2}[.]{0,1}$/;
-
-const isValidName = (name: string): boolean => {
-  return NAME_REGEX.test(name.trim());
-};
 
 export default function SignUpScreen({ navigation }: Props) {
   const [fullName, setFullName] = useState("");
-
-  // TOAST functions
-  const showFullNameError = () => {
-    Toast.show({
-      type: "error",
-      text1: "Invalid name",
-      text2: "Please enter your first and last name",
-      topOffset: 100,
-    });
-    console.log("full name error");
-  };
+  const [email, setEmail] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [password, setPassword] = useState("");
 
   // main handler
   const handleSignUp = async () => {
     // TODO: implement input sanitation for all input fields
+    // 1. NAME
     if (
       !fullName.trim() ||
       !isValidName(fullName) ||
       fullName.trim().split(" ").length < 2
     ) {
-      showFullNameError();
+      showFieldError("name", "Please enter your first and last name");
       return;
     }
+
+    // 2. EMAIL
+
+    // 3. BIRTH DATE
+    if (!isValidBirthDate(birthDate)) {
+      showFieldError("birth date", "Use MM/DD/YYYY format");
+      return;
+    }
+
+    // 4. PHONE NUMBER
+    // showFieldError("phone number", "Enter 10 digits");
+
+    // 5. PASSWORD
+    // showFieldError("password", "Password too short");
+
+    // SUCCESSFUL = Proceed with signup
     const nameParts = fullName.trim().split(" ");
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(" ");
-
-    // (email)
-    // (birth date)
-    // (phone number)
-    // (password)
 
     // save to supabase with url
     // await supabase.from("users").insert({
     //   first_name: firstName,
     //   last_name: lastName,
+    //   birth_date:
+    //   phone:
+    //   password:
     // });
   };
+
   return (
     <ScrollView className="flex-1 bg-white">
       {/* Top section - Tabs */}
@@ -96,9 +108,22 @@ export default function SignUpScreen({ navigation }: Props) {
           {/* axios // fetch */}
           {/* special characters */}
 
-          <InputFields label="Your Full name*" placeholder="Enter full name" value={fullName} onChangeText={setFullName}/>
+          <InputFields
+            label="Your Full name*"
+            placeholder="Enter full name"
+            value={fullName}
+            onChangeText={setFullName}
+          />
           <InputFields label="Your Email*" placeholder="Enter your email" />
-          <InputFields label="Birth date*" placeholder="mm/dd/yyyy" />
+          <InputFields
+            label="Birth date*"
+            placeholder="mm/dd/yyyy"
+            value={birthDate}
+            onChangeText={(date) => {
+              const formatted = formatDate(date);
+              setBirthDate(formatted);
+            }}
+          />
           <InputFields
             label="Phone Number*"
             placeholder="Enter your phone number"
