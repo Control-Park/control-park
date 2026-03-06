@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TextInput, Image, TouchableOpacity } from "react-native";
 import showIcon from "../../assets/show.png";
 import hideIcon from "../../assets/hide.png";
+import { formatDate } from "../utils/validation";
 
 interface InputFieldsProps {
   label: string;
@@ -25,6 +26,16 @@ export default function InputFields({
     setPasswordVisible(!passwordVisible);
   };
 
+  const handleTextChange = (text: string) => {
+    // Format date if this is a birth date field
+    if (label.includes("Birth") || label.includes("birth")) {
+      const formatted = formatDate(text);
+      onChangeText?.(formatted);
+    } else {
+      onChangeText?.(text);
+    }
+  };
+
   return (
     <View className={`w-full mb-4 ${className}`}>
       <Text className="text-black mb-1 font-semibold tracking-tight">
@@ -34,7 +45,7 @@ export default function InputFields({
         className="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-[#ECAA00]"
         placeholder={placeholder}
         value={value}
-        onChangeText={onChangeText}
+        onChangeText={handleTextChange}
         secureTextEntry={secureTextEntry ? !passwordVisible : false}
       ></TextInput>
 
