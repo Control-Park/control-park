@@ -19,7 +19,7 @@ import {
   formatDate,
   formatPhoneNumber,
   isValidPhone,
-  // isValidPassword,
+  isValidPassword,
 } from "../utils/validation";
 type Props = NativeStackScreenProps<RootStackParamList, "Signup">;
 
@@ -29,6 +29,7 @@ export default function SignUpScreen({ navigation }: Props) {
   const [birthDate, setBirthDate] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   // main handler
   const handleSignUp = async () => {
@@ -44,6 +45,10 @@ export default function SignUpScreen({ navigation }: Props) {
     }
 
     // 2. EMAIL
+    if (!email.trim() || !isValidEmail(email)) {
+      showFieldError("email", "Enter a valid email address");
+      return;
+    }
 
     // 3. BIRTH DATE
     if (!isValidBirthDate(birthDate)) {
@@ -57,21 +62,31 @@ export default function SignUpScreen({ navigation }: Props) {
       return;
     }
 
-    // 5. PASSWORD
-    // showFieldError("password", "Password too short");
+    // 5. PASSWORD VALIDATION
+    if (!isValidPassword(password)) {
+      showFieldError("password requirements", "Min. 6 chars, 1 uppercase, 1 special character");
+      return;
+    }
+
+    // 6. PASSWORD CONFIRMATION
+    if (password !== confirmPassword) {
+      showFieldError("matching password", "Passwords do not match!");
+      return;
+    }
 
     // SUCCESSFUL = Proceed with signup
     const nameParts = fullName.trim().split(" ");
-    const firstName = nameParts[0];
+    const firstName = nameParts[0]; // firstName[0] for "initial" lettered profile picture
     const lastName = nameParts.slice(1).join(" ");
 
     // save to supabase with url
     // await supabase.from("users").insert({
     //   first_name: firstName,
     //   last_name: lastName,
-    //   birth_date:
-    //   phone:
-    //   password:
+    //   birth_date: birthDate
+    //   phone: phoneNumber
+    //   password: password
+    //   (email?) : email
     // });
   };
 
@@ -117,9 +132,13 @@ export default function SignUpScreen({ navigation }: Props) {
             placeholder="Enter full name"
             value={fullName}
             onChangeText={setFullName}
-            // className={}
           />
-          <InputFields label="Your Email*" placeholder="Enter your email" />
+          <InputFields
+            label="Your Email*"
+            placeholder="Enter your email"
+            value={email}
+            onChangeText={setEmail}
+          />
           <InputFields
             label="Birth date*"
             placeholder="mm/dd/yyyy"
@@ -142,12 +161,16 @@ export default function SignUpScreen({ navigation }: Props) {
             label="Password*"
             placeholder="Enter password"
             secureTextEntry={true}
+            value={password}
+            onChangeText={setPassword}
           />
           <InputFields
             label=""
             placeholder="Confirm password"
             className="-mt-4"
             secureTextEntry={true}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
           />
 
           {/* Social Login */}

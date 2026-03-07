@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Text, ScrollView, View, TouchableOpacity } from "react-native";
 import InputFields from "../components/InputFields";
 import CustomButton from "../components/CustomButton";
@@ -7,9 +7,39 @@ import GoogleIcon from "../../assets/google-logo.png";
 
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
+import {
+  isValidEmail,
+  isValidPassword,
+  showFieldError,
+} from "../utils/validation";
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
 export default function LoginScreen({ navigation }: Props) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // TODO: await sign in with supabase and navigate to home
+  const handleLogin = async () => {
+    // 1. EMAIL
+    if (!email.trim() || !isValidEmail(email)) {
+      showFieldError("email", "Enter a valid email address");
+      return;
+    }
+
+    // 2. PASSWORD
+    if (!isValidPassword(password)) {
+      showFieldError(
+        "password requirements",
+        "Min. 6 chars, 1 uppercase, 1 special character",
+      );
+      return;
+    }
+
+    // 3. BACKEND AUTHENTICATION
+    // await supabase.auth.signInWithPassword
+
+  };
+
   return (
     <ScrollView className="flex-1 bg-white">
       {/* Top section - Tabs */}
@@ -25,8 +55,10 @@ export default function LoginScreen({ navigation }: Props) {
 
             <View className="flex">
               <TouchableOpacity className="flex items-center justify-center">
-                <Text className="text-[#bbbbbb] text-2xl font-bold"
-                onPress={() => navigation.navigate('Signup')}>
+                <Text
+                  className="text-[#bbbbbb] text-2xl font-bold"
+                  onPress={() => navigation.navigate("Signup")}
+                >
                   Sign up
                 </Text>
               </TouchableOpacity>
@@ -36,15 +68,23 @@ export default function LoginScreen({ navigation }: Props) {
 
         {/* Form Section */}
         <View className="px-6 mt-4 max-w-md w-full">
-          <InputFields label="Your Email*" placeholder="Enter your email" />
+          <InputFields
+            label="Your Email*"
+            placeholder="Enter your email"
+            value={email}
+            onChangeText={setEmail}
+          />
           <InputFields
             label="Password*"
             placeholder="Enter password"
             secureTextEntry={true}
+            value={password}
+            onChangeText={setPassword}
           />
           <View className="flex-row items-center justify-end mb-4">
             <TouchableOpacity>
               <Text className="text-[#ECAA00] font-semibold text-sm">
+                {/* TODO: forgot password screens - angel */}
                 Forgot Password?
               </Text>
             </TouchableOpacity>
@@ -55,6 +95,7 @@ export default function LoginScreen({ navigation }: Props) {
             title="Continue"
             color="#ECAA00"
             className="flex items-center justify-center"
+            onPress={handleLogin}
           />
           <View className="flex-row items-center justify-center mx-5 my-3">
             <View className="h-[2px] w-[30%] bg-gray-300" />
