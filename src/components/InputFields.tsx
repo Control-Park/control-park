@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TextInput, Image, TouchableOpacity } from "react-native";
 import showIcon from "../../assets/show.png";
 import hideIcon from "../../assets/hide.png";
-import { formatDate } from "../utils/validation";
+import { formatDate, formatPhoneNumber } from "../utils/validation";
 
 interface InputFieldsProps {
   label: string;
@@ -28,8 +28,11 @@ export default function InputFields({
 
   const handleTextChange = (text: string) => {
     // Format date if this is a birth date field
-    if (label.includes("Birth") || label.includes("birth")) {
+    if (label.includes("Birth date")) {
       const formatted = formatDate(text);
+      onChangeText?.(formatted);
+    } else if (label.includes("Phone Number")) {
+      const formatted = formatPhoneNumber(text);
       onChangeText?.(formatted);
     } else {
       onChangeText?.(text);

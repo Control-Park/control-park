@@ -17,7 +17,8 @@ import {
   isValidEmail,
   isValidBirthDate,
   formatDate,
-  // isValidPhone,
+  formatPhoneNumber,
+  isValidPhone,
   // isValidPassword,
 } from "../utils/validation";
 type Props = NativeStackScreenProps<RootStackParamList, "Signup">;
@@ -51,7 +52,10 @@ export default function SignUpScreen({ navigation }: Props) {
     }
 
     // 4. PHONE NUMBER
-    // showFieldError("phone number", "Enter 10 digits");
+    if (!isValidPhone(phoneNumber)) {
+      showFieldError("phone number", "Enter 10 digits");
+      return;
+    }
 
     // 5. PASSWORD
     // showFieldError("password", "Password too short");
@@ -113,6 +117,7 @@ export default function SignUpScreen({ navigation }: Props) {
             placeholder="Enter full name"
             value={fullName}
             onChangeText={setFullName}
+            // className={}
           />
           <InputFields label="Your Email*" placeholder="Enter your email" />
           <InputFields
@@ -127,6 +132,11 @@ export default function SignUpScreen({ navigation }: Props) {
           <InputFields
             label="Phone Number*"
             placeholder="Enter your phone number"
+            value={phoneNumber}
+            onChangeText={(num) => {
+              const formatted = formatPhoneNumber(num);
+              setPhoneNumber(formatted);
+            }}
           />
           <InputFields
             label="Password*"
