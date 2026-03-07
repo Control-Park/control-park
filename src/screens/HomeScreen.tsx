@@ -90,6 +90,7 @@ export default function HomeScreen({ navigation }: Props) {
       <ParkingCard
         data={{ ...item, isFavorited: !!favorites[item.id] }}
         onToggleFavorite={() => toggleFavorite(item.id)}
+        onPress={() => navigation.navigate("Details", { id: item.id })}
       />
     </View>
   );

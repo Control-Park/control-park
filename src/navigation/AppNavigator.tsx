@@ -5,6 +5,7 @@ import HomeScreen from "../screens/HomeScreen";
 import LoginScreen from "../screens/LoginScreen";
 import SignUpScreen from "../screens/SignUpScreen";
 import EmailScreen from "../screens/VerifyEmailScreen";
+import DetailsScreen from "../screens/DetailsScreen";
 
 export type RootStackParamList = {
   // change type based on parameters a screen expects to receive
@@ -12,6 +13,7 @@ export type RootStackParamList = {
   Login: undefined;
   Signup: undefined; 
   Email: undefined; 
+  Details: { id: string };
   // TODO: add userId and profile and send those as parameters into necessary screens
 };
 
@@ -40,6 +42,11 @@ export default function AppNavigator() {
         name="Email"
         component={EmailScreen}
         options={{ title: "Verify Email" }}
+      />
+      <Stack.Screen
+        name="Details"
+        component={DetailsScreen}
+        options={{ title: "Details" }}
       />
     </Stack.Navigator>
   );

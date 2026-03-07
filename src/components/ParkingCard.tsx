@@ -1,5 +1,12 @@
 import React from "react";
-import { View, Text, StyleSheet, Image, ImageSourcePropType, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  ImageSourcePropType,
+  Pressable,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export type ParkingCardData = {
@@ -14,11 +21,12 @@ export type ParkingCardData = {
 type Props = {
   data: ParkingCardData;
   onToggleFavorite?: () => void;
+  onPress?: () => void;
 };
 
-export default function ParkingCard({ data, onToggleFavorite }: Props) {
+export default function ParkingCard({ data, onToggleFavorite, onPress }: Props) {
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.imageWrap}>
         <Image source={data.image} style={styles.image} />
 
@@ -28,7 +36,14 @@ export default function ParkingCard({ data, onToggleFavorite }: Props) {
           </View>
         )}
 
-        <Pressable onPress={onToggleFavorite} hitSlop={10} style={styles.heart}>
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation();
+            onToggleFavorite?.();
+          }}
+          hitSlop={10}
+          style={styles.heart}
+        >
           <Ionicons
             name={data.isFavorited ? "heart" : "heart-outline"}
             size={22}
@@ -45,7 +60,7 @@ export default function ParkingCard({ data, onToggleFavorite }: Props) {
           {data.subtitle}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
