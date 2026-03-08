@@ -19,7 +19,7 @@ import {
   formatDate,
   formatPhoneNumber,
   isValidPhone,
-  isValidPassword,
+  isStrongPassword,
 } from "../utils/validation";
 type Props = NativeStackScreenProps<RootStackParamList, "Signup">;
 
@@ -31,47 +31,74 @@ export default function SignUpScreen({ navigation }: Props) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [errorFields, setErrorFields] = useState({
+    name: false,
+    email: false,
+    birthDate: false,
+    phone: false,
+    password: false,
+    confirmPassword: false,
+  });
+
   // main handler
   const handleSignUp = async () => {
     // TODO: implement input sanitation for all input fields
-    // 1. NAME
+    setErrorFields({
+      name: false,
+      email: false,
+      birthDate: false,
+      phone: false,
+      password: false,
+      confirmPassword: false,
+    });
+
+    let hasError = false;
+
+    // Check fields in REVERSE order (bottom to top)
+    // 6. CONFIRM PASSWORD
+    if (password !== confirmPassword) {
+      setErrorFields((prev) => ({ ...prev, confirmPassword: true }));
+      showFieldError("matching password", "Passwords do not match!");
+      hasError = true;
+    }
+
+    // 5. PASSWORD
+    if (!isStrongPassword(password)) {
+      setErrorFields((prev) => ({ ...prev, password: true }));
+      showFieldError("password", "Min. 6 chars, 1 uppercase, 1 special");
+      hasError = true;
+    }
+
+    // 4. PHONE
+    if (!isValidPhone(phoneNumber)) {
+      setErrorFields((prev) => ({ ...prev, phone: true }));
+      showFieldError("phone number", "Enter 10 digits");
+      hasError = true;
+    }
+
+    // 3. BIRTH DATE
+    if (!isValidBirthDate(birthDate)) {
+      setErrorFields((prev) => ({ ...prev, birthDate: true }));
+      showFieldError("birth date", "Use MM/DD/YYYY format");
+      hasError = true;
+    }
+
+    // 2. EMAIL
+    if (!email.trim() || !isValidEmail(email)) {
+      setErrorFields((prev) => ({ ...prev, email: true }));
+      showFieldError("email", "Enter a valid email address");
+      hasError = true;
+    }
+
+    // 1. NAME (check last so it shows FIRST/TOP)
     if (
       !fullName.trim() ||
       !isValidName(fullName) ||
       fullName.trim().split(" ").length < 2
     ) {
+      setErrorFields((prev) => ({ ...prev, name: true }));
       showFieldError("name", "Please enter your first and last name");
-      return;
-    }
-
-    // 2. EMAIL
-    if (!email.trim() || !isValidEmail(email)) {
-      showFieldError("email", "Enter a valid email address");
-      return;
-    }
-
-    // 3. BIRTH DATE
-    if (!isValidBirthDate(birthDate)) {
-      showFieldError("birth date", "Use MM/DD/YYYY format");
-      return;
-    }
-
-    // 4. PHONE NUMBER
-    if (!isValidPhone(phoneNumber)) {
-      showFieldError("phone number", "Enter 10 digits");
-      return;
-    }
-
-    // 5. PASSWORD VALIDATION
-    if (!isValidPassword(password)) {
-      showFieldError("password requirements", "Min. 6 chars, 1 uppercase, 1 special character");
-      return;
-    }
-
-    // 6. PASSWORD CONFIRMATION
-    if (password !== confirmPassword) {
-      showFieldError("matching password", "Passwords do not match!");
-      return;
+      hasError = true;
     }
 
     // SUCCESSFUL = Proceed with signup
@@ -79,15 +106,22 @@ export default function SignUpScreen({ navigation }: Props) {
     const firstName = nameParts[0]; // firstName[0] for "initial" lettered profile picture
     const lastName = nameParts.slice(1).join(" ");
 
+    // 1. Create auth user (this handles password)
+    // const { data: authData, error: authError } = await supabase.auth.signUp({
+    //   email: email,
+    //   password: password,
+    // });
+
     // save to supabase with url
     // await supabase.from("users").insert({
     //   first_name: firstName,
     //   last_name: lastName,
     //   birth_date: birthDate
     //   phone: phoneNumber
-    //   password: password
     //   (email?) : email
     // });
+
+    // TESTING
   };
 
   return (
@@ -132,12 +166,14 @@ export default function SignUpScreen({ navigation }: Props) {
             placeholder="Enter full name"
             value={fullName}
             onChangeText={setFullName}
+            hasError={errorFields.name}
           />
           <InputFields
             label="Your Email*"
             placeholder="Enter your email"
             value={email}
             onChangeText={setEmail}
+            hasError={errorFields.email}
           />
           <InputFields
             label="Birth date*"
@@ -147,6 +183,7 @@ export default function SignUpScreen({ navigation }: Props) {
               const formatted = formatDate(date);
               setBirthDate(formatted);
             }}
+            hasError={errorFields.birthDate}
           />
           <InputFields
             label="Phone Number*"
@@ -156,6 +193,7 @@ export default function SignUpScreen({ navigation }: Props) {
               const formatted = formatPhoneNumber(num);
               setPhoneNumber(formatted);
             }}
+            hasError={errorFields.phone}
           />
           <InputFields
             label="Password*"
@@ -163,6 +201,7 @@ export default function SignUpScreen({ navigation }: Props) {
             secureTextEntry={true}
             value={password}
             onChangeText={setPassword}
+            hasError={errorFields.password}
           />
           <InputFields
             label=""
@@ -171,6 +210,7 @@ export default function SignUpScreen({ navigation }: Props) {
             secureTextEntry={true}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
+            hasError={errorFields.confirmPassword}
           />
 
           {/* Social Login */}

@@ -8,8 +8,8 @@ import GoogleIcon from "../../assets/google-logo.png";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import {
+  isStrongPassword,
   isValidEmail,
-  isValidPassword,
   showFieldError,
 } from "../utils/validation";
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
@@ -18,26 +18,39 @@ export default function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [errorFields, setErrorFields] = useState({
+    email: false,
+    password: false,
+  });
+
   // TODO: await sign in with supabase and navigate to home
   const handleLogin = async () => {
-    // 1. EMAIL
-    if (!email.trim() || !isValidEmail(email)) {
-      showFieldError("email", "Enter a valid email address");
-      return;
-    }
+    setErrorFields({
+      email: false,
+      password: false,
+    });
+
+    let hasError = false;
 
     // 2. PASSWORD
-    if (!isValidPassword(password)) {
+    if (!isStrongPassword(password)) {
+      setErrorFields((prev) => ({ ...prev, password: true }));
       showFieldError(
         "password requirements",
         "Min. 6 chars, 1 uppercase, 1 special character",
       );
-      return;
+      hasError = true;
     }
+
+    // 1. EMAIL
+    if (!email.trim() || !isValidEmail(email)) {
+      setErrorFields((prev) => ({ ...prev, email: true }));
+      showFieldError("email", "Enter a valid email address");
+    }
+    hasError = true;
 
     // 3. BACKEND AUTHENTICATION
     // await supabase.auth.signInWithPassword
-
   };
 
   return (
@@ -73,6 +86,7 @@ export default function LoginScreen({ navigation }: Props) {
             placeholder="Enter your email"
             value={email}
             onChangeText={setEmail}
+            hasError={errorFields.email}
           />
           <InputFields
             label="Password*"
@@ -80,6 +94,7 @@ export default function LoginScreen({ navigation }: Props) {
             secureTextEntry={true}
             value={password}
             onChangeText={setPassword}
+            hasError={errorFields.password}
           />
           <View className="flex-row items-center justify-end mb-4">
             <TouchableOpacity>

@@ -59,10 +59,6 @@ export const isValidPhone = (phone: string): boolean => {
   return cleaned.length === 10;
 };
 
-export const isValidPassword = (password: string): boolean => {
-  return password.length >= 6;
-};
-
 export const isStrongPassword = (password: string): boolean => {
   const hasUpperCase = /[A-Z]/.test(password);
   const hasLowerCase = /[a-z]/.test(password);

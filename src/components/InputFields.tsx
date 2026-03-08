@@ -11,6 +11,7 @@ interface InputFieldsProps {
   onChangeText?: (text: string) => void;
   secureTextEntry?: boolean;
   className?: string;
+  hasError?: boolean;
 }
 
 export default function InputFields({
@@ -20,6 +21,7 @@ export default function InputFields({
   onChangeText,
   secureTextEntry = false,
   className = "",
+  hasError = false,
 }: InputFieldsProps) {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const togglePasswordVisibility = () => {
@@ -39,13 +41,15 @@ export default function InputFields({
     }
   };
 
+  const borderColor = hasError ? "border-red-500" : "border-gray-300";
+
   return (
     <View className={`w-full mb-4 ${className}`}>
       <Text className="text-black mb-1 font-semibold tracking-tight">
         {label}
       </Text>
       <TextInput
-        className="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-[#ECAA00]"
+        className={`w-full p-4 border-2 ${borderColor} rounded-xl focus:border-[#ECAA00]`}
         placeholder={placeholder}
         value={value}
         onChangeText={handleTextChange}
