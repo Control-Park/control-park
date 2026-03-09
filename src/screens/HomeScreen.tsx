@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { View, StyleSheet, FlatList } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { View, StyleSheet, FlatList, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import SearchBar from "../components/SearchBar";
@@ -8,15 +8,32 @@ import SectionHeader from "../components/SectionHeader";
 import ParkingCard, { ParkingCardData } from "../components/ParkingCard";
 import CustomButton from "../components/CustomButton";
 import Navbar, { TabKey } from "../components/Navbar";
+import { supabase } from "../lib/supabase";
 
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
+import { useFocusEffect } from "@react-navigation/native";
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 const MAX_WIDTH = 420;
 
 export default function HomeScreen({ navigation }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("Home");
+  const [userEmail, setUserEmail] = useState("");
+
+  useFocusEffect(
+    useCallback(() => {
+      const getUser = async () => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        setUserEmail(user?.email || "");
+        console.log("Logged in as:", user?.email);
+      };
+
+      getUser();
+    }, []),
+  );
 
   // Favorite toggle state: id -> t/f
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
@@ -48,7 +65,7 @@ export default function HomeScreen({ navigation }: Props) {
         isFavorited: false,
       },
     ],
-    []
+    [],
   );
 
   const lotsNearYou = useMemo<ParkingCardData[]>(
@@ -78,7 +95,7 @@ export default function HomeScreen({ navigation }: Props) {
         isFavorited: false,
       },
     ],
-    []
+    [],
   );
 
   const toggleFavorite = (id: string) => {
@@ -140,6 +157,7 @@ export default function HomeScreen({ navigation }: Props) {
             className="flex items-center justify-center"
             onPress={() => navigation.navigate("Login")}
           />
+          <Text>Logged in as: {userEmail}</Text>
         </View>
       </View>
 

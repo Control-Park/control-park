@@ -7,10 +7,12 @@ import GoogleIcon from "../../assets/google-logo.png";
 
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
+import { supabase } from "../lib/supabase";
 import {
   isStrongPassword,
   isValidEmail,
   showFieldError,
+  showFieldSuccess,
 } from "../utils/validation";
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
@@ -25,20 +27,14 @@ export default function LoginScreen({ navigation }: Props) {
 
   // TODO: await sign in with supabase and navigate to home
   const handleLogin = async () => {
-    setErrorFields({
-      email: false,
-      password: false,
-    });
+    setErrorFields({ email: false, password: false });
 
     let hasError = false;
 
     // 2. PASSWORD
-    if (!isStrongPassword(password)) {
+    if (!password.trim()) {
       setErrorFields((prev) => ({ ...prev, password: true }));
-      showFieldError(
-        "password requirements",
-        "Min. 6 chars, 1 uppercase, 1 special character",
-      );
+      showFieldError("password", "Please enter your password");
       hasError = true;
     }
 
@@ -46,11 +42,36 @@ export default function LoginScreen({ navigation }: Props) {
     if (!email.trim() || !isValidEmail(email)) {
       setErrorFields((prev) => ({ ...prev, email: true }));
       showFieldError("email", "Enter a valid email address");
+      hasError = true;
     }
-    hasError = true;
 
-    // 3. BACKEND AUTHENTICATION
-    // await supabase.auth.signInWithPassword
+    if (hasError) return;
+
+    // 1. Create auth user
+    try {
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email: email,
+          password: password,
+        });
+
+      if (authError) {
+        if (authError.message.includes("Invalid login credentials")) {
+          showFieldError("login", "Incorrect email or password");
+          return;
+        } else showFieldError("login", authError.message);
+      }
+
+      // Successful login
+      showFieldSuccess("success", "Login successful! Redirecting...");
+      setTimeout(() => {
+        // navigate.replace for later, so users cant go back
+        navigation.navigate("Home");
+      }, 3000);
+    } catch (authError: any) {
+      showFieldError("login", "An error occured. Please try again.");
+      console.log("Login error", authError);
+    }
   };
 
   return (
