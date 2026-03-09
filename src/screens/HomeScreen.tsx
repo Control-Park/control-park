@@ -13,28 +13,15 @@ import { supabase } from "../lib/supabase";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useFocusEffect } from "@react-navigation/native";
+import { useUser } from "../hooks/useUser";
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 const MAX_WIDTH = 420;
 
 export default function HomeScreen({ navigation }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("Home");
-  const [userEmail, setUserEmail] = useState("");
-
-  useFocusEffect(
-    useCallback(() => {
-      const getUser = async () => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setUserEmail(user?.email || "");
-        console.log("Logged in as:", user?.email);
-      };
-
-      getUser();
-    }, []),
-  );
-
+  const { userEmail } = useUser();
+  
   // Favorite toggle state: id -> t/f
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
