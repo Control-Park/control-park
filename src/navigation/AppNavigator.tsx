@@ -12,7 +12,15 @@ export type RootStackParamList = {
   Home: undefined;
   Login: undefined;
   Signup: undefined; 
-  Email: undefined; 
+  Email: {
+    email: string;
+    userData?: {
+      first_name: string;
+      last_name: string;
+      birth_date: string;
+      phone: string;
+    }
+  }
   Details: { id: string };
   // TODO: add userId and profile and send those as parameters into necessary screens
 };

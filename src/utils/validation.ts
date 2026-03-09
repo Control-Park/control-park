@@ -16,6 +16,16 @@ export const showFieldError = (field: string, message: string) => {
   console.log(`${field} error`);
 };
 
+export const showFieldSuccess = (field: string, message: string) => {
+  Toast.show({
+    type: "success",
+    text1: `Valid ${field}`,
+    text2: message,
+    topOffset: 100,
+  });
+  // console.log(`${field} valid`);
+};
+
 export const formatDate = (text: string) => {
   // Remove all non-digits
   const cleaned = text.replace(/\D/g, "");

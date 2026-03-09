@@ -20,6 +20,7 @@ import {
   formatPhoneNumber,
   isValidPhone,
   isStrongPassword,
+  showFieldSuccess,
 } from "../utils/validation";
 type Props = NativeStackScreenProps<RootStackParamList, "Signup">;
 
@@ -39,6 +40,8 @@ export default function SignUpScreen({ navigation }: Props) {
     password: false,
     confirmPassword: false,
   });
+
+  const [loading, setLoading] = useState(false);
 
   // main handler
   const handleSignUp = async () => {
@@ -60,6 +63,7 @@ export default function SignUpScreen({ navigation }: Props) {
       setErrorFields((prev) => ({ ...prev, confirmPassword: true }));
       showFieldError("matching password", "Passwords do not match!");
       hasError = true;
+      return;
     }
 
     // 5. PASSWORD
@@ -106,11 +110,53 @@ export default function SignUpScreen({ navigation }: Props) {
     const firstName = nameParts[0]; // firstName[0] for "initial" lettered profile picture
     const lastName = nameParts.slice(1).join(" ");
 
-    // 1. Create auth user (this handles password)
-    // const { data: authData, error: authError } = await supabase.auth.signUp({
-    //   email: email,
-    //   password: password,
-    // });
+    if (hasError) return;
+
+    setLoading(true);
+
+    // 1. Create auth user
+    try {
+      setLoading(false);
+
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            birth_date: birthDate,
+            phone: phoneNumber,
+          },
+        },
+      });
+
+      if (authError) {
+        if (authError.message.includes("User already registered")) {
+          showFieldError(
+            "email",
+            "This email is already registered. Please login.",
+          );
+          setTimeout(() => navigation.navigate("Login"), 2000);
+          return;
+        }
+        throw authError;
+      }
+
+      showFieldSuccess("success", "Account created! Please login.");
+      setTimeout(() => {
+        navigation.navigate("Login");
+      }, 2000);
+    } catch (authError: any) {
+      showFieldError("signup", authError.message);
+      // Navigate to Login screen after a brief delay
+      setTimeout(() => {
+        navigation.navigate("Login");
+      }, 2000);
+      throw authError;
+    } finally {
+      setLoading(false);
+    }
 
     // save to supabase with url
     // await supabase.from("users").insert({
@@ -216,9 +262,10 @@ export default function SignUpScreen({ navigation }: Props) {
           {/* Social Login */}
           {/* TODO: implement OAuth sign-in with logo, e.g., apple/google login */}
           <CustomButton
-            title="Continue"
+            title={loading ? "Creating account..." : "Sign up"}
             color="#ECAA00"
             className="flex items-center justify-center"
+            disabled={loading}
             onPress={handleSignUp} // test
           />
           <View className="flex-row items-center justify-center mx-5 my-3">
