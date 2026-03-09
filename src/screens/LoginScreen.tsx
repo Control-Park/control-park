@@ -7,7 +7,6 @@ import GoogleIcon from "../../assets/google-logo.png";
 
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import { supabase } from "../lib/supabase";
 import {
   isStrongPassword,
   isValidEmail,
@@ -25,52 +24,48 @@ export default function LoginScreen({ navigation }: Props) {
     password: false,
   });
 
-  // TODO: await sign in with supabase and navigate to home
+  const baseUrl = process.env.SERVER_URL;
   const handleLogin = async () => {
     setErrorFields({ email: false, password: false });
 
+    // basic validation
     let hasError = false;
-
-    // 2. PASSWORD
-    if (!password.trim()) {
-      setErrorFields((prev) => ({ ...prev, password: true }));
-      showFieldError("password", "Please enter your password");
-      hasError = true;
-    }
-
-    // 1. EMAIL
     if (!email.trim() || !isValidEmail(email)) {
       setErrorFields((prev) => ({ ...prev, email: true }));
       showFieldError("email", "Enter a valid email address");
       hasError = true;
     }
-
+    if (!password.trim()) {
+      setErrorFields((prev) => ({ ...prev, password: true }));
+      showFieldError("password", "Please enter your password");
+      hasError = true;
+    }
     if (hasError) return;
 
-    // 1. Create auth user
     try {
-      const { data: authData, error: authError } =
-        await supabase.auth.signInWithPassword({
-          email: email,
-          password: password,
-        });
+      const res = await fetch(`${baseUrl}/auth/signin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-      if (authError) {
-        if (authError.message.includes("Invalid login credentials")) {
-          showFieldError("login", "Incorrect email or password");
-          return;
-        } else showFieldError("login", authError.message);
+      // If server returns non-JSON on error, this protects you.
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+
+      if (!res.ok) {
+        // prefer server message if it exists
+        const message = data?.message || `Sign in failed (${res.status})`;
+        showFieldError("login", message);
+        return;
       }
 
-      // Successful login
+      console.log("Success:", data);
       showFieldSuccess("success", "Login successful! Redirecting...");
-      setTimeout(() => {
-        // navigate.replace for later, so users cant go back
-        navigation.navigate("Home");
-      }, 3000);
-    } catch (authError: any) {
-      showFieldError("login", "An error occured. Please try again.");
-      console.log("Login error", authError);
+      navigation.navigate("Home");
+    } catch (err: any) {
+      console.log("Fetch error:", err);
+      showFieldError("login", "Network error. Check your phone + server are on the same Wi-Fi.");
     }
   };
 
