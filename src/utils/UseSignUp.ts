@@ -8,6 +8,9 @@ import {
   isValidPhone,
   isStrongPassword,
 } from "../utils/validation";
+import { useNavigation } from "@react-navigation/native"; 
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
 
 export interface SignUpFields {
   fullName: string;
@@ -41,7 +44,10 @@ const toISODate = (mmddyyyy: string): string => {
   return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
 };
 
-export function useSignUp(onSuccess: () => void) {
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+export function useSignUp() { 
+  const navigation = useNavigation<NavigationProp>();
   const [loading, setLoading] = useState(false);
   const [errorFields, setErrorFields] = useState<FieldErrors>(DEFAULT_ERRORS);
 
@@ -95,6 +101,7 @@ export function useSignUp(onSuccess: () => void) {
 
     return !hasError;
   };
+  
 
   const submit = async (fields: SignUpFields) => {
     if (!validate(fields)) return;
@@ -114,7 +121,7 @@ export function useSignUp(onSuccess: () => void) {
       });
 
       showFieldSuccess("success", "Account created! Please login.");
-      setTimeout(onSuccess, 2000);
+      setTimeout(() => navigation.navigate("Login"), 2000);
     } catch (error: any) {
       showFieldError("signup", error.message ?? "Network error. Check your server connection.");
     } finally {

@@ -13,6 +13,7 @@ import {
   showFieldError,
   showFieldSuccess,
 } from "../utils/validation";
+import { useSocialAuth } from "../utils/useSocialAuth";
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
 export default function LoginScreen({ navigation }: Props) {
@@ -23,6 +24,8 @@ export default function LoginScreen({ navigation }: Props) {
     email: false,
     password: false,
   });
+
+  const { loading, handleGoogleLogin, handleAppleLogin } = useSocialAuth();
 
   const baseUrl = process.env.SERVER_URL;
   const handleLogin = async () => {
@@ -142,12 +145,14 @@ export default function LoginScreen({ navigation }: Props) {
               color="white"
               className="flex-row items-center justify-center border-2 border-gray-300 mb-2"
               localImg={AppleIcon}
+              onPress={handleAppleLogin}
             ></CustomButton>
             <CustomButton
               title="Login with Google"
               color="white"
               className="flex-row items-center justify-center border-2 border-gray-300 mb-1"
               localImg={GoogleIcon}
+              onPress={handleGoogleLogin}
             />
           </View>
         </View>

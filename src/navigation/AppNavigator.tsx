@@ -70,10 +70,6 @@ export default function AppNavigator() {
       component={ForgotPasswordScreen}
       options={{ title: "Forgot Password" }}
     />
-<<<<<<< HEAD
-
-=======
->>>>>>> d7fc648 (Added forgot password frontend screen and navigation)
   </Stack.Navigator>
   );
 }

@@ -7,6 +7,7 @@ interface CustomButtonProps {
   className?: string;
   onPress?: () => void;
   localImg?: any;
+  disabled?: any;
 }
 
 export default function CustomButton({
@@ -15,12 +16,14 @@ export default function CustomButton({
   className = "",
   onPress = () => {},
   localImg,
+  disabled,
 }: CustomButtonProps) {
   return (
     <TouchableOpacity
       className={`p-4 rounded-xl ${className}`}
       style={{ backgroundColor: color }}
       onPress={onPress}
+      disabled={disabled}
     >
       {localImg && (
         <Image

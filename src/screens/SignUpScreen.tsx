@@ -15,23 +15,22 @@ const DEFAULT_FIELDS: SignUpFields = {
   password: "",
   confirmPassword: "",
 };
+import { useSocialAuth } from "../utils/useSocialAuth"; 
 
 export default function SignUpScreen({ navigation }: Props) {
   const [fields, setFields] = useState<SignUpFields>(DEFAULT_FIELDS);
 
-  const { loading, errorFields, submit } = useSignUp(() =>
-    navigation.navigate("Login")
-  );
+  const { loading, errorFields, submit } = useSignUp();
 
   const handleChange = (key: keyof SignUpFields, value: string) =>
     setFields((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = () => submit(fields);
+  const { loading: socialLoading, handleGoogleLogin, handleAppleLogin } = useSocialAuth();
 
   return (
     <ScrollView className="flex-1 bg-white">
       <View className="flex-1 w-full items-center justify-center">
-
         {/* Tab Header */}
         <View className="mt-8">
           <View className="flex-row justify-center items-center">
@@ -43,7 +42,7 @@ export default function SignUpScreen({ navigation }: Props) {
 
             <View>
               <Text className="text-[#ECAA00] text-2xl font-bold">Sign up</Text>
-              <View className="h-[3px] w-[150%] bg-[#ECAA00] mt-1" />
+              <View className="h-[3px] w-full max-w-sm bg-[#ECAA00] mt-1" />
             </View>
           </View>
         </View>
@@ -55,6 +54,9 @@ export default function SignUpScreen({ navigation }: Props) {
           loading={loading}
           onChange={handleChange}
           onSubmit={handleSubmit}
+          onAppleLogin={handleAppleLogin}   
+          onGoogleLogin={handleGoogleLogin} 
+          socialLoading={socialLoading}     
         />
 
         {/* Footer */}
@@ -70,7 +72,6 @@ export default function SignUpScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
         </View>
-
       </View>
     </ScrollView>
   );
