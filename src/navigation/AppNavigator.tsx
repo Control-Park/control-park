@@ -61,11 +61,6 @@ export default function AppNavigator() {
     name="ResetPassword"
     component={ResetPasswordScreen}
     />
-    
-    <Stack.Screen  
-    name="Login"
-    component={LoginScreen}
-    />
 
   </Stack.Navigator>
   );
