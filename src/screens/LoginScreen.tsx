@@ -113,7 +113,7 @@ export default function LoginScreen({ navigation }: Props) {
             hasError={errorFields.password}
           />
           <View className="flex-row items-center justify-end mb-4">
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
               <Text className="text-[#ECAA00] font-semibold text-sm">
                 {/* TODO: forgot password screens - angel */}
                 Forgot Password?
@@ -158,12 +158,9 @@ export default function LoginScreen({ navigation }: Props) {
             <Text className="text-gray-500 font-semibold text-xl">
               Don't have an Account?
             </Text>
-            <TouchableOpacity>
-              {/* TODO: implement forgot password/password reset frontend component - angel */}
-              <Text
-                className="text-[#ECAA00] font-bold ml-1.5 tracking-wide text-xl"
-                onPress={() => navigation.navigate("Signup")}
-              >
+
+            <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
+              <Text className="text-[#ECAA00] font-bold ml-1.5 tracking-wide text-xl">
                 Sign up
               </Text>
             </TouchableOpacity>
