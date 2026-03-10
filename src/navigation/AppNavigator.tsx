@@ -6,6 +6,7 @@ import LoginScreen from "../screens/LoginScreen";
 import SignUpScreen from "../screens/SignUpScreen";
 import EmailScreen from "../screens/VerifyEmailScreen";
 import DetailsScreen from "../screens/DetailsScreen";
+import ResetPasswordScreen from ".../screens/ResetPasswordScreen";
 
 export type RootStackParamList = {
   // change type based on parameters a screen expects to receive
@@ -56,6 +57,16 @@ export default function AppNavigator() {
         component={DetailsScreen}
         options={{ title: "Details" }}
       />
-    </Stack.Navigator>
+    <Stack.Screen
+    name="ResetPassword"
+    component={ResetPasswordScreen}
+    />
+    
+    <Stack.Screen  
+    name="Login"
+    component={LoginScreen}
+    />
+
+  </Stack.Navigator>
   );
 }
