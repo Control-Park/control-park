@@ -26,8 +26,10 @@
     "@supabase/supabase-js": "^2.97.0",
     "babel-loader": "^8.4.1",
     "expo": "~54.0.33",
+    "expo-linking": "~8.0.11",
     "expo-secure-store": "~15.0.8",
     "expo-status-bar": "~3.0.9",
+    "expo-web-browser": "~15.0.10",
     "nativewind": "^4.2.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -43,7 +45,6 @@
     "react-native-web": "^0.21.0",
     "storybook": "^10.2.14",
     "tailwindcss": "^3.4.19"
-    
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.1",
