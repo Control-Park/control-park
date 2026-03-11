@@ -58,11 +58,7 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 18,
     fontWeight: "600",
-
-    // THIS is what centers the words
     textAlign: "center",
-
-    // Reserve equal-ish space so the centered text doesn't collide with icon
     paddingLeft: ICON_PAD,
     paddingRight: ICON_PAD,
   },

@@ -207,7 +207,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // ✅ add paddingHorizontal so content doesn't hug screen edges
   pageMax: {
     paddingHorizontal: 16,
     width: "100%",
@@ -229,7 +228,6 @@ const styles = StyleSheet.create({
     height: 35,
   },
 
-  // ✅ centers the search bar and prevents full-width stretching (as much as possible from here)
   searchWrapper: {
     marginTop: 10,
     alignItems: "center",
@@ -237,8 +235,8 @@ const styles = StyleSheet.create({
   },
 
   searchInner: {
-  width: "92%",      // ✅ make it wider (try 92–95)
-  maxWidth: 390,     // ✅ prevents it from getting huge on tablets
+  width: "96%",  
+  maxWidth: 400,
 },
 
   sectionsBackground: {
