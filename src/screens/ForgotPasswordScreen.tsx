@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 export default function ForgotPasswordScreen() {
+
+  const navigation = useNavigation();
 
   const [email, setEmail] = useState("");
 
@@ -10,30 +13,35 @@ export default function ForgotPasswordScreen() {
   return (
     <View style={styles.container}>
 
-      <Text style={styles.title}>Forgot password</Text>
+      <View style={styles.formContainer}>
 
-      <Text style={styles.subtitle}>
-        Please enter your email to reset the password
-      </Text>
+        <Text style={styles.title}>Forgot password</Text>
 
-      <Text style={styles.label}>Your Email</Text>
+        <Text style={styles.subtitle}>
+          Please enter your email to reset the password
+        </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your email"
-        value={email}
-        onChangeText={setEmail}
-      />
+        <Text style={styles.label}>Your Email</Text>
 
-      <TouchableOpacity
-        style={[
-          styles.button,
-          { backgroundColor: isValid ? "#E6A800" : "#E8D6A2" }
-        ]}
-        disabled={!isValid}
-      >
-        <Text style={styles.buttonText}>Reset Password</Text>
-      </TouchableOpacity>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your email"
+          value={email}
+          onChangeText={setEmail}
+        />
+
+        <TouchableOpacity
+          style={[
+            styles.button,
+            { backgroundColor: isValid ? "#E6A800" : "#E8D6A2" }
+          ]}
+          disabled={!isValid}
+          onPress={() => navigation.navigate("ResetPassword")}
+        >
+          <Text style={styles.buttonText}>Reset Password</Text>
+        </TouchableOpacity>
+
+      </View>
 
     </View>
   );
@@ -45,7 +53,14 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     backgroundColor: "#fff",
-    justifyContent: "center"
+    justifyContent: "center",
+    alignItems: "center"
+  },
+
+  formContainer: {
+    width: 350,
+    maxWidth: "90%",
+    alignSelf: "center"
   },
 
   title: {

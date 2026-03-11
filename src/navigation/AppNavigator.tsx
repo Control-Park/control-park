@@ -8,6 +8,7 @@ import EmailScreen from "../screens/VerifyEmailScreen";
 import DetailsScreen from "../screens/DetailsScreen";
 import TestScreen from "../screens/TestScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
+import ResetPasswordScreen from "../screens/ResetPasswordScreen";
 
 
 export type RootStackParamList = {
@@ -15,7 +16,8 @@ export type RootStackParamList = {
   Home: undefined;
   Login: undefined;
   Signup: undefined;
-  ForgotPassword: undefined; 
+  ForgotPassword: undefined;
+  ResetPassword: undefined; 
   Email: {
     email: string;
     userData?: {
@@ -70,6 +72,12 @@ export default function AppNavigator() {
       component={ForgotPasswordScreen}
       options={{ title: "Forgot Password" }}
     />
+      />
+      <Stack.Screen
+      name="ResetPassword"
+      component={ResetPasswordScreen}
+      options={{ title: "Reset Password"}}
+      />
   </Stack.Navigator>
   );
 }
