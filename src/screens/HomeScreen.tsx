@@ -1,9 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { View, StyleSheet, FlatList } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { View, StyleSheet, FlatList, ScrollView } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import SearchBar from "../components/SearchBar";
 import NotificationsButton from "../components/NotificationsButton";
@@ -46,6 +43,7 @@ export default function HomeScreen({ navigation }: Props) {
     }
   }
   getUserTest();
+
   // Favorite toggle state: id -> t/f
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
@@ -129,17 +127,21 @@ export default function HomeScreen({ navigation }: Props) {
   return (
     <View style={styles.safe}>
       {/* Scrollable content */}
-      <View style={styles.scrollContainer}>
+      <ScrollView style={styles.scrollContainer} className="overflow-scroll">
         {/* top area (centered on large screens) */}
-        <View style={[styles.pageMax, { paddingTop: 5 }]}>
-          <View style={styles.topArea}>
+        <View style={styles.pageMax}>
+          <View style={[styles.topArea, { paddingTop: insets.top + 0 }]}>
             <View style={styles.topRow}>
-              <NotificationsButton
-                onPress={() => console.log("Notifications")}
-              />
+              <NotificationsButton onPress={() => console.log("Notifications")} />
             </View>
 
-            <SearchBar />
+            {/* Spacing + make search bar shorter (centered) */}
+            <View style={styles.searchWrapper}>
+              <View style={styles.searchInner}>
+                <SearchBar />
+              </View>
+            </View>
+
             <View style={styles.topSpacer} />
           </View>
         </View>
@@ -183,15 +185,12 @@ export default function HomeScreen({ navigation }: Props) {
             <View style={{ height: 80 }} />
           </View>
         </View>
-      </View>
+      </ScrollView>
 
       {/* Navbar - fixed at bottom */}
       <View style={[styles.navbarWrapper]}>
         <View style={styles.navbarContent}>
-          <Navbar
-            activeTab={activeTab}
-            onTabPress={(tab) => setActiveTab(tab)}
-          />
+          <Navbar activeTab={activeTab} onTabPress={(tab) => setActiveTab(tab)} />
         </View>
       </View>
     </View>
@@ -208,6 +207,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  // ✅ add paddingHorizontal so content doesn't hug screen edges
   pageMax: {
     paddingHorizontal: 16,
     width: "100%",
@@ -217,19 +217,29 @@ const styles = StyleSheet.create({
 
   topArea: {
     backgroundColor: "#F6F6F6",
-    paddingBottom: 12,
   },
 
   topRow: {
     height: 44,
     justifyContent: "center",
     alignItems: "flex-end",
-    marginBottom: 10,
   },
 
   topSpacer: {
-    height: 45,
+    height: 35,
   },
+
+  // ✅ centers the search bar and prevents full-width stretching (as much as possible from here)
+  searchWrapper: {
+    marginTop: 10,
+    alignItems: "center",
+    width: "100%",
+  },
+
+  searchInner: {
+  width: "92%",      // ✅ make it wider (try 92–95)
+  maxWidth: 390,     // ✅ prevents it from getting huge on tablets
+},
 
   sectionsBackground: {
     backgroundColor: "#EAEAEA",

@@ -11,12 +11,10 @@ export default function SearchBar({ placeholder = "Start your search" }: Props) 
   const inputRef = useRef<TextInput>(null);
 
   return (
-    <Pressable
-      style={styles.wrapper}
-      onPress={() => inputRef.current?.focus()}
-    >
-      <View style={styles.centerRow}>
-        <Ionicons name="search" size={18} color="#111827" />
+    <Pressable style={styles.wrapper} onPress={() => inputRef.current?.focus()}>
+      <View style={styles.inner}>
+        {/* icon overlay */}
+        <Ionicons name="search" size={18} color="#111827" style={styles.icon} />
 
         <TextInput
           ref={inputRef}
@@ -31,29 +29,41 @@ export default function SearchBar({ placeholder = "Start your search" }: Props) 
   );
 }
 
+const ICON_PAD = 44; // space reserved for the icon area
+
 const styles = StyleSheet.create({
   wrapper: {
     height: 54,
     borderRadius: 999,
     backgroundColor: "#FFFFFF",
-    alignItems: "center",
     justifyContent: "center",
-
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
     elevation: 4,
   },
-  centerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+  inner: {
+    height: "100%",
+    justifyContent: "center",
+    position: "relative",
+  },
+  icon: {
+    position: "absolute",
+    left: 18,
+    zIndex: 1,
   },
   text: {
+    height: "100%",
     color: "#111827",
     fontSize: 18,
     fontWeight: "600",
-    minWidth: 120,
+
+    // THIS is what centers the words
+    textAlign: "center",
+
+    // Reserve equal-ish space so the centered text doesn't collide with icon
+    paddingLeft: ICON_PAD,
+    paddingRight: ICON_PAD,
   },
 });
