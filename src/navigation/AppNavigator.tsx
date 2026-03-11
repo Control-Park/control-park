@@ -17,7 +17,7 @@ export type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   ForgotPassword: undefined;
-  ResetPassword: undefined; 
+  ResetPassword: { email: string };
   Email: {
     email: string;
     userData?: {
@@ -72,7 +72,6 @@ export default function AppNavigator() {
       component={ForgotPasswordScreen}
       options={{ title: "Forgot Password" }}
     />
-      />
       <Stack.Screen
       name="ResetPassword"
       component={ResetPasswordScreen}

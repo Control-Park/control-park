@@ -5,7 +5,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { showFieldError, showFieldSuccess } from "../utils/validation";
 
-const baseUrl = process.env.SERVER_URL;
+const baseUrl = process.env.EXPO_PUBLIC_SERVER_URL
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const useAuth = (navigation: NavigationProp) => {
