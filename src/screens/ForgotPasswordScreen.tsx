@@ -1,29 +1,28 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert
-} from "react-native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/AppNavigator";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/AppNavigator";
 import { supabase } from "../utils/supabase";
 
-type Props = NativeStackScreenProps<RootStackParamList, "ForgotPassword">;
+type ForgotPasswordNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "ForgotPassword"
+>;
 
-export default function ForgotPasswordScreen({ navigation }: Props) {
+export default function ForgotPasswordScreen() {
+  const navigation = useNavigation<ForgotPasswordNavigationProp>();
   const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const isValid = email.length > 0;
+  const isValid = email.trim().length > 0;
 
   const handleResetPassword = async () => {
-    if (!email.trim()) return;
+    if (!email.trim() || loading) return;
     
-    setIsLoading(true);
+    setLoading(true);
     try {
+      // Use Supabase to send reset password email
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: "http://localhost:8081/auth/callback",
       });
@@ -33,12 +32,13 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
         return;
       }
       
-      navigation.navigate("Email", { email });
+      // Navigate to Email screen with the email parameter
+      navigation.navigate("Email", { email: email.trim() });
       
     } catch (error) {
       Alert.alert("Error", "Network error. Please try again.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -63,13 +63,13 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
         <TouchableOpacity
           style={[
             styles.button,
-            { backgroundColor: isValid && !isLoading ? "#E6A800" : "#E8D6A2" },
+            { backgroundColor: isValid ? "#E6A800" : "#E8D6A2" },
           ]}
-          disabled={!isValid || isLoading}
+          disabled={!isValid || loading}
           onPress={handleResetPassword}
         >
           <Text style={styles.buttonText}>
-            {isLoading ? "Sending..." : "Reset Password"}
+            {loading ? "Sending..." : "Reset Password"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -77,6 +77,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
   );
 }
 
+// Styles remain exactly the same...
 const styles = StyleSheet.create({
   container: {
     flex: 1,

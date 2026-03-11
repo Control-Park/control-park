@@ -13,23 +13,24 @@ import CustomButton from "../components/CustomButton";
 
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
+import Navbar, { TabKey } from "../components/Navbar";
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 const MAX_WIDTH = 420;
 
 export default function HomeScreen({ navigation }: Props) {
   // placeholder: move function to another screen once implemented
-
+  const [activeTab, setActiveTab] = useState<TabKey>("Home");
   const insets = useSafeAreaInsets();
-  const baseUrl = 'http://192.168.68.63:9001/auth/user';
+  const baseUrl = "http://localhost:9001/auth/user";
   const queryParams = {
-    email: 'tple06203@gmail.com',
-  }
+    email: "tple06203@gmail.com",
+  };
   const url = new URL(baseUrl);
 
   url.search = new URLSearchParams(queryParams).toString();
   console.log(url.href);
-  
+
   async function getUserTest() {
     try {
       const response = await fetch(url.href);
@@ -41,7 +42,7 @@ export default function HomeScreen({ navigation }: Props) {
       const data = await response.json();
       console.log(data);
     } catch (error) {
-      console.log('Fetch error:', error);
+      console.log("Fetch error:", error);
     }
   }
   getUserTest();
@@ -76,7 +77,7 @@ export default function HomeScreen({ navigation }: Props) {
         isFavorited: false,
       },
     ],
-    []
+    [],
   );
 
   // Data for the second row (Lots Near You)
@@ -107,7 +108,7 @@ export default function HomeScreen({ navigation }: Props) {
         isFavorited: false,
       },
     ],
-    []
+    [],
   );
 
   // Toggle favorite function
@@ -120,6 +121,7 @@ export default function HomeScreen({ navigation }: Props) {
       <ParkingCard
         data={{ ...item, isFavorited: !!favorites[item.id] }}
         onToggleFavorite={() => toggleFavorite(item.id)}
+        onPress={() => navigation.navigate("Details", { id: item.id })}
       />
     </View>
   );
@@ -175,6 +177,10 @@ export default function HomeScreen({ navigation }: Props) {
 
           {/* space for navbar */}
           <View style={{ height: 90 }} />
+          <Navbar
+            activeTab={activeTab}
+            onTabPress={(tab) => setActiveTab(tab)}
+          />
         </View>
       </View>
     </SafeAreaView>

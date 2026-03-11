@@ -6,7 +6,7 @@ export type TabKey = "Explore" | "Listings" | "Home" | "Messages" | "Profile";
 
 type Props = {
   activeTab: TabKey;
-  onTabPress: (tab: TabKey) => void;
+  onTabPress?: (tab: TabKey) => void; // Make it optional with ?
 };
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -25,6 +25,15 @@ const iconNameByTab: Record<Exclude<TabKey, "Home">, keyof typeof Ionicons.glyph
 };
 
 export default function Navbar({ activeTab, onTabPress }: Props) {
+  
+  const handlePress = (tab: TabKey) => {
+    // Only call onTabPress if it exists
+    if (onTabPress) {
+      onTabPress(tab);
+    } else {
+      console.warn("onTabPress function not provided");
+    }
+  };
 
   return (
     <View style={styles.outer}>
@@ -35,7 +44,7 @@ export default function Navbar({ activeTab, onTabPress }: Props) {
           return (
             <Pressable
               key={t.key}
-              onPress={() => onTabPress(t.key)}
+              onPress={() => handlePress(t.key)} // Use handlePress instead
               style={styles.item}
               hitSlop={10}
             >
@@ -65,7 +74,6 @@ export default function Navbar({ activeTab, onTabPress }: Props) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   outer: {
     backgroundColor: "#FFFFFF",
