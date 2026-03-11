@@ -63,11 +63,10 @@ export default function LoginScreen({ navigation }: Props) {
         return;
       }
 
-      console.log("Success:", data);
       showFieldSuccess("success", "Login successful! Redirecting...");
       navigation.navigate("Home");
     } catch (err: any) {
-      console.log("Fetch error:", err);
+      console.error("Fetch error:", err);
       showFieldError("login", "Network error. Check your phone + server are on the same Wi-Fi.");
     }
   };
