@@ -1,4 +1,4 @@
-const BASE_URL = "http://192.168.68.63:9001";
+const BASE_URL = "http://localhost:9001";
 
 export interface SignUpPayload {
   email: string;

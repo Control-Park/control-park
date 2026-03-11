@@ -27,7 +27,7 @@ export default function LoginScreen({ navigation }: Props) {
 
   const { loading, handleGoogleLogin, handleAppleLogin } = useSocialAuth();
 
-  const baseUrl = process.env.SERVER_URL;
+  const baseUrl = "http://localhost:9001";
   const handleLogin = async () => {
     setErrorFields({ email: false, password: false });
 

@@ -21,7 +21,7 @@ export default function HomeScreen({ navigation }: Props) {
   // placeholder: move function to another screen once implemented
 
   const insets = useSafeAreaInsets();
-  const baseUrl = 'http://192.168.68.63:9001/auth/user';
+  const baseUrl = 'http://localhost:9001/auth/user';
   const queryParams = {
     email: 'tple06203@gmail.com',
   }

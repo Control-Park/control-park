@@ -10,14 +10,13 @@ import TestScreen from "../screens/TestScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/ResetPasswordScreen";
 
-
 export type RootStackParamList = {
   // change type based on parameters a screen expects to receive
   Home: undefined;
   Login: undefined;
   Signup: undefined;
   ForgotPassword: undefined;
-  ResetPassword: undefined; 
+  ResetPassword: undefined;
   Email: {
     email: string;
     userData?: {
@@ -25,8 +24,8 @@ export type RootStackParamList = {
       last_name: string;
       birth_date: string;
       phone: string;
-    }
-  }
+    };
+  };
   Details: { id: string };
   Test: undefined;
   // TODO: add userId and profile and send those as parameters into necessary screens
@@ -64,20 +63,19 @@ export default function AppNavigator() {
         options={{ title: "Details" }}
       />
       <Stack.Screen
-      name="Test"
-      component={TestScreen}
+        name="Test"
+        component={TestScreen}
       />
       <Stack.Screen
-      name="ForgotPassword"
-      component={ForgotPasswordScreen}
-      options={{ title: "Forgot Password" }}
-    />
+        name="ForgotPassword"
+        component={ForgotPasswordScreen}
+        options={{ title: "Forgot Password" }}
       />
       <Stack.Screen
-      name="ResetPassword"
-      component={ResetPasswordScreen}
-      options={{ title: "Reset Password"}}
+        name="ResetPassword"
+        component={ResetPasswordScreen}
+        options={{ title: "Reset Password" }}
       />
-  </Stack.Navigator>
+    </Stack.Navigator>
   );
 }
