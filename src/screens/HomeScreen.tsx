@@ -16,7 +16,7 @@ import { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar, { TabKey } from "../components/Navbar";
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
-const MAX_WIDTH = 420;
+const MAX_WIDTH = 428;
 
 export default function HomeScreen({ navigation }: Props) {
   // placeholder: move function to another screen once implemented
@@ -127,63 +127,74 @@ export default function HomeScreen({ navigation }: Props) {
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* top area (centered on large screens) */}
-      <View style={[styles.pageMax, { paddingTop: 5 }]}>
-        <View style={styles.topArea}>
-          <View style={styles.topRow}>
-            <NotificationsButton onPress={() => console.log("Notifications")} />
-          </View>
+    <View style={styles.safe}>
+      {/* Scrollable content */}
+      <View style={styles.scrollContainer}>
+        {/* top area (centered on large screens) */}
+        <View style={[styles.pageMax, { paddingTop: 5 }]}>
+          <View style={styles.topArea}>
+            <View style={styles.topRow}>
+              <NotificationsButton
+                onPress={() => console.log("Notifications")}
+              />
+            </View>
 
-          <SearchBar />
-          <View style={styles.topSpacer} />
+            <SearchBar />
+            <View style={styles.topSpacer} />
+          </View>
+        </View>
+
+        {/* Background section */}
+        <View style={styles.sectionsBackground}>
+          <View style={styles.sectionsInner}>
+            {/* Parking Lots section */}
+            <SectionHeader title="Parking Lots" />
+            <FlatList
+              data={parkingLots}
+              renderItem={renderCard}
+              keyExtractor={(i) => i.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.rowContent}
+            />
+
+            <View style={styles.sectionGap} />
+
+            {/* Lots Near You section */}
+            <SectionHeader title="Lots Near You" />
+            <FlatList
+              data={lotsNearYou}
+              renderItem={renderCard}
+              keyExtractor={(i) => i.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.rowContent}
+            />
+
+            {/* placeholder for testing signup and login buttons */}
+            <CustomButton
+              title="signup (placeholder to test)"
+              color="#ECAA00"
+              className="flex items-center justify-center mt-6"
+              onPress={() => navigation.navigate("Login")}
+            />
+
+            {/* Extra bottom padding to ensure content doesn't hide behind navbar */}
+            <View style={{ height: 80 }} />
+          </View>
         </View>
       </View>
 
-      {/* Background section */}
-      <View style={styles.sectionsBackground}>
-        <View style={styles.sectionsInner}>
-          {/* Parking Lots section */}
-          <SectionHeader title="Parking Lots" />
-          <FlatList
-            data={parkingLots}
-            renderItem={renderCard}
-            keyExtractor={(i) => i.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.rowContent}
-          />
-
-          <View style={styles.sectionGap} />
-
-          {/* Lots Near You section */}
-          <SectionHeader title="Lots Near You" />
-          <FlatList
-            data={lotsNearYou}
-            renderItem={renderCard}
-            keyExtractor={(i) => i.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.rowContent}
-          />
-
-          {/* placeholder for testing signup and login buttons */}
-          <CustomButton
-            title="signup (placeholder to test)"
-            color="#ECAA00"
-            className="flex items-center justify-center"
-            onPress={() => navigation.navigate("Login")}
-          />
-
-          {/* space for navbar */}
-          <View style={{ height: 90 }} />
+      {/* Navbar - fixed at bottom */}
+      <View style={[styles.navbarWrapper]}>
+        <View style={styles.navbarContent}>
           <Navbar
             activeTab={activeTab}
             onTabPress={(tab) => setActiveTab(tab)}
           />
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -191,6 +202,10 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: "#F6F6F6",
+  },
+
+  scrollContainer: {
+    flex: 1,
   },
 
   pageMax: {
@@ -237,5 +252,16 @@ const styles = StyleSheet.create({
 
   sectionGap: {
     height: 6,
+  },
+
+  // Navbar styles
+  navbarWrapper: {
+    backgroundColor: "#F6F6F6",
+  },
+
+  navbarContent: {
+    width: "100%",
+    maxWidth: MAX_WIDTH,
+    alignSelf: "center",
   },
 });
