@@ -1,12 +1,13 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 export type TabKey = "Explore" | "Listings" | "Home" | "Messages" | "Profile";
 
 type Props = {
   activeTab: TabKey;
-  onTabPress?: (tab: TabKey) => void; // Make it optional with ?
+  onTabPress?: (tab: TabKey) => void;
 };
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -17,7 +18,10 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "Profile", label: "Profile" },
 ];
 
-const iconNameByTab: Record<Exclude<TabKey, "Home">, keyof typeof Ionicons.glyphMap> = {
+const iconNameByTab: Record<
+  Exclude<TabKey, "Home">,
+  keyof typeof Ionicons.glyphMap
+> = {
   Explore: "search-outline",
   Listings: "heart-outline",
   Messages: "chatbox-outline",
@@ -25,13 +29,20 @@ const iconNameByTab: Record<Exclude<TabKey, "Home">, keyof typeof Ionicons.glyph
 };
 
 export default function Navbar({ activeTab, onTabPress }: Props) {
-  
+  const navigation = useNavigation<any>();
+
   const handlePress = (tab: TabKey) => {
-    // Only call onTabPress if it exists
+    // Navigation logic
+    if (tab === "Listings") {
+      navigation.navigate("Reservations");
+    }
+
+    if (tab === "Home") {
+      navigation.navigate("Home");
+    }
+
     if (onTabPress) {
       onTabPress(tab);
-    } else {
-      console.warn("onTabPress function not provided");
     }
   };
 
@@ -44,7 +55,7 @@ export default function Navbar({ activeTab, onTabPress }: Props) {
           return (
             <Pressable
               key={t.key}
-              onPress={() => handlePress(t.key)} // Use handlePress instead
+              onPress={() => handlePress(t.key)}
               style={styles.item}
               hitSlop={10}
             >
@@ -74,6 +85,7 @@ export default function Navbar({ activeTab, onTabPress }: Props) {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   outer: {
     backgroundColor: "#FFFFFF",

@@ -9,6 +9,7 @@ import DetailsScreen from "../screens/DetailsScreen";
 import TestScreen from "../screens/TestScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/ResetPasswordScreen";
+import ReservationsScreen from '../screens/ReservationsScreen';
 
 export type RootStackParamList = {
   // change type based on parameters a screen expects to receive
@@ -28,6 +29,7 @@ export type RootStackParamList = {
   };
   Details: { id: string };
   Test: undefined;
+  Reservations: undefined;
   // TODO: add userId and profile and send those as parameters into necessary screens
 };
 
@@ -72,6 +74,11 @@ export default function AppNavigator() {
         name="ResetPassword"
         component={ResetPasswordScreen}
         options={{ title: "Reset Password" }}
+      />
+      <Stack.Screen
+        name="Reservations"
+        component={ReservationsScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
