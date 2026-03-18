@@ -2,7 +2,6 @@ import React from "react";
 import { Text, View } from "react-native";
 import InputFields from "../components/InputFields";
 import CustomButton from "../components/CustomButton";
-import AppleIcon from "../../assets/apple-logo.png";
 import GoogleIcon from "../../assets/google-logo.png";
 import { FieldErrors, SignUpFields } from "../utils/UseSignUp";
 import { formatDate, formatPhoneNumber } from "../utils/validation";
@@ -13,11 +12,9 @@ interface SignUpFormProps {
   loading: boolean;
   onChange: (key: keyof SignUpFields, value: string) => void;
   onSubmit: () => void;
-  onAppleLogin?: () => void;
   onGoogleLogin?: () => void;
   socialLoading?: {
     google: boolean;
-    apple: boolean;
   };
 }
 
@@ -27,9 +24,8 @@ export default function SignUpForm({
   loading,
   onChange,
   onSubmit,
-  onAppleLogin,
   onGoogleLogin,
-  socialLoading = { google: false, apple: false },
+  socialLoading = { google: false},
 }: SignUpFormProps) {
   return (
     <View className="px-6 mt-4 max-w-md w-full">
@@ -98,20 +94,12 @@ export default function SignUpForm({
 
       <View className="flex-col">
         <CustomButton
-          title="Login with Apple"
-          color="white"
-          className="flex-row items-center justify-center border-2 border-gray-300 mb-2"
-          localImg={AppleIcon}
-          onPress={onAppleLogin}
-          disabled={socialLoading.apple || socialLoading.google}
-        />
-        <CustomButton
           title="Login with Google"
           color="white"
           className="flex-row items-center justify-center border-2 border-gray-300 mb-1"
           localImg={GoogleIcon}
           onPress={onGoogleLogin}
-          disabled={socialLoading.apple || socialLoading.google}
+          disabled={socialLoading.google}
         />
       </View>
     </View>

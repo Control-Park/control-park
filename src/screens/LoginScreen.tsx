@@ -139,13 +139,13 @@ export default function LoginScreen({ navigation }: Props) {
           </View>
 
           <View className="flex-col">
-            <CustomButton
+            {/* <CustomButton
               title="Login with Apple"
               color="white"
               className="flex-row items-center justify-center border-2 border-gray-300 mb-2"
               localImg={AppleIcon}
               onPress={handleAppleLogin}
-            ></CustomButton>
+            ></CustomButton> */}
             <CustomButton
               title="Login with Google"
               color="white"

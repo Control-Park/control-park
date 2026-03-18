@@ -26,7 +26,7 @@ export default function SignUpScreen({ navigation }: Props) {
     setFields((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = () => submit(fields);
-  const { loading: socialLoading, handleGoogleLogin, handleAppleLogin } = useSocialAuth();
+  const { loading: socialLoading, handleGoogleLogin} = useSocialAuth();
 
   return (
     <ScrollView className="flex-1 bg-white">
@@ -54,7 +54,6 @@ export default function SignUpScreen({ navigation }: Props) {
           loading={loading}
           onChange={handleChange}
           onSubmit={handleSubmit}
-          onAppleLogin={handleAppleLogin}   
           onGoogleLogin={handleGoogleLogin} 
           socialLoading={socialLoading}     
         />
