@@ -10,6 +10,9 @@ import TestScreen from "../screens/TestScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/ResetPasswordScreen";
 import ReservationsScreen from '../screens/ReservationsScreen';
+import ExploreScreen from '../screens/ExploreScreen';
+import MessageScreen from '../screens/MessageScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 
 export type RootStackParamList = {
   // change type based on parameters a screen expects to receive
@@ -30,6 +33,9 @@ export type RootStackParamList = {
   Details: { id: string };
   Test: undefined;
   Reservations: undefined;
+  Explore: undefined;
+  Message: undefined;
+  Profile: undefined;
   // TODO: add userId and profile and send those as parameters into necessary screens
 };
 
@@ -78,6 +84,21 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Reservations"
         component={ReservationsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Explore"
+        component={ExploreScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Message"
+        component={MessageScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Profile"
+        component={ProfileScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
