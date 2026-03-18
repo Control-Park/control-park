@@ -46,12 +46,14 @@ const savedListings = [
     title: "Walter Pyramid",
     rating: "4.9 stars",
     address: "1250 N Bellflower Blvd, Long Beach, CA",
+    image: require("../../assets/parking4.png"),
   },
   {
     id: "2",
     title: "Lot G9",
     rating: "4.8 stars",
     address: "E State University Dr, Long Beach, CA",
+    image: require("../../assets/parking5.png"),
   },
 ];
 
@@ -125,15 +127,21 @@ export default function ReservationsScreen({ navigation }: Props) {
             </ScrollView>
 
             <View style={styles.section}>
+                <View style={styles.sectionDivider} />
               <Text style={styles.sectionTitle}>Saved Listings</Text>
 
               {savedListings.map((item) => (
                 <View key={item.id} style={styles.listItem}>
-                  <View style={styles.avatarCircle} />
+                  <Image source={item.image} style={styles.avatarImage} />
 
                   <View style={styles.listTextBlock}>
                     <Text style={styles.listTitle}>{item.title}</Text>
-                    <Text style={styles.listSubtitle}>{item.rating}</Text>
+                    <View style={styles.ratingRow}>
+                        <Text style={styles.ratingText}>
+                            {item.rating.replace(" stars", "")}
+                        </Text>
+                        <Ionicons name="star" size={14} color="#F59E0B" style={{ marginLeft: 4 }} />
+                    </View>
                     <Text style={styles.savedAddress}>{item.address}</Text>
                   </View>
                 </View>
@@ -262,7 +270,7 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "500",
     color: "#111111",
     marginBottom: 14,
@@ -274,12 +282,13 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
 
-  avatarCircle: {
+  avatarImage: {
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: "#E5A900",
     marginRight: 14,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
   },
 
   listTextBlock: {
@@ -312,5 +321,19 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: MAX_WIDTH,
     alignSelf: "center",
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+  },
+  ratingText: {
+    fontSize: 14,
+    color: "#111111",
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: "#E5E5E5",
+    marginBottom: 18,
   },
 });
