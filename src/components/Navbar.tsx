@@ -1,7 +1,11 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import {
+  useNavigation,
+  NavigationProp,
+} from "@react-navigation/native";
+import { RootStackParamList } from "../navigation/AppNavigator";
 
 export type TabKey = "Explore" | "Listings" | "Home" | "Messages" | "Profile";
 
@@ -29,21 +33,28 @@ const iconNameByTab: Record<
 };
 
 export default function Navbar({ activeTab, onTabPress }: Props) {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   const handlePress = (tab: TabKey) => {
-    // Navigation logic
-    if (tab === "Listings") {
-      navigation.navigate("Reservations");
+    switch (tab) {
+      case "Explore":
+        navigation.navigate("Explore");
+        break;
+      case "Listings":
+        navigation.navigate("Reservations");
+        break;
+      case "Home":
+        navigation.navigate("Home");
+        break;
+      case "Messages":
+        navigation.navigate("Message");
+        break;
+      case "Profile":
+        navigation.navigate("Profile");
+        break;
     }
 
-    if (tab === "Home") {
-      navigation.navigate("Home");
-    }
-
-    if (onTabPress) {
-      onTabPress(tab);
-    }
+    onTabPress?.(tab);
   };
 
   return (
@@ -59,7 +70,6 @@ export default function Navbar({ activeTab, onTabPress }: Props) {
               style={styles.item}
               hitSlop={10}
             >
-              {/* icon */}
               {t.key === "Home" ? (
                 <Image
                   source={require("../../assets/icon.png")}
@@ -74,7 +84,6 @@ export default function Navbar({ activeTab, onTabPress }: Props) {
                 />
               )}
 
-              {/* label */}
               <Text style={[styles.label, isActive && styles.labelActive]}>
                 {t.label}
               </Text>
@@ -106,7 +115,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     paddingBottom: 4,
   },
-
   label: {
     marginTop: 6,
     fontSize: 12,
@@ -117,7 +125,6 @@ const styles = StyleSheet.create({
     color: "#111111",
     fontWeight: "700",
   },
-
   homeIcon: {
     width: 26,
     height: 26,
