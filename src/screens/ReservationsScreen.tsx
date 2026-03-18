@@ -23,13 +23,19 @@ const reservationCards = [
   {
     id: "1",
     title: "Walter Pyramid",
+    date: "Nov 12",
     time: "9:30 AM",
+    duration: "2 hrs",
+    status: "Active",
     image: require("../../assets/parking4.png"),
   },
   {
     id: "2",
     title: "Lot G9",
+    date: "Nov 12",
     time: "3:25 PM",
+    duration: "1.5 hrs",
+    status: "Upcoming",
     image: require("../../assets/parking5.png"),
   },
 ];
@@ -38,16 +44,29 @@ const savedListings = [
   {
     id: "1",
     title: "Walter Pyramid",
-    subtitle: "Reservation for Walter Pyramid",
-    time: "9:30 AM",
+    rating: "4.9 stars",
+    address: "1250 N Bellflower Blvd, Long Beach, CA",
   },
   {
     id: "2",
     title: "Lot G9",
-    subtitle: "Reservation for Lot G9",
-    time: "3:25 PM",
+    rating: "4.8 stars",
+    address: "E State University Dr, Long Beach, CA",
   },
 ];
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "Active":
+      return "#22C55E";
+    case "Upcoming":
+      return "#F59E0B";
+    case "Completed":
+      return "#9A9A9A";
+    default:
+      return "#111111";
+  }
+};
 
 export default function ReservationsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
@@ -83,9 +102,24 @@ export default function ReservationsScreen({ navigation }: Props) {
             >
               {reservationCards.map((card) => (
                 <View key={card.id} style={styles.card}>
-                  <Image source={card.image} style={styles.cardImage} />
+                  <View style={styles.cardImageWrapper}>
+                    <Image source={card.image} style={styles.cardImage} />
+
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: getStatusColor(card.status) },
+                      ]}
+                    >
+                      <Text style={styles.statusBadgeText}>{card.status}</Text>
+                    </View>
+                  </View>
+
                   <Text style={styles.cardTitle}>{card.title}</Text>
-                  <Text style={styles.cardTime}>@{card.time}</Text>
+                  <Text style={styles.cardMeta}>
+                    {card.date} • {card.time}
+                  </Text>
+                  <Text style={styles.cardDuration}>{card.duration}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -99,10 +133,9 @@ export default function ReservationsScreen({ navigation }: Props) {
 
                   <View style={styles.listTextBlock}>
                     <Text style={styles.listTitle}>{item.title}</Text>
-                    <Text style={styles.listSubtitle}>{item.subtitle}</Text>
+                    <Text style={styles.listSubtitle}>{item.rating}</Text>
+                    <Text style={styles.savedAddress}>{item.address}</Text>
                   </View>
-
-                  <Text style={styles.listTime}>{item.time}</Text>
                 </View>
               ))}
             </View>
@@ -171,9 +204,13 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    width: 118,
+    width: 124,
     marginRight: 18,
     alignItems: "center",
+  },
+
+  cardImageWrapper: {
+    position: "relative",
   },
 
   cardImage: {
@@ -183,6 +220,21 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 
+  statusBadge: {
+    position: "absolute",
+    bottom: 12,
+    left: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+
+  statusBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+
   cardTitle: {
     fontSize: 15,
     fontWeight: "500",
@@ -190,11 +242,19 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  cardTime: {
-    fontSize: 14,
+  cardMeta: {
+    fontSize: 13,
+    color: "#555555",
+    textAlign: "center",
+    marginTop: 2,
+  },
+
+  cardDuration: {
+    fontSize: 13,
     color: "#111111",
     textAlign: "center",
     marginTop: 2,
+    fontWeight: "500",
   },
 
   section: {
@@ -238,10 +298,10 @@ const styles = StyleSheet.create({
     color: "#111111",
   },
 
-  listTime: {
-    fontSize: 16,
+  savedAddress: {
+    fontSize: 14,
     color: "#111111",
-    marginLeft: 10,
+    marginTop: 2,
   },
 
   navbarWrapper: {
