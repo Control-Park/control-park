@@ -1,25 +1,65 @@
-import React, { useState } from "react";
-import { View, StyleSheet, ScrollView, Text, Pressable } from "react-native";
+import React from "react";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Text,
+  Pressable,
+  Image,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import NotificationsButton from "../components/NotificationsButton";
-import Navbar, { TabKey } from "../components/Navbar";
+import Navbar from "../components/Navbar";
 import { RootStackParamList } from "../navigation/AppNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Reservations">;
 
 const MAX_WIDTH = 428;
 
+const reservationCards = [
+  {
+    id: "1",
+    title: "Walter Pyramid",
+    time: "9:30 AM",
+    image: require("../../assets/parking4.png"),
+  },
+  {
+    id: "2",
+    title: "Lot G9",
+    time: "3:25 PM",
+    image: require("../../assets/parking5.png"),
+  },
+];
+
+const savedListings = [
+  {
+    id: "1",
+    title: "Walter Pyramid",
+    subtitle: "Reservation for Walter Pyramid",
+    time: "9:30 AM",
+  },
+  {
+    id: "2",
+    title: "Lot G9",
+    subtitle: "Reservation for Lot G9",
+    time: "3:25 PM",
+  },
+];
+
 export default function ReservationsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.safe}>
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.pageMax}>
-          <View style={[styles.topArea, { paddingTop: insets.top + 0 }]}>
+          <View style={[styles.topArea, { paddingTop: insets.top }]}>
             <View style={styles.topRow}>
               <Pressable
                 onPress={() => navigation.goBack()}
@@ -36,14 +76,40 @@ export default function ReservationsScreen({ navigation }: Props) {
 
             <Text style={styles.title}>Reservations</Text>
 
-            <View style={styles.contentPlaceholder} />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.cardsRow}
+            >
+              {reservationCards.map((card) => (
+                <View key={card.id} style={styles.card}>
+                  <Image source={card.image} style={styles.cardImage} />
+                  <Text style={styles.cardTitle}>{card.title}</Text>
+                  <Text style={styles.cardTime}>@{card.time}</Text>
+                </View>
+              ))}
+            </ScrollView>
 
-            <View style={styles.topSpacer} />
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Saved Listings</Text>
+
+              {savedListings.map((item) => (
+                <View key={item.id} style={styles.listItem}>
+                  <View style={styles.avatarCircle} />
+
+                  <View style={styles.listTextBlock}>
+                    <Text style={styles.listTitle}>{item.title}</Text>
+                    <Text style={styles.listSubtitle}>{item.subtitle}</Text>
+                  </View>
+
+                  <Text style={styles.listTime}>{item.time}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={{ height: 100 }} />
           </View>
         </View>
-
-        <View style={{ height: 100 }} />
-
       </ScrollView>
 
       <View style={styles.navbarWrapper}>
@@ -58,7 +124,7 @@ export default function ReservationsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#F6F6F6",
+    backgroundColor: "#FFFFFF",
   },
 
   scrollContainer: {
@@ -73,7 +139,7 @@ const styles = StyleSheet.create({
   },
 
   topArea: {
-    backgroundColor: "#F6F6F6",
+    backgroundColor: "#FFFFFF",
   },
 
   topRow: {
@@ -87,15 +153,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F3F3F3",
     alignItems: "center",
     justifyContent: "center",
-
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
 
   title: {
@@ -103,18 +163,89 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#111111",
     marginTop: 20,
+    marginBottom: 18,
   },
 
-  contentPlaceholder: {
-    minHeight: 120,
+  cardsRow: {
+    paddingBottom: 26,
   },
 
-  topSpacer: {
-    height: 35,
+  card: {
+    width: 118,
+    marginRight: 18,
+    alignItems: "center",
+  },
+
+  cardImage: {
+    width: 118,
+    height: 118,
+    borderRadius: 18,
+    marginBottom: 6,
+  },
+
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#111111",
+    textAlign: "center",
+  },
+
+  cardTime: {
+    fontSize: 14,
+    color: "#111111",
+    textAlign: "center",
+    marginTop: 2,
+  },
+
+  section: {
+    marginBottom: 18,
+  },
+
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#111111",
+    marginBottom: 14,
+  },
+
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+
+  avatarCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: "#E5A900",
+    marginRight: 14,
+  },
+
+  listTextBlock: {
+    flex: 1,
+  },
+
+  listTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#111111",
+    marginBottom: 2,
+  },
+
+  listSubtitle: {
+    fontSize: 14,
+    color: "#111111",
+  },
+
+  listTime: {
+    fontSize: 16,
+    color: "#111111",
+    marginLeft: 10,
   },
 
   navbarWrapper: {
-    backgroundColor: "#F6F6F6",
+    backgroundColor: "#FFFFFF",
   },
 
   navbarContent: {
