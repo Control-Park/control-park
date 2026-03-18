@@ -1,4 +1,5 @@
 import "./global.css";
+import { useFonts } from "expo-font";
 import React, { useEffect, useState } from "react";
 import { View, StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -11,6 +12,11 @@ import Toast from "react-native-toast-message";
 import { toastConfig } from "./src/components/ToastConfig";
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    "ABeeZee-Regular": require("./assets/fonts/ABeeZee-Regular.ttf"),
+    "ABeeZee-Italic": require("./assets/fonts/ABeeZee-Italic.ttf"),
+  });
+
   const [isShowSplash, setIsShowSplash] = useState(true);
 
   useEffect(() => {
