@@ -21,7 +21,6 @@ const MAX_WIDTH = 428;
 
 export default function HomeScreen({ navigation }: Props) {
   // placeholder: move function to another screen once implemented
-  const [activeTab, setActiveTab] = useState<TabKey>("Home");
   const insets = useSafeAreaInsets();
   const baseUrl = "http://localhost:9001/auth/user";
   const queryParams = {
@@ -134,10 +133,7 @@ export default function HomeScreen({ navigation }: Props) {
       {/* Navbar - fixed at bottom */}
       <View style={[styles.navbarWrapper]}>
         <View style={styles.navbarContent}>
-          <Navbar
-            activeTab={activeTab}
-            onTabPress={(tab) => setActiveTab(tab)}
-          />
+          <Navbar activeTab="Home" />
         </View>
       </View>
     </View>
