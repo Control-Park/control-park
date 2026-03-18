@@ -86,7 +86,6 @@ export default function SignUpForm({
       <View className="flex-row items-center justify-center mx-5 my-3">
         <View className="h-[2px] w-[30%] bg-gray-300" />
         <View className="mx-4">
-          {/* Using View wrapper to avoid Text styling conflicts */}
           <Text>Or</Text>
         </View>
         <View className="h-[2px] w-[30%] bg-gray-300" />
