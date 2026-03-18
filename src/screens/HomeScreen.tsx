@@ -1,6 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { View, StyleSheet, FlatList, ScrollView } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import SearchBar from "../components/SearchBar";
 import NotificationsButton from "../components/NotificationsButton";
@@ -13,6 +16,7 @@ import { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar, { TabKey } from "../components/Navbar";
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
+import { parkingLots, lotsNearYou } from "../data/mockListings";
 const MAX_WIDTH = 428;
 
 export default function HomeScreen({ navigation }: Props) {
@@ -47,68 +51,6 @@ export default function HomeScreen({ navigation }: Props) {
   // Favorite toggle state: id -> t/f
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
-  // Data for the top row (Parking Lots)
-  const parkingLots = useMemo<ParkingCardData[]>(
-    () => [
-      {
-        id: "p1",
-        title: "Lot G7",
-        subtitle: "$10 for a day, 3.9 miles away",
-        image: require("../../assets/parking1.png"),
-        isGuestFavorite: true,
-        isFavorited: false,
-      },
-      {
-        id: "p2",
-        title: "Palo Verde Parking Structure",
-        subtitle: "$3 per hour, 4.6 miles away",
-        image: require("../../assets/parking2.png"),
-        isGuestFavorite: true,
-        isFavorited: false,
-      },
-      {
-        id: "p3",
-        title: "Lot G12",
-        subtitle: "$3 per hour, 4.3 miles away",
-        image: require("../../assets/parking3.png"),
-        isGuestFavorite: true,
-        isFavorited: false,
-      },
-    ],
-    [],
-  );
-
-  // Data for the second row (Lots Near You)
-  const lotsNearYou = useMemo<ParkingCardData[]>(
-    () => [
-      {
-        id: "n1",
-        title: "Pyramid Parking Structure",
-        subtitle: "$3 per hours, 2.9 miles away",
-        image: require("../../assets/parking4.png"),
-        isGuestFavorite: true,
-        isFavorited: false,
-      },
-      {
-        id: "n2",
-        title: "Lot G9",
-        subtitle: "$10 for a day, 2.8 miles away",
-        image: require("../../assets/parking5.png"),
-        isGuestFavorite: true,
-        isFavorited: false,
-      },
-      {
-        id: "n3",
-        title: "Lot G12",
-        subtitle: "$3 per hour, 4.3 miles away",
-        image: require("../../assets/parking3.png"),
-        isGuestFavorite: true,
-        isFavorited: false,
-      },
-    ],
-    [],
-  );
-
   // Toggle favorite function
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -132,7 +74,9 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={styles.pageMax}>
           <View style={[styles.topArea, { paddingTop: insets.top + 0 }]}>
             <View style={styles.topRow}>
-              <NotificationsButton onPress={() => console.log("Notifications")} />
+              <NotificationsButton
+                onPress={() => console.log("Notifications")}
+              />
             </View>
 
             {/* Spacing + make search bar shorter (centered) */}
@@ -190,7 +134,10 @@ export default function HomeScreen({ navigation }: Props) {
       {/* Navbar - fixed at bottom */}
       <View style={[styles.navbarWrapper]}>
         <View style={styles.navbarContent}>
-          <Navbar activeTab={activeTab} onTabPress={(tab) => setActiveTab(tab)} />
+          <Navbar
+            activeTab={activeTab}
+            onTabPress={(tab) => setActiveTab(tab)}
+          />
         </View>
       </View>
     </View>
@@ -235,9 +182,9 @@ const styles = StyleSheet.create({
   },
 
   searchInner: {
-  width: "96%",  
-  maxWidth: 400,
-},
+    width: "96%",
+    maxWidth: 400,
+  },
 
   sectionsBackground: {
     backgroundColor: "#EAEAEA",
