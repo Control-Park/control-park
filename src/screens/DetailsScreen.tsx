@@ -11,11 +11,15 @@ import ListingPerks from "../components/listing/ListingPerks";
 import ListingDescription from "../components/listing/ListingDescription";
 import ListingAmenities from "../components/listing/ListingAmenities";
 import ListingBooking from "../components/listing/ListingBooking";
+import { useWindowDimensions } from "react-native";
 
-const MAX_WIDTH = 428;
+const MAX_WIDTH = 480;
 
 export default function DetailsScreen({ route }: Props) {
   const { id } = route.params;
+  const {width} = useWindowDimensions();
+  const imageWidth = Math.min(width, MAX_WIDTH);
+
   const listing = allListings.find((item) => item.id === id);
   const textStyle = { fontFamily: "ABeeZee-Regular" };
   const subTextClass = "text-gray-500 font-medium mt-4 text-md";
@@ -23,10 +27,11 @@ export default function DetailsScreen({ route }: Props) {
   return (
     <ScrollView
       className="flex-1 bg-white"
-      contentContainerStyle={{ flexGrow: 1, alignItems: "center" }}
+      contentContainerStyle={{ flexGrow: 1}}
     >
       <View style={{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center" }}>
-        <ListingImage source={listing?.images[0]} />
+
+        <ListingImage source={listing?.images[0]} imageWidth={width} />
         <ListingHeader
           title={listing?.title}
           address={listing?.address}

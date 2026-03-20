@@ -5,7 +5,8 @@ const MAX_WIDTH = 428;
 
 type Props = {
   source: ImageSourcePropType;
-}
+  imageWidth: number;
+};
 
 export default function ListingImage({ source }: Props) {
   const { width } = useWindowDimensions();
@@ -15,7 +16,8 @@ export default function ListingImage({ source }: Props) {
     <Image
       source={source}
       style={{ width: "100%", height: imageWidth * 0.75 }}
-      resizeMode="stretch"
+      resizeMode="cover"
+      className="rounded-m w-full"
     />
   );
 }
