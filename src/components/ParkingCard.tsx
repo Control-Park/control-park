@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   Image,
-  ImageSourcePropType,
   Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,7 +12,7 @@ export type ParkingCardData = {
   id: string;
   title: string;
   subtitle: string; // e.g. "$10 for a day, 3.9 miles away"
-  image: ImageSourcePropType;
+  images: any[];
   isGuestFavorite?: boolean;
   isFavorited?: boolean;
 };
@@ -28,7 +27,7 @@ export default function ParkingCard({ data, onToggleFavorite, onPress }: Props) 
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.imageWrap}>
-        <Image source={data.image} style={styles.image} />
+        <Image source={data.images[0]} style={styles.image} />
 
         {data.isGuestFavorite && (
           <View style={styles.badge}>
