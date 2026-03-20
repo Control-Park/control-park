@@ -8,6 +8,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Details">;
 import ListingImage from "../components/listing/ListingImage";
 import ListingHeader from "../components/listing/ListingHeader";
 import ListingPerks from "../components/listing/ListingPerks";
+import ListingDescription from "../components/listing/ListingDescription";
 
 const MAX_WIDTH = 428;
 
@@ -23,6 +24,7 @@ export default function DetailsScreen({ route }: Props) {
       contentContainerStyle={{ flexGrow: 1, alignItems: "center" }}
     >
       <View style={{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center" }}>
+        
         <ListingImage source={listing?.images[0]} />
         <ListingHeader
           title={listing?.title}
@@ -32,7 +34,7 @@ export default function DetailsScreen({ route }: Props) {
           isGuestFavorite={listing?.isGuestFavorite}
           host={listing?.host}
         />
-        <View className="py-4">
+        <View className={`py-4 ${textStyle}`}>
           {listing?.perks.map((perk, index) => (
             <ListingPerks
               key={index}
@@ -42,16 +44,20 @@ export default function DetailsScreen({ route }: Props) {
           ))}
         </View>
 
+        {/* Divider */}
         <View className="flex items-center justify-center px-6">
           <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
         </View>
 
+        <ListingDescription description={listing?.description} />
 
+        {/* Divider */}
+        <View className="flex items-center justify-center px-6">
+          <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
+        </View>
 
         {/* Divider */}
         <View style={{ height: 800 }} />
-
-
       </View>
     </ScrollView>
   );
