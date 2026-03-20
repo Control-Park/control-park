@@ -94,7 +94,6 @@ export default function ListingHeader({
         </View>
         <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
 
-        <View style={{ height: 400 }} />
       </View>
 
     </View>

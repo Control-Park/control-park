@@ -7,6 +7,7 @@ import { allListings } from "../data/mockListings";
 type Props = NativeStackScreenProps<RootStackParamList, "Details">;
 import ListingImage from "../components/listing/ListingImage";
 import ListingHeader from "../components/listing/ListingHeader";
+import ListingPerks from "../components/listing/ListingPerks";
 
 const MAX_WIDTH = 428;
 
@@ -31,9 +32,26 @@ export default function DetailsScreen({ route }: Props) {
           isGuestFavorite={listing?.isGuestFavorite}
           host={listing?.host}
         />
+        <View className="py-4">
+          {listing?.perks.map((perk, index) => (
+            <ListingPerks
+              key={index}
+              perk={perk}
+              subHeading={listing?.subHeading?.[index]}
+            />
+          ))}
+        </View>
+
+        <View className="flex items-center justify-center px-6">
+          <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
+        </View>
+
+
 
         {/* Divider */}
-        
+        <View style={{ height: 800 }} />
+
+
       </View>
     </ScrollView>
   );
