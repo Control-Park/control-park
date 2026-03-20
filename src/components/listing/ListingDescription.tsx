@@ -7,7 +7,7 @@ type Props = {
 
 export default function ListingDescription({ description }: Props) {
   return (
-    <View className="px-6 py-6 ">
+    <View className="flex px-6 py-6 ">
       <Text className="font-abeezee text-xl">{description}</Text>
       <Text className="font-abeezee text-xl">
         {"\n"}Ideal for students, faculty, campus visitors, and event attendees.

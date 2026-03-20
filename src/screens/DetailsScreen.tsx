@@ -9,6 +9,8 @@ import ListingImage from "../components/listing/ListingImage";
 import ListingHeader from "../components/listing/ListingHeader";
 import ListingPerks from "../components/listing/ListingPerks";
 import ListingDescription from "../components/listing/ListingDescription";
+import ListingAmenities from "../components/listing/ListingAmenities";
+import ListingBooking from "../components/listing/ListingBooking";
 
 const MAX_WIDTH = 428;
 
@@ -24,7 +26,6 @@ export default function DetailsScreen({ route }: Props) {
       contentContainerStyle={{ flexGrow: 1, alignItems: "center" }}
     >
       <View style={{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center" }}>
-        
         <ListingImage source={listing?.images[0]} />
         <ListingHeader
           title={listing?.title}
@@ -56,9 +57,31 @@ export default function DetailsScreen({ route }: Props) {
           <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
         </View>
 
-        {/* Divider */}
-        <View style={{ height: 800 }} />
+        <View className={`py-4 ${textStyle}`}>
+          {listing?.amenities.map((amenities, index) => (
+            <ListingAmenities key={index} amenities={amenities} />
+          ))}
+        </View>
+
+        <View className="h-[2px] w-[100%] bg-[#ECAA00] mb" />
+
+        {/* Banner */}
+        <View className="flex justify-end">
+          <View className="bg-[#cacaca] h-[52px] flex justify-center items-center">
+            <Text className="font-abeezee">
+              Popular! This place is usually booked
+            </Text>
+          </View>
+        </View>
+        <View className="h-[2px] w-[100%] bg-[#ECAA00] mt" />
+
+        <ListingBooking
+          originalPrice={listing?.originalPrice}
+          price={listing?.price}
+        />
+
       </View>
+      {/* <View style={{ height: 25 }} /> */}
     </ScrollView>
   );
 }
