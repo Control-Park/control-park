@@ -29,19 +29,11 @@ export default function DetailsScreen({ route }: Props) {
           rating={listing?.rating}
           reviewCount={listing?.reviewCount}
           isGuestFavorite={listing?.isGuestFavorite}
+          host={listing?.host}
         />
 
         {/* Divider */}
-        <View className="flex justify-center items-center">
-          <View className="h-[1px] w-[90%] bg-gray-500 my-4" />
-          <View className="flex text-left">
-            <Text>Hosted by {listing?.host.name}</Text>
-            <Text>{listing?.host.type}</Text>
-          </View>
-          <View className="h-[1px] w-[90%] bg-gray-500 my-4 self-center" />
-
-          <View style={{ height: 400 }} />
-        </View>
+        
       </View>
     </ScrollView>
   );

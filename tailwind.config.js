@@ -5,6 +5,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
+        sans: ["ABeeZee-Regular"],
         abeezee: ["ABeeZee-Regular"],
         "abeezee-italic": ["ABeeZee-Italic"],
       },
