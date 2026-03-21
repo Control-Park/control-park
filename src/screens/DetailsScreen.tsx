@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -13,25 +13,35 @@ import ListingAmenities from "../components/listing/ListingAmenities";
 import ListingBooking from "../components/listing/ListingBooking";
 import { useWindowDimensions } from "react-native";
 
+import ReportButton from "../components/ReportButton";
+import SaveButton from "../components/SaveButton";
+import { useFavoritesStore } from "../context/favoritesStore";
 const MAX_WIDTH = 480;
 
 export default function DetailsScreen({ route }: Props) {
+  const { favorites, toggleFavorite } = useFavoritesStore();
   const { id } = route.params;
-  const {width} = useWindowDimensions();
-  const imageWidth = Math.min(width, MAX_WIDTH);
-
+  const isFavorited = favorites[id];
+  
+  const { width } = useWindowDimensions();
   const listing = allListings.find((item) => item.id === id);
   const textStyle = { fontFamily: "ABeeZee-Regular" };
-  const subTextClass = "text-gray-500 font-medium mt-4 text-md";
+  const test = async () => {
+    console.log("report");
+  };
 
   return (
     <ScrollView
       className="flex-1 bg-white"
-      contentContainerStyle={{ flexGrow: 1}}
+      contentContainerStyle={{ flexGrow: 1 }}
     >
       <View style={{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center" }}>
+        <View className="relative">
+          <ListingImage source={listing?.images[0]} imageWidth={width} />
+          <ReportButton onPress={test} />
+          <SaveButton onPress={() => toggleFavorite(id)} isFavorited={isFavorited} />
+        </View>
 
-        <ListingImage source={listing?.images[0]} imageWidth={width} />
         <ListingHeader
           title={listing?.title}
           address={listing?.address}
@@ -84,7 +94,6 @@ export default function DetailsScreen({ route }: Props) {
           originalPrice={listing?.originalPrice}
           price={listing?.price}
         />
-
       </View>
       {/* <View style={{ height: 25 }} /> */}
     </ScrollView>

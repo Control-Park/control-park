@@ -13,6 +13,7 @@ export default function ReportButton({ onPress }: Props) {
       hitSlop={10}
       style={styles.button}
       accessibilityLabel="Report"
+      className="absolute top-8 right-[72px]"
     >
       <Ionicons name="alert-circle-outline" size={20} color="#111827" />
     </Pressable>

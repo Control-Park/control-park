@@ -4,17 +4,23 @@ import { Ionicons } from "@expo/vector-icons";
 
 type Props = {
   onPress?: () => void;
+  isFavorited?: boolean;
 };
 
-export default function SaveButton({ onPress }: Props) {
+export default function SaveButton({ onPress, isFavorited }: Props) {
   return (
     <Pressable
       onPress={onPress}
       hitSlop={10}
       style={styles.button}
       accessibilityLabel="Save"
+      className="absolute top-8 right-6"
     >
-      <Ionicons name="heart-outline" size={20} color="#111827" />
+        <Ionicons
+          name={isFavorited ? "heart" : "heart-outline"}
+          size={20}
+          color={isFavorited ? "#EF4444" : "#111827"}
+        />
     </Pressable>
   );
 }

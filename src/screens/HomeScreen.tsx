@@ -17,6 +17,7 @@ import Navbar, { TabKey } from "../components/Navbar";
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 import { parkingLots, lotsNearYou } from "../data/mockListings";
+import { useFavoritesStore } from "../context/favoritesStore";
 const MAX_WIDTH = 428;
 
 export default function HomeScreen({ navigation }: Props) {
@@ -47,13 +48,7 @@ export default function HomeScreen({ navigation }: Props) {
   }
   getUserTest();
 
-  // Favorite toggle state: id -> t/f
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-
-  // Toggle favorite function
-  const toggleFavorite = (id: string) => {
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
+  const { favorites, toggleFavorite } = useFavoritesStore();
 
   const renderCard = ({ item }: { item: ParkingCardData }) => (
     <View style={{ marginRight: 12 }}>
