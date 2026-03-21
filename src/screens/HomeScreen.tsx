@@ -18,6 +18,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 import { parkingLots, lotsNearYou } from "../data/mockListings";
 import { useFavoritesStore } from "../context/favoritesStore";
+import { showSavedRemove, showSavedSuccess } from "../utils/validation";
 const MAX_WIDTH = 428;
 
 export default function HomeScreen({ navigation }: Props) {
@@ -54,7 +55,15 @@ export default function HomeScreen({ navigation }: Props) {
     <View style={{ marginRight: 12 }}>
       <ParkingCard
         data={{ ...item, isFavorited: !!favorites[item.id] }}
-        onToggleFavorite={() => toggleFavorite(item.id)}
+        onToggleFavorite={() => {
+        const isCurrentlyFavorited = !!favorites[item.id];
+        toggleFavorite(item.id);
+        if (!isCurrentlyFavorited) {
+          showSavedSuccess("Added to your saved listings");
+        } else {
+          showSavedRemove("Removed from saved listings");
+        }
+      }}
         onPress={() => navigation.navigate("Details", { id: item.id })}
       />
     </View>

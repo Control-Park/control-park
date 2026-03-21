@@ -26,6 +26,25 @@ export const showFieldSuccess = (field: string, message: string) => {
   // console.log(`${field} valid`);
 };
 
+export const showSavedSuccess = (message: string) => {
+  Toast.show({
+    type: "success",
+    text1: "Listing Saved",
+    text2: message,
+    topOffset: 100,
+  });
+};
+
+export const showSavedRemove = (message: string) => {
+  Toast.show({
+    type: "error",
+    text1: "Listing removed",
+    text2: message,
+    topOffset: 100,
+  });
+};
+
+
 export const formatDate = (text: string) => {
   // Remove all non-digits
   const cleaned = text.replace(/\D/g, "");

@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { showSavedSuccess, showSavedRemove } from "../utils/validation";
 
 type Props = {
   onPress?: () => void;
@@ -8,19 +9,27 @@ type Props = {
 };
 
 export default function SaveButton({ onPress, isFavorited }: Props) {
+  const handlePress = () => {
+    onPress?.();
+    if (!isFavorited) {
+      showSavedSuccess("Added to your saved listings");
+    } else {
+      showSavedRemove("Removed from saved listings");
+    }
+  };
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       hitSlop={10}
       style={styles.button}
       accessibilityLabel="Save"
       className="absolute top-8 right-6"
     >
-        <Ionicons
-          name={isFavorited ? "heart" : "heart-outline"}
-          size={20}
-          color={isFavorited ? "#EF4444" : "#111827"}
-        />
+      <Ionicons
+        name={isFavorited ? "heart" : "heart-outline"}
+        size={20}
+        color={isFavorited ? "#EF4444" : "#111827"}
+      />
     </Pressable>
   );
 }
