@@ -42,6 +42,7 @@ export default function DetailsScreen({ route }: Props) {
           />
         </View>
 
+      <View className="mt-4">
         <ListingHeader
           title={listing?.title}
           address={listing?.address}
@@ -50,6 +51,7 @@ export default function DetailsScreen({ route }: Props) {
           isGuestFavorite={listing?.isGuestFavorite}
           host={listing?.host}
         />
+      </View>
         <View className={`py-4 ${textStyle}`}>
           {listing?.perks.map((perk, index) => (
             <ListingPerks
@@ -93,6 +95,7 @@ export default function DetailsScreen({ route }: Props) {
         <ListingBooking
           originalPrice={listing?.originalPrice}
           price={listing?.price}
+          id={listing?.id}
         />
       </View>
       {/* <View style={{ height: 25 }} /> */}
