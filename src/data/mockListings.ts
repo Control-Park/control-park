@@ -3,7 +3,7 @@ export const parkingLots = [
     id: "3fa85f64-5717-4562-b3fc-2c963f66afa1",
     host_id: "3fa85f64-5717-4562-b3fc-2c963f66af01",
     structure_name: "Lot G7",
-    address: "1250 N Bellflower Blvd, Long Beach, CA 90840",
+    address: "5800 E Atherton St, Long Beach, CA 90815",
     parking_type: "Structure",
     price_per_hour: 10,
     amenities: [
@@ -39,7 +39,7 @@ export const parkingLots = [
     id: "3fa85f64-5717-4562-b3fc-2c963f66afa2",
     host_id: "3fa85f64-5717-4562-b3fc-2c963f66af01",
     structure_name: "Palo Verde Parking Structure",
-    address: "1250 N Bellflower Blvd, Long Beach, CA 90840",
+    address: "1719 Palo Verde Ave, Long Beach, CA 90815",
     parking_type: "Structure",
     price_per_hour: 3,
     amenities: [
@@ -72,7 +72,7 @@ export const parkingLots = [
     id: "3fa85f64-5717-4562-b3fc-2c963f66afa3",
     host_id: "3fa85f64-5717-4562-b3fc-2c963f66af01",
     structure_name: "Lot G12",
-    address: "1250 N Bellflower Blvd, Long Beach, CA 90840",
+    address: "6256 E Atherton St, Long Beach, CA 90815",
     parking_type: "Lot",
     price_per_hour: 3,
     amenities: [
@@ -143,7 +143,7 @@ export const lotsNearYou = [
     id: "3fa85f64-5717-4562-b3fc-2c963f66afa5",
     host_id: "3fa85f64-5717-4562-b3fc-2c963f66af01",
     structure_name: "Lot G9",
-    address: "1250 N Bellflower Blvd, Long Beach, CA 90840",
+    address: "E State University Dr, Long Beach, CA",
     parking_type: "Lot",
     price_per_hour: 10,
     amenities: ["Easy Access with many entrances", "Plenty of open spaces"],
@@ -173,7 +173,7 @@ export const lotsNearYou = [
     id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     host_id: "3fa85f64-5717-4562-b3fc-2c963f66af01",
     structure_name: "Lot G12",
-    address: "1250 N Bellflower Blvd, Long Beach, CA 90840",
+    address: "6256 E Atherton St, Long Beach, CA 90815",
     parking_type: "Lot",
     price_per_hour: 3,
     amenities: [

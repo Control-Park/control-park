@@ -14,6 +14,8 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
 import { RootStackParamList } from "../navigation/AppNavigator";
+import { useFavoritesStore } from "../context/favoritesStore";
+import { allListings } from "../data/mockListings";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Reservations">;
 
@@ -40,22 +42,22 @@ const reservationCards = [
   },
 ];
 
-const savedListings = [
-  {
-    id: "1",
-    title: "Walter Pyramid",
-    rating: "4.9 stars",
-    address: "1250 N Bellflower Blvd, Long Beach, CA",
-    image: require("../../assets/parking4.png"),
-  },
-  {
-    id: "2",
-    title: "Lot G9",
-    rating: "4.8 stars",
-    address: "E State University Dr, Long Beach, CA",
-    image: require("../../assets/parking5.png"),
-  },
-];
+// const savedListings = [
+//   {
+//     id: "1",
+//     title: "Walter Pyramid",
+//     rating: "4.9 stars",
+//     address: "1250 N Bellflower Blvd, Long Beach, CA",
+//     image: require("../../assets/parking4.png"),
+//   },
+//   {
+//     id: "2",
+//     title: "Lot G9",
+//     rating: "4.8 stars",
+//     address: "E State University Dr, Long Beach, CA",
+//     image: require("../../assets/parking5.png"),
+//   },
+// ];
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -72,6 +74,8 @@ const getStatusColor = (status: string) => {
 
 export default function ReservationsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { favorites } = useFavoritesStore();
+  const savedListings = allListings.filter((listing) => favorites[listing.id]);
 
   return (
     <View style={styles.safe}>
@@ -127,20 +131,26 @@ export default function ReservationsScreen({ navigation }: Props) {
             </ScrollView>
 
             <View style={styles.section}>
-                <View style={styles.sectionDivider} />
+              <View style={styles.sectionDivider} />
               <Text style={styles.sectionTitle}>Saved Listings</Text>
 
               {savedListings.map((item) => (
                 <View key={item.id} style={styles.listItem}>
-                  <Image source={item.image} style={styles.avatarImage} />
+                  <Image source={item.images[0]} style={styles.avatarImage} />
 
                   <View style={styles.listTextBlock}>
                     <Text style={styles.listTitle}>{item.title}</Text>
                     <View style={styles.ratingRow}>
-                        <Text style={styles.ratingText}>
-                            {item.rating.replace(" stars", "")}
-                        </Text>
-                        <Ionicons name="star" size={14} color="#F59E0B" style={{ marginLeft: 4 }} />
+                      <Text style={styles.ratingText}>
+                        {/* {item.rating.replace(" stars", "")} */}
+                        {item.rating}
+                      </Text>
+                      <Ionicons
+                        name="star"
+                        size={14}
+                        color="#F59E0B"
+                        style={{ marginLeft: 4 }}
+                      />
                     </View>
                     <Text style={styles.savedAddress}>{item.address}</Text>
                   </View>
