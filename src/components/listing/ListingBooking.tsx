@@ -2,13 +2,21 @@ import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import { View, Text, Image } from "react-native";
 import CustomButton from "../CustomButton";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useNavigation } from "@react-navigation/native";
+import { RootStackParamList } from "../../navigation/AppNavigator";
 
 type Props = {
   originalPrice?: number;
   price?: number;
+  id?: string;
 };
 
-export default function ListingBooking({ originalPrice, price }: Props) {
+type ReserveNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+export default function ListingBooking({ originalPrice, price, id }: Props) {
+  const navigation = useNavigation<ReserveNavigationProp>();
+
   return (
     <View className="flex-row w-full items-center justify-between px-8 py-4">
       <View className="flex-col">
@@ -27,7 +35,7 @@ export default function ListingBooking({ originalPrice, price }: Props) {
         title="Reserve"
         color="#ECAA00"
         className="items-center justify-center w-44 h-16 rounded-full font-abeezee"
-        // onPress={() => navigation.navigate("Reserve")}
+        onPress={() => navigation.navigate("Reserve", { id: id ?? ""})}
       />
     </View>
   );

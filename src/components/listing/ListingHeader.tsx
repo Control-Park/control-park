@@ -35,7 +35,6 @@ export default function ListingHeader({
           fontSize: 28,
           textAlign: "center",
         }}
-        className="mt-6"
       >
         {title}
       </Text>
@@ -78,24 +77,28 @@ export default function ListingHeader({
         </View>
       </View>
 
-      <View className="flex w-full items-start">
-        <View className="h-[1px] w-[100%] bg-[#c5c5c5]"/>
+      {host ? ( // if host passed as param, load it. otherwise hide
+        <View className="flex w-full items-start">
+          <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
 
-        <View className="flex-row items-center justify-center py-4">
-          <Image
-            source={require("../../../assets/csulb-logo.png")}
-            style={{ width: 50, height: 50 }}
-          />
-          <View className="flex-col ml-4 gap-1.5">
-            <Text className="font-abeezee">Hosted by {host?.name}</Text>
-            <Text className="font-abeezee text-[#525252]">{host?.type}</Text>
+          <View className="flex-row items-center justify-center py-4">
+            <Image
+              source={require("../../../assets/csulb-logo.png")}
+              style={{ width: 50, height: 50 }}
+            />
+            <View className="flex-col ml-4 gap-1.5">
+              <Text className="font-abeezee">
+                {host ? "Hosted by" : ""} {host?.name}
+              </Text>
+              <Text className="font-abeezee text-[#525252]">{host?.type}</Text>
+            </View>
           </View>
 
+          <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
         </View>
-        <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
-
-      </View>
-
+      ) : (
+        ""
+      )}
     </View>
   );
 }
