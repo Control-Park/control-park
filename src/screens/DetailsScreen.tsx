@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView } from "react-native";
+import React from "react";
+import { ScrollView, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { allListings } from "../data/mockListings";
@@ -22,13 +22,10 @@ export default function DetailsScreen({ route }: Props) {
   const { favorites, toggleFavorite } = useFavoritesStore();
   const { id } = route.params;
   const isFavorited = favorites[id];
-  
+
   const { width } = useWindowDimensions();
   const listing = allListings.find((item) => item.id === id);
   const textStyle = { fontFamily: "ABeeZee-Regular" };
-  const test = async () => {
-    console.log("report");
-  };
 
   return (
     <ScrollView
@@ -38,8 +35,11 @@ export default function DetailsScreen({ route }: Props) {
       <View style={{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center" }}>
         <View className="relative">
           <ListingImage source={listing?.images[0]} imageWidth={width} />
-          <ReportButton onPress={test} />
-          <SaveButton onPress={() => toggleFavorite(id)} isFavorited={isFavorited} />
+          <ReportButton />
+          <SaveButton
+            onPress={() => toggleFavorite(id)}
+            isFavorited={isFavorited}
+          />
         </View>
 
         <ListingHeader
