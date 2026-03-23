@@ -57,7 +57,7 @@ export default function VerifyEmailScreen({ navigation, route }: Props) {
     try {
       const { error } = await supabase.auth.resend({
         email,
-        type: 'email',
+        type: 'signup',
       });
 
       if (error) {
