@@ -42,6 +42,16 @@ const reservationCards = [
     status: "Upcoming",
     image: require("../../assets/parking5.png"),
   },
+  {
+    id: "res-3",
+    listingId: "1",
+    title: "Lot E1",
+    date: "Nov 10",
+    time: "11:00 AM",
+    duration: "1 hr",
+    status: "Expired",
+    image: require("../../assets/parking4.png"),
+  },
 ];
 
 const getStatusColor = (status: string) => {
@@ -52,6 +62,8 @@ const getStatusColor = (status: string) => {
       return "#F59E0B";
     case "Completed":
       return "#9A9A9A";
+    case "Expired":
+      return "#EF4444";
     default:
       return "#111111";
   }
@@ -96,6 +108,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                   key={card.id}
                   style={({ pressed }) => [
                     styles.card,
+                    card.status === "Expired" && styles.expiredCard,
                     pressed && { opacity: 0.75 },
                   ]}
                   onPress={() =>
@@ -120,6 +133,12 @@ export default function ReservationsScreen({ navigation }: Props) {
                     {card.date} • {card.time}
                   </Text>
                   <Text style={styles.cardDuration}>{card.duration}</Text>
+
+                  {card.status === "Expired" && (
+                    <Text style={styles.expiredText}>
+                      This reservation has expired.
+                    </Text>
+                  )}
                 </Pressable>
               ))}
             </ScrollView>
@@ -218,6 +237,9 @@ const styles = StyleSheet.create({
     marginRight: 18,
     alignItems: "center",
   },
+  expiredCard: {
+    opacity: 0.8,
+  },
   cardImageWrapper: {
     position: "relative",
   },
@@ -257,6 +279,13 @@ const styles = StyleSheet.create({
     color: "#111111",
     textAlign: "center",
     marginTop: 2,
+    fontWeight: "500",
+  },
+  expiredText: {
+    fontSize: 12,
+    color: "#EF4444",
+    textAlign: "center",
+    marginTop: 4,
     fontWeight: "500",
   },
   section: {
