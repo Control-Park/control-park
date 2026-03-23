@@ -23,7 +23,8 @@ const MAX_WIDTH = 428;
 
 const reservationCards = [
   {
-    id: "1",
+    id: "res-1",
+    listingId: "1",
     title: "Walter Pyramid",
     date: "Nov 12",
     time: "9:30 AM",
@@ -32,7 +33,8 @@ const reservationCards = [
     image: require("../../assets/parking4.png"),
   },
   {
-    id: "2",
+    id: "res-2",
+    listingId: "2",
     title: "Lot G9",
     date: "Nov 12",
     time: "3:25 PM",
@@ -41,23 +43,6 @@ const reservationCards = [
     image: require("../../assets/parking5.png"),
   },
 ];
-
-// const savedListings = [
-//   {
-//     id: "1",
-//     title: "Walter Pyramid",
-//     rating: "4.9 stars",
-//     address: "1250 N Bellflower Blvd, Long Beach, CA",
-//     image: require("../../assets/parking4.png"),
-//   },
-//   {
-//     id: "2",
-//     title: "Lot G9",
-//     rating: "4.8 stars",
-//     address: "E State University Dr, Long Beach, CA",
-//     image: require("../../assets/parking5.png"),
-//   },
-// ];
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -107,7 +92,16 @@ export default function ReservationsScreen({ navigation }: Props) {
               contentContainerStyle={styles.cardsRow}
             >
               {reservationCards.map((card) => (
-                <View key={card.id} style={styles.card}>
+                <Pressable
+                  key={card.id}
+                  style={({ pressed }) => [
+                    styles.card,
+                    pressed && { opacity: 0.75 },
+                  ]}
+                  onPress={() =>
+                    navigation.navigate("Details", { id: card.listingId })
+                  }
+                >
                   <View style={styles.cardImageWrapper}>
                     <Image source={card.image} style={styles.cardImage} />
 
@@ -126,7 +120,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                     {card.date} • {card.time}
                   </Text>
                   <Text style={styles.cardDuration}>{card.duration}</Text>
-                </View>
+                </Pressable>
               ))}
             </ScrollView>
 
@@ -135,16 +129,22 @@ export default function ReservationsScreen({ navigation }: Props) {
               <Text style={styles.sectionTitle}>Saved Listings</Text>
 
               {savedListings.map((item) => (
-                <View key={item.id} style={styles.listItem}>
+                <Pressable
+                  key={item.id}
+                  style={({ pressed }) => [
+                    styles.listItem,
+                    pressed && { opacity: 0.75 },
+                  ]}
+                  onPress={() =>
+                    navigation.navigate("Details", { id: item.id })
+                  }
+                >
                   <Image source={item.images[0]} style={styles.avatarImage} />
 
                   <View style={styles.listTextBlock}>
                     <Text style={styles.listTitle}>{item.title}</Text>
                     <View style={styles.ratingRow}>
-                      <Text style={styles.ratingText}>
-                        {/* {item.rating.replace(" stars", "")} */}
-                        {item.rating}
-                      </Text>
+                      <Text style={styles.ratingText}>{item.rating}</Text>
                       <Ionicons
                         name="star"
                         size={14}
@@ -154,7 +154,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                     </View>
                     <Text style={styles.savedAddress}>{item.address}</Text>
                   </View>
-                </View>
+                </Pressable>
               ))}
             </View>
 
@@ -177,29 +177,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-
   scrollContainer: {
     flex: 1,
   },
-
   pageMax: {
     paddingHorizontal: 16,
     width: "100%",
     maxWidth: MAX_WIDTH,
     alignSelf: "center",
   },
-
   topArea: {
     backgroundColor: "#FFFFFF",
   },
-
   topRow: {
     height: 44,
     justifyContent: "space-between",
     alignItems: "center",
     flexDirection: "row",
   },
-
   backButton: {
     width: 40,
     height: 40,
@@ -208,7 +203,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   title: {
     fontSize: 24,
     fontWeight: "600",
@@ -216,28 +210,23 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 18,
   },
-
   cardsRow: {
     paddingBottom: 26,
   },
-
   card: {
     width: 124,
     marginRight: 18,
     alignItems: "center",
   },
-
   cardImageWrapper: {
     position: "relative",
   },
-
   cardImage: {
     width: 118,
     height: 118,
     borderRadius: 18,
     marginBottom: 6,
   },
-
   statusBadge: {
     position: "absolute",
     bottom: 12,
@@ -246,27 +235,23 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 10,
   },
-
   statusBadgeText: {
     color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "600",
   },
-
   cardTitle: {
     fontSize: 15,
     fontWeight: "500",
     color: "#111111",
     textAlign: "center",
   },
-
   cardMeta: {
     fontSize: 13,
     color: "#555555",
     textAlign: "center",
     marginTop: 2,
   },
-
   cardDuration: {
     fontSize: 13,
     color: "#111111",
@@ -274,24 +259,20 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontWeight: "500",
   },
-
   section: {
     marginBottom: 18,
   },
-
   sectionTitle: {
     fontSize: 20,
     fontWeight: "500",
     color: "#111111",
     marginBottom: 14,
   },
-
   listItem: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 18,
   },
-
   avatarImage: {
     width: 54,
     height: 54,
@@ -300,33 +281,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E5E5",
   },
-
   listTextBlock: {
     flex: 1,
   },
-
   listTitle: {
     fontSize: 16,
     fontWeight: "500",
     color: "#111111",
     marginBottom: 2,
   },
-
   listSubtitle: {
     fontSize: 14,
     color: "#111111",
   },
-
   savedAddress: {
     fontSize: 14,
     color: "#111111",
     marginTop: 2,
   },
-
   navbarWrapper: {
     backgroundColor: "#FFFFFF",
   },
-
   navbarContent: {
     width: "100%",
     maxWidth: MAX_WIDTH,
