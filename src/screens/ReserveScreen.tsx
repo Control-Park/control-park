@@ -21,6 +21,11 @@ export default function ReserveScreen({ route }: Props) {
 
   const { width } = useWindowDimensions();
   const listing = allListings.find((item) => item.id === id);
+
+  const duration = 2; // temporary hardcoded value for now
+  const pricePerHour = listing?.price ?? 0;
+  const totalPrice = pricePerHour * duration;
+
   const test = async () => {
     console.log("report");
   };
@@ -40,19 +45,18 @@ export default function ReserveScreen({ route }: Props) {
           />
         </View>
 
-        {/* TODO: make new reserve components similar to /components/listing folder components */}
-        {/* <ListingHeader title={listing?.title} address={listing?.address} /> */}
-        {/* <ReservationDetails /> */}
-        {/* <Price Summary /> */}
-        {/* <Active Vehicle /> */}
-        {/* <Payments /> */}
+        <View className="mt-4 px-4">
+          <Text className="text-lg font-bold">Address Detail</Text>
+          <Text className="mt-1 text-base">{listing?.address}</Text>
 
-        <View className="mt-4">
-          <Text>Address Detail</Text>
-          {listing?.address}
+          <View className="mt-4">
+            <Text className="text-lg font-bold">Price Summary</Text>
+            <Text className="mt-1 text-base">Price per hour: ${pricePerHour}</Text>
+            <Text className="mt-1 text-base">Duration: {duration} hrs</Text>
+            <Text className="mt-2 text-lg font-bold">Total Price: ${totalPrice}</Text>
+          </View>
 
-          {/* Divider */}
-          <View className="flex items-center justify-center px-6">
+          <View className="flex items-center justify-center px-6 mt-4">
             <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
           </View>
         </View>
@@ -61,10 +65,8 @@ export default function ReserveScreen({ route }: Props) {
           title="Reserve"
           color="#ECAA00"
           className="flex items-center justify-center my-4 rounded-full font-abeezee"
-          //  onPress={() => navigation.navigate("Reserve", { id: id ?? "" })}
         />
       </View>
-      {/* <View style={{ height: 25 }} /> */}
     </ScrollView>
   );
 }
