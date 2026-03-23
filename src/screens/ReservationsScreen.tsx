@@ -135,9 +135,18 @@ export default function ReservationsScreen({ navigation }: Props) {
                   <Text style={styles.cardDuration}>{card.duration}</Text>
 
                   {card.status === "Expired" && (
-                    <Text style={styles.expiredText}>
-                      This reservation has expired.
-                    </Text>
+                    <>
+                      <Text style={styles.expiredText}>
+                        This reservation has expired.
+                      </Text>
+
+                      <Pressable
+                        style={styles.renewButton}
+                        onPress={() => console.log("Renew pressed")}
+                      >
+                        <Text style={styles.renewButtonText}>Renew</Text>
+                      </Pressable>
+                    </>
                   )}
                 </Pressable>
               ))}
@@ -287,6 +296,19 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
     fontWeight: "500",
+  },
+  renewButton: {
+    marginTop: 8,
+    backgroundColor: "#ECAA00",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  renewButtonText: {
+    color: "#111111",
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
   },
   section: {
     marginBottom: 18,
