@@ -80,7 +80,7 @@ export default function DetailsScreen({ route }: Props) {
           ))}
         </View>
 
-        <View className="h-[2px] w-[100%] bg-[#ECAA00] mb" />
+        <View className="h-[2px] w-[100%] bg-[#ECAA00] mb-2" />
 
         {/* Banner */}
         <View className="flex justify-end">
@@ -90,7 +90,7 @@ export default function DetailsScreen({ route }: Props) {
             </Text>
           </View>
         </View>
-        <View className="h-[2px] w-[100%] bg-[#ECAA00] mt" />
+        <View className="h-[2px] w-[100%] bg-[#ECAA00] mb-2" />
 
         <ListingBooking
           originalPrice={listing?.originalPrice}
