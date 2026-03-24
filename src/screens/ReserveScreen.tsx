@@ -504,7 +504,14 @@ export default function ReserveScreen({ route, navigation }: Props) {
         <View className="flex-1 items-center justify-center bg-black/30 px-4">
           <Pressable
             className="absolute inset-0"
-            onPress={closeDateTimeModal}
+            onPress={() => {
+              if (isTimePickerVisible) {
+                setIsTimePickerVisible(false);
+                return;
+              }
+
+              closeDateTimeModal();
+            }}
             accessibilityLabel="Close date and time editor"
           />
 
