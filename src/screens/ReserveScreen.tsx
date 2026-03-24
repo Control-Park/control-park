@@ -421,7 +421,13 @@ export default function ReserveScreen({ route, navigation }: Props) {
             <Text className="text-[18px] font-bold text-[#111111]">
               Active Vehicle
             </Text>
-            <Ionicons name="create-outline" size={18} color="#111111" />
+
+            <Pressable
+              onPress={() => navigation.navigate("VehicleManagement")}
+              hitSlop={10}
+            >
+              <Ionicons name="create-outline" size={18} color="#111111" />
+            </Pressable>
           </View>
 
           <View className="mt-3 flex-row justify-between items-center">
