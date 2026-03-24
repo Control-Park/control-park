@@ -29,7 +29,7 @@ export default function CustomButton({
       {localImg && (
         <Image
           source={localImg}
-          className="w-[20px] h-[20px] mr-2"
+          style={{ width: 20, height: 20, marginRight: 8 }}
           resizeMode="contain"
         />
       )}
