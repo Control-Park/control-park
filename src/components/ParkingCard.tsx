@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 export type ParkingCardData = {
   id: string;
   title: string;
-  subtitle: string; // e.g. "$10 for a day, 3.9 miles away"
+  subtitle?: string; // e.g. "$10 for a day, 3.9 miles away"
   images: any[];
   isGuestFavorite?: boolean;
   isFavorited?: boolean;

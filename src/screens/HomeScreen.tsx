@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, StyleSheet, FlatList, ScrollView } from "react-native";
 import {
   SafeAreaView,
@@ -19,9 +19,18 @@ type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 import { parkingLots, lotsNearYou } from "../data/mockListings";
 import { useFavoritesStore } from "../context/favoritesStore";
 import { showSavedRemove, showSavedSuccess } from "../utils/validation";
+
 const MAX_WIDTH = 428;
 
+// useEffect(() => {
+//   fetchListings()
+//     .then(data => setListings(data))
+//     .catch(err => console.log(err))
+// }, [])
+
 export default function HomeScreen({ navigation }: Props) {
+  const [listings, setListings] = useState<ParkingCardData[]>([]);
+  
   // placeholder: move function to another screen once implemented
   const insets = useSafeAreaInsets();
   const baseUrl = "http://localhost:9001/auth/user";
@@ -69,6 +78,7 @@ export default function HomeScreen({ navigation }: Props) {
     </View>
   );
 
+  
   return (
     <View style={styles.safe}>
       {/* Scrollable content */}
