@@ -108,6 +108,11 @@ export default function AppNavigator() {
         component={ProfileScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="Message"
+        component={MessageScreen}
+        options={{ headerShown: false }}
+        />
     </Stack.Navigator>
   );
 }
