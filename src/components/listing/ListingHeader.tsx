@@ -4,7 +4,7 @@ import { View, Text, Image } from "react-native";
 type Props = {
   title?: string;
   address?: string;
-  rating?: number;
+  rating?: any;
   reviewCount?: number;
   isGuestFavorite?: boolean;
   host?: { name?: string; type?: string };
@@ -94,7 +94,6 @@ export default function ListingHeader({
             </View>
           </View>
 
-          <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
         </View>
       ) : (
         ""
