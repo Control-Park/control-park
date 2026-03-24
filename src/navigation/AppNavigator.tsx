@@ -14,6 +14,7 @@ import ExploreScreen from "../screens/ExploreScreen";
 import MessageScreen from "../screens/MessageScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import ReserveScreen from "../screens/ReserveScreen";
+import ActiveReservationScreen from "../screens/ActiveReservationScreen";
 
 export type RootStackParamList = {
   // change type based on parameters a screen expects to receive
@@ -38,6 +39,7 @@ export type RootStackParamList = {
   Message: undefined;
   Profile: undefined;
   Reserve: { id: string };
+  ActiveReservation: undefined;
   // TODO: add userId and profile and send those as parameters into necessary screens
 };
 
@@ -109,10 +111,10 @@ export default function AppNavigator() {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="Message"
-        component={MessageScreen}
+        name="ActiveReservation"
+        component={ActiveReservationScreen}
         options={{ headerShown: false }}
-        />
+      />
     </Stack.Navigator>
   );
 }
