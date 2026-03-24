@@ -25,7 +25,7 @@ export const parkingLots = [
     updated_at: "2026-03-18T00:00:00.000Z",
     // keeping these for UI display purposes
     subHeading: ["Multistory Parking Structure with many levels and parking.", "Nearby are the College of Business building and the horn center.", "Reserve your parking spot now!" ],
-    subtitle: "$10 for a day, 3.9 miles away",
+    subtitle: "$10 per hour, 3.9 miles away",
     isGuestFavorite: true,
     isFavorited: false,
     rating: 4.83,
@@ -159,7 +159,7 @@ export const lotsNearYou = [
     created_at: "2026-03-18T00:00:00.000Z",
     updated_at: "2026-03-18T00:00:00.000Z",
     subHeading: ["Multistory Parking Structure with many levels and parking.", "Nearby are the College of Business building and the horn center.", "Reserve your parking spot now!" ],
-    subtitle: "$10 for a day, 2.8 miles away",
+    subtitle: "$10 per hour, 2.8 miles away",
     isGuestFavorite: true,
     isFavorited: false,
     rating: 4.1,
