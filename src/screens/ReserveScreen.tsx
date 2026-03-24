@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
+  Image,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -20,6 +21,7 @@ import ReportButton from "../components/ReportButton";
 import SaveButton from "../components/SaveButton";
 import { useFavoritesStore } from "../context/favoritesStore";
 import CustomButton from "../components/CustomButton";
+import { useVehicleStore } from "../context/vehicleStore";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Reserve">;
 
@@ -160,8 +162,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
   const minuteListRef = useRef<FlatList<string>>(null);
   const periodListRef = useRef<FlatList<string>>(null);
 
-  const activeVehicleName = "2014 BMW 328i";
-  const activeVehiclePlate = "6BAK571";
+  const { selectedVehicle } = useVehicleStore();
 
   if (!listing) {
     return (
@@ -421,7 +422,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
             <Text className="text-[18px] font-bold text-[#111111]">
               Active Vehicle
             </Text>
-
+                      
             <Pressable
               onPress={() => navigation.navigate("VehicleManagement")}
               hitSlop={10}
@@ -429,22 +430,26 @@ export default function ReserveScreen({ route, navigation }: Props) {
               <Ionicons name="create-outline" size={18} color="#111111" />
             </Pressable>
           </View>
-
-          <View className="mt-3 flex-row justify-between items-center">
+                      
+          <View className="mt-3 flex-row items-center justify-between">
             <View>
               <Text className="text-[14px] text-[#555555]">
-                {activeVehicleName}
+                {selectedVehicle.name}
               </Text>
               <Text className="mt-1 text-[13px] text-[#8a8a8a]">
-                {activeVehiclePlate}
+                {selectedVehicle.plate}
               </Text>
             </View>
-
-            <View className="h-[72px] w-[110px] items-center justify-center rounded-md bg-[#d9d9d9]">
-              <Text className="text-[13px] text-[#555555]">Vehicle</Text>
+                      
+            <View className="h-[72px] w-[110px] items-center justify-center rounded-md overflow-hidden bg-[#d9d9d9]">
+              <Image
+                source={selectedVehicle.image}
+                style={{ width: 120, height: 90 }}
+                resizeMode="contain"
+              />
             </View>
           </View>
-
+                      
           <View className="mt-5 items-center justify-center">
             <View className="h-[1px] w-full bg-[#c5c5c5]" />
           </View>
