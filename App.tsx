@@ -10,6 +10,9 @@ import { NavigationContainer } from "@react-navigation/native";
 
 import Toast from "react-native-toast-message";
 import { toastConfig } from "./src/components/ToastConfig";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -28,14 +31,16 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <View className="flex-1">
-          <StatusBar barStyle="dark-content" />
-          {isShowSplash ? <SplashScreen /> : <AppNavigator />}
-        </View>
-      </NavigationContainer>
-      <Toast config={toastConfig} />
-    </SafeAreaProvider>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <View className="flex-1">
+            <StatusBar barStyle="dark-content" />
+            {isShowSplash ? <SplashScreen /> : <AppNavigator />}
+          </View>
+        </NavigationContainer>
+        <Toast config={toastConfig} />
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }

@@ -24,6 +24,8 @@
     "@storybook/addon-ondevice-controls": "^10.2.3",
     "@storybook/react-native": "^10.2.3",
     "@supabase/supabase-js": "^2.97.0",
+    "@tanstack/react-query": "^5.95.2",
+    "axios": "^1.13.6",
     "babel-loader": "^8.4.1",
     "expo": "~54.0.33",
     "expo-font": "~14.0.11",
