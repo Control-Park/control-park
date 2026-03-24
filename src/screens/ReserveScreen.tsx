@@ -1,17 +1,17 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, Text, ScrollView } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { allListings } from "../data/mockListings";
-
-type Props = NativeStackScreenProps<RootStackParamList, "Reserve">;
 import ListingImage from "../components/listing/ListingImage";
 import { useWindowDimensions } from "react-native";
-
 import ReportButton from "../components/ReportButton";
 import SaveButton from "../components/SaveButton";
 import { useFavoritesStore } from "../context/favoritesStore";
 import CustomButton from "../components/CustomButton";
+
+type Props = NativeStackScreenProps<RootStackParamList, "Reserve">;
+
 const MAX_WIDTH = 480;
 
 export default function ReserveScreen({ route }: Props) {
@@ -46,17 +46,31 @@ export default function ReserveScreen({ route }: Props) {
         </View>
 
         <View className="mt-4 px-4">
-          <Text className="text-lg font-bold">Address Detail</Text>
-          <Text className="mt-1 text-base">{listing?.address}</Text>
+          <Text className="text-lg font-bold text-[#111111]">Location</Text>
+          <Text className="mt-2 text-base text-[#555555]">
+            {listing?.address}
+          </Text>
 
-          <View className="mt-4">
-            <Text className="text-lg font-bold">Price Summary</Text>
-            <Text className="mt-1 text-base">Price per hour: ${pricePerHour}</Text>
-            <Text className="mt-1 text-base">Duration: {duration} hrs</Text>
-            <Text className="mt-2 text-lg font-bold">Total Price: ${totalPrice}</Text>
+          <View className="flex items-center justify-center mt-4">
+            <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
           </View>
+        </View>
 
-          <View className="flex items-center justify-center px-6 mt-4">
+        <View className="mt-4 px-4">
+          <Text className="text-lg font-bold text-[#111111]">
+            Price Summary
+          </Text>
+          <Text className="mt-1 text-base text-[#555555]">
+            Price per hour: ${pricePerHour}
+          </Text>
+          <Text className="mt-1 text-base text-[#555555]">
+            Duration: {duration} hrs
+          </Text>
+          <Text className="mt-2 text-lg font-bold text-[#111111]">
+            Total Price: ${totalPrice}
+          </Text>
+
+          <View className="flex items-center justify-center mt-4">
             <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
           </View>
         </View>
