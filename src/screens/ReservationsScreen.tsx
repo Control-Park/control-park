@@ -17,20 +17,25 @@ import { RootStackParamList } from "../navigation/AppNavigator";
 import { useFavoritesStore } from "../context/favoritesStore";
 import { allListings } from "../data/mockListings";
 
+import { fetchListingById, fetchListings } from "../api/listings";
+import { Listing } from "../types/listing";
+import { useQuery } from "@tanstack/react-query";
+
 type Props = NativeStackScreenProps<RootStackParamList, "Reservations">;
 
 const MAX_WIDTH = 428;
 
+// TODO: transition to using backend instead of hardcode data
 const reservationCards = [
   {
     id: "res-1",
-    listingId: "1",
-    title: "Walter Pyramid",
+    listingId: "164352ef-c16a-433b-bf34-3a7f2e33cea2",
+    title: "Bevan Ave",
     date: "Nov 12",
     time: "9:30 AM",
     duration: "2 hrs",
     status: "Active",
-    image: require("../../assets/parking4.png"),
+    image: require("../../assets/thaipicture.png"),
   },
   {
     id: "res-2",
@@ -72,7 +77,23 @@ const getStatusColor = (status: string) => {
 export default function ReservationsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { favorites } = useFavoritesStore();
-  const savedListings = allListings.filter((listing) => favorites[listing.id]);
+
+  const {
+    data: listings,
+    isLoading,
+    isError,
+  } = useQuery<Listing[]>({
+    queryKey: ["listings"],
+    // TEMPORARILY using mockListings to display, need backend endpoint
+    queryFn: fetchListings,
+  });
+
+  if (isLoading) return <Text>Listing not added to API yet...</Text>;
+  if (isError) return <Text>Something went wrong</Text>;
+  if (!listings) return null;
+
+  const savedListings = listings.filter((listing) => favorites[listing.id]);
+  const listingMap = Object.fromEntries(listings.map((l) => [l.id, l]));
 
   return (
     <View style={styles.safe}>

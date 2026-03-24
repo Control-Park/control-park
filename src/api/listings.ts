@@ -1,8 +1,19 @@
 import client from "./client";
 import { Listing } from "../types/listing";
+import { lotsNearYou, parkingLots } from "../data/mockListings";
 
 // LISTINGS:
-export const createNewListing = async (listingData: Partial<Listing>): Promise<Listing> => {
+export const fetchListings = async (): Promise<Listing[]> => {
+  //   const {data} = await client.post(`/listings`);;
+  //   return data;
+
+  //   TEMPORARY:
+  return [...parkingLots, ...lotsNearYou];
+};
+
+export const createNewListing = async (
+  listingData: Partial<Listing>,
+): Promise<Listing> => {
   const { data } = await client.post(`/listings`, listingData);
   return data;
 };
@@ -12,7 +23,10 @@ export const fetchListingById = async (id: string): Promise<Listing> => {
   return data;
 };
 
-export const reportListing = async (id: string, reason: string): Promise<void> => {
+export const reportListing = async (
+  id: string,
+  reason: string,
+): Promise<void> => {
   const { data } = await client.post(`/listings/${id}/report`, { reason });
   return data;
 };

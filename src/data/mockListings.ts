@@ -8,7 +8,7 @@ export const parkingLots = [
     parking_type: "Driveway",
     price_per_hour: 12,
     amenities: ["Neighborhood watch"],
-    images: [""],
+    images: [require("../../assets/thaipicture.png")],
     available_from: "2026-03-23T17:34:15.274+00:00",
     available_until: "2027-03-23T17:34:15.274+00:00",
     is_active: true,
@@ -255,4 +255,4 @@ export const lotsNearYou = [
   },
 ];
 
-// export const allListings = [...parkingLots, ...lotsNearYou];
+export const allListings = [...parkingLots, ...lotsNearYou];

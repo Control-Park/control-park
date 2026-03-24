@@ -14,7 +14,7 @@ import {
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import { allListings } from "../data/mockListings";
+// import { allListings } from "../data/mockListings";
 import ListingImage from "../components/listing/ListingImage";
 import { useWindowDimensions } from "react-native";
 import ReportButton from "../components/ReportButton";
@@ -23,13 +23,15 @@ import { useFavoritesStore } from "../context/favoritesStore";
 import CustomButton from "../components/CustomButton";
 import { useVehicleStore } from "../context/vehicleStore";
 
+import { fetchListingById } from "../api/listings";
+import { Listing } from "../types/listing";
+import { useQuery } from "@tanstack/react-query";
+
 type Props = NativeStackScreenProps<RootStackParamList, "Reserve">;
 
 const MAX_WIDTH = 480;
 const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-const TIME_HOURS = Array.from({ length: 12 }, (_, index) =>
-  String(index + 1),
-);
+const TIME_HOURS = Array.from({ length: 12 }, (_, index) => String(index + 1));
 const TIME_MINUTES = ["00", "15", "30", "45"];
 const TIME_PERIODS = ["AM", "PM"] as const;
 const WHEEL_ITEM_HEIGHT = 40;
@@ -54,7 +56,9 @@ const createInitialEnd = (start: Date) =>
 const buildCalendarDays = (month: Date) => {
   const firstDayOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
   const firstVisibleDate = new Date(firstDayOfMonth);
-  firstVisibleDate.setDate(firstVisibleDate.getDate() - firstDayOfMonth.getDay());
+  firstVisibleDate.setDate(
+    firstVisibleDate.getDate() - firstDayOfMonth.getDay(),
+  );
 
   return Array.from({ length: 42 }, (_, index) => {
     const date = new Date(firstVisibleDate);
@@ -144,7 +148,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
   const isFavorited = favorites[id];
 
   const { width } = useWindowDimensions();
-  const listing = allListings.find((item) => item.id === id);
+  const { selectedVehicle } = useVehicleStore();
   const initialStart = createInitialStart();
   const initialEnd = createInitialEnd(initialStart);
 
@@ -162,7 +166,19 @@ export default function ReserveScreen({ route, navigation }: Props) {
   const minuteListRef = useRef<FlatList<string>>(null);
   const periodListRef = useRef<FlatList<string>>(null);
 
-  const { selectedVehicle } = useVehicleStore();
+
+  const {
+    data: listing,
+    isLoading,
+    isError,
+  } = useQuery<Listing>({
+    queryKey: ["listing", id],
+    queryFn: () => fetchListingById(id),
+  });
+
+  if (isLoading) return <Text>Listing not added to API yet...</Text>;
+  if (isError) return <Text>Something went wrong</Text>;
+  if (!listing) return null;
 
   if (!listing) {
     return (
@@ -175,11 +191,19 @@ export default function ReserveScreen({ route, navigation }: Props) {
   const hourlyRate = listing.price_per_hour ?? listing.price ?? 0;
   const durationMinutes = Math.max(
     15,
-    Math.round((reservationEnd.getTime() - reservationStart.getTime()) / (1000 * 60)),
+    Math.round(
+      (reservationEnd.getTime() - reservationStart.getTime()) / (1000 * 60),
+    ),
   );
   const subtotal = Number(((durationMinutes / 60) * hourlyRate).toFixed(2));
-  const reservationDuration = formatDurationLabel(reservationStart, reservationEnd);
-  const reservationDate = formatDateRangeLabel(reservationStart, reservationEnd);
+  const reservationDuration = formatDurationLabel(
+    reservationStart,
+    reservationEnd,
+  );
+  const reservationDate = formatDateRangeLabel(
+    reservationStart,
+    reservationEnd,
+  );
   const tripTime = `${formatTimeLabel(reservationStart)} - ${formatTimeLabel(
     reservationEnd,
   )}`;
@@ -221,7 +245,13 @@ export default function ReserveScreen({ route, navigation }: Props) {
 
     const timeout = setTimeout(syncScroll, 0);
     return () => clearTimeout(timeout);
-  }, [activeEditor, activeTime.hour, activeTime.minute, activeTime.period, isTimePickerVisible]);
+  }, [
+    activeEditor,
+    activeTime.hour,
+    activeTime.minute,
+    activeTime.period,
+    isTimePickerVisible,
+  ]);
 
   const openDateTimeModal = () => {
     setDraftStart(reservationStart);
@@ -269,7 +299,8 @@ export default function ReserveScreen({ route, navigation }: Props) {
     part: "hour" | "minute" | "period",
     value: string,
   ) => {
-    const baseDate = activeEditor === "start" ? new Date(draftStart) : new Date(draftEnd);
+    const baseDate =
+      activeEditor === "start" ? new Date(draftStart) : new Date(draftEnd);
     const nextParts = { ...getTimeParts(baseDate), [part]: value };
     let hourValue = Number(nextParts.hour) % 12;
 
@@ -395,22 +426,20 @@ export default function ReserveScreen({ route, navigation }: Props) {
             Price summary
           </Text>
 
-            <View className="mt-3 flex-row justify-between">
-              <Text className="text-[14px] text-[#555555]">Subtotal</Text>
-              <Text className="text-[14px] text-[#111111]">
-                {formatPriceLabel(subtotal)}
-              </Text>
-            </View>
+          <View className="mt-3 flex-row justify-between">
+            <Text className="text-[14px] text-[#555555]">Subtotal</Text>
+            <Text className="text-[14px] text-[#111111]">
+              {formatPriceLabel(subtotal)}
+            </Text>
+          </View>
 
-            <View className="mt-2 flex-row justify-between">
-              <Text className="text-[14px] text-[#555555]">
-                {formatPriceLabel(hourlyRate)} x {formatDurationLabel(
-                  reservationStart,
-                  reservationEnd,
-                )}
-              </Text>
-              <Text className="text-[14px] text-[#555555]">{tripTime}</Text>
-            </View>
+          <View className="mt-2 flex-row justify-between">
+            <Text className="text-[14px] text-[#555555]">
+              {formatPriceLabel(hourlyRate)} x{" "}
+              {formatDurationLabel(reservationStart, reservationEnd)}
+            </Text>
+            <Text className="text-[14px] text-[#555555]">{tripTime}</Text>
+          </View>
 
           <View className="mt-5 items-center justify-center">
             <View className="h-[1px] w-full bg-[#c5c5c5]" />
@@ -422,7 +451,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
             <Text className="text-[18px] font-bold text-[#111111]">
               Active Vehicle
             </Text>
-                      
+
             <Pressable
               onPress={() => navigation.navigate("VehicleManagement")}
               hitSlop={10}
@@ -430,7 +459,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
               <Ionicons name="create-outline" size={18} color="#111111" />
             </Pressable>
           </View>
-                      
+
           <View className="mt-3 flex-row items-center justify-between">
             <View>
               <Text className="text-[14px] text-[#555555]">
@@ -440,7 +469,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
                 {selectedVehicle.plate}
               </Text>
             </View>
-                      
+
             <View className="h-[72px] w-[110px] items-center justify-center rounded-md overflow-hidden bg-[#d9d9d9]">
               <Image
                 source={selectedVehicle.image}
@@ -449,7 +478,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
               />
             </View>
           </View>
-                      
+
           <View className="mt-5 items-center justify-center">
             <View className="h-[1px] w-full bg-[#c5c5c5]" />
           </View>
@@ -561,7 +590,8 @@ export default function ReserveScreen({ route, navigation }: Props) {
                 className="flex-1 rounded-xl border px-3 py-2"
                 style={{
                   borderColor: activeEditor === "start" ? "#ECAA00" : "#E5E7EB",
-                  backgroundColor: activeEditor === "start" ? "#FFF8E1" : "#FFFFFF",
+                  backgroundColor:
+                    activeEditor === "start" ? "#FFF8E1" : "#FFFFFF",
                 }}
               >
                 <Text className="font-abeezee text-[11px] text-[#6B7280]">
@@ -591,7 +621,8 @@ export default function ReserveScreen({ route, navigation }: Props) {
                 className="flex-1 rounded-xl border px-3 py-2"
                 style={{
                   borderColor: activeEditor === "end" ? "#ECAA00" : "#E5E7EB",
-                  backgroundColor: activeEditor === "end" ? "#FFF8E1" : "#FFFFFF",
+                  backgroundColor:
+                    activeEditor === "end" ? "#FFF8E1" : "#FFFFFF",
                 }}
               >
                 <Text className="font-abeezee text-[11px] text-[#6B7280]">
@@ -728,7 +759,10 @@ export default function ReserveScreen({ route, navigation }: Props) {
                                       key={`${column.key}-${item}`}
                                       onPress={() =>
                                         updateDraftTime(
-                                          column.key as "hour" | "minute" | "period",
+                                          column.key as
+                                            | "hour"
+                                            | "minute"
+                                            | "period",
                                           item,
                                         )
                                       }
@@ -742,7 +776,9 @@ export default function ReserveScreen({ route, navigation }: Props) {
                                       <Text
                                         className="text-center font-abeezee text-[18px]"
                                         style={{
-                                          color: isSelected ? "#FFFFFF" : "#7C7C80",
+                                          color: isSelected
+                                            ? "#FFFFFF"
+                                            : "#7C7C80",
                                         }}
                                       >
                                         {item}
@@ -794,7 +830,8 @@ export default function ReserveScreen({ route, navigation }: Props) {
                             })}
                             contentContainerStyle={{
                               paddingVertical: 75,
-                              paddingHorizontal: column.key === "period" ? 8 : 0,
+                              paddingHorizontal:
+                                column.key === "period" ? 8 : 0,
                             }}
                             style={{ width: column.key === "period" ? 72 : 60 }}
                             keyExtractor={(item) => `${column.key}-${item}`}
