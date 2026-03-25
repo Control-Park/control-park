@@ -6,6 +6,7 @@ import {
   Text,
   Pressable,
   Image,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,9 +16,8 @@ import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useFavoritesStore } from "../context/favoritesStore";
-import { allListings } from "../data/mockListings";
 
-import { fetchListingById, fetchListings } from "../api/listings";
+import { fetchListings } from "../api/listings";
 import { Listing } from "../types/listing";
 import { useQuery } from "@tanstack/react-query";
 
@@ -25,7 +25,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Reservations">;
 
 const MAX_WIDTH = 428;
 
-// TODO: transition to using backend instead of hardcode data
+// TODO: transition to using backend instead of hardcoded data
 const reservationCards = [
   {
     id: "res-1",
@@ -84,16 +84,14 @@ export default function ReservationsScreen({ navigation }: Props) {
     isError,
   } = useQuery<Listing[]>({
     queryKey: ["listings"],
-    // TEMPORARILY using mockListings to display, need backend endpoint
     queryFn: fetchListings,
   });
 
-  if (isLoading) return <Text>Listing not added to API yet...</Text>;
+  if (isLoading) return <Text>Loading reservations...</Text>;
   if (isError) return <Text>Something went wrong</Text>;
   if (!listings) return null;
 
   const savedListings = listings.filter((listing) => favorites[listing.id]);
-  const listingMap = Object.fromEntries(listings.map((l) => [l.id, l]));
 
   return (
     <View style={styles.safe}>
@@ -132,9 +130,24 @@ export default function ReservationsScreen({ navigation }: Props) {
                     card.status === "Expired" && styles.expiredCard,
                     pressed && { opacity: 0.75 },
                   ]}
-                  onPress={() =>
-                    navigation.navigate("Details", { id: card.listingId })
-                  }
+                  onPress={() => {
+                    if (card.status === "Expired") {
+                      Alert.alert(
+                        "Your reservation has ended",
+                        "You have a 5 minute grace period. Would you like to renew?",
+                        [
+                          { text: "No", style: "cancel" },
+                          {
+                            text: "Renew",
+                            onPress: () => navigation.navigate("Explore"),
+                          },
+                        ]
+                      );
+                      return;
+                    }
+
+                    navigation.navigate("ActiveReservation");
+                  }}
                 >
                   <View style={styles.cardImageWrapper}>
                     <Image source={card.image} style={styles.cardImage} />
@@ -163,7 +176,7 @@ export default function ReservationsScreen({ navigation }: Props) {
 
                       <Pressable
                         style={styles.renewButton}
-                        onPress={() => console.log("Renew pressed")}
+                        onPress={() => navigation.navigate("Explore")}
                       >
                         <Text style={styles.renewButtonText}>Renew</Text>
                       </Pressable>
