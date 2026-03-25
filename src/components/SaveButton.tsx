@@ -2,19 +2,27 @@ import React from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { showSavedSuccess, showSavedRemove } from "../utils/validation";
+import { saveListing, unsaveListing } from "../api/listings";
 
 type Props = {
+  listingId: string;
   onPress?: () => void;
   isFavorited?: boolean;
 };
 
-export default function SaveButton({ onPress, isFavorited }: Props) {
-  const handlePress = () => {
+export default function SaveButton({ listingId, onPress, isFavorited }: Props) {
+  const handlePress = async () => {
     onPress?.();
-    if (!isFavorited) {
-      showSavedSuccess("Added to your saved listings");
-    } else {
-      showSavedRemove("Removed from saved listings");
+    try {
+      if (isFavorited) {
+        await unsaveListing(listingId);
+        showSavedRemove("Removed from saved listings");
+      } else {
+        await saveListing(listingId);
+        showSavedSuccess("Added to your saved listings");
+      }
+    } catch (err) {
+      console.error("Failed to update saved listing:", err);
     }
   };
   return (

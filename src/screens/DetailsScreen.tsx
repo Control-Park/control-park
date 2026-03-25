@@ -69,6 +69,7 @@ export default function DetailsScreen({ route }: Props) {
           />
           <ReportButton listingId={id} />
           <SaveButton
+            listingId={id}
             onPress={() => toggleFavorite(id)}
             isFavorited={isFavorited}
           />
