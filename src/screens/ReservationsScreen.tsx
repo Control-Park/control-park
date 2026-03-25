@@ -144,7 +144,10 @@ export default function ReservationsScreen({ navigation }: Props) {
                           { text: "No", style: "cancel" },
                           {
                             text: "Renew",
-                            onPress: () => navigation.navigate("Explore"),
+                            onPress: () =>
+                              navigation.navigate("Reserve", {
+                                id: card.listingId,
+                              }),
                           },
                         ],
                       );
@@ -181,7 +184,11 @@ export default function ReservationsScreen({ navigation }: Props) {
 
                       <Pressable
                         style={styles.renewButton}
-                        onPress={() => navigation.navigate("Explore")}
+                        onPress={() =>
+                          navigation.navigate("Reserve", {
+                            id: card.listingId,
+                          })
+                        }
                       >
                         <Text style={styles.renewButtonText}>Renew</Text>
                       </Pressable>
