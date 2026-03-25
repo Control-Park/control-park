@@ -57,12 +57,15 @@ export default function HomeScreen({ navigation }: Props) {
 
   const { favorites, toggleFavorite } = useFavoritesStore();
 
-  const renderCard = ({ item }: { item: ParkingCardData }) => (
+  const renderCard = ({ item }: { item: Listing }) => (
     <View style={{ marginRight: 12 }}>
       <ParkingCard
         data={{
-          ...item,
+          id: item.id,
+          title: item.title || item.structure_name,
+          subtitle: `$${item.price_per_hour} per hour`,
           images: getListingImages(item),
+          isGuestFavorite: !!item.is_guest_favorite,
           isFavorited: !!favorites[item.id],
         }}
         onToggleFavorite={() => {

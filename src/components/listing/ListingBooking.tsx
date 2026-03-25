@@ -7,14 +7,15 @@ import { useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../navigation/AppNavigator";
 
 type Props = {
-  originalPrice?: number;
+  original_price?: number;
+  price_per_hour?: number;
   price?: number;
   id?: string;
 };
 
 type ReserveNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-export default function ListingBooking({ originalPrice, price, id }: Props) {
+export default function ListingBooking({ original_price, price, id, price_per_hour }: Props) {
   const navigation = useNavigation<ReserveNavigationProp>();
 
   return (
@@ -22,7 +23,7 @@ export default function ListingBooking({ originalPrice, price, id }: Props) {
       <View className="flex-col">
         <View className="flex-row items-center">
           <Text className="font-abeezee text-lg line-through text-[#6A6A6A]">
-            $ {originalPrice}
+            $ {original_price}
           </Text>
           <Text className="font-abeezee text-lg"> ${price}</Text>
         </View>

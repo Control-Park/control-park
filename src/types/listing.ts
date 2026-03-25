@@ -10,22 +10,19 @@ export type Listing = {
   available_from: string;
   available_until: string;
   is_active: boolean;
-  is_saved: boolean;
+  is_saved?: boolean;
   created_at: string;
   updated_at: string;
   title: string;
   description: string;
   perks: string[];
   incentives: string[];
-  // UI display fields - not from API
-  subHeading?: string[];
-  subtitle?: string;
-  isGuestFavorite?: boolean;
-  isFavorited?: boolean;
-  rating?: number;
-  reviewCount?: number;
-  host?: { name: string; type: string };
-  isPopular?: boolean;
-  originalPrice?: number;
-  price?: number;
-}
+  sub_heading?: string[];
+  is_guest_favorite?: boolean;
+  rating?: number | null;
+  review_count?: number;
+  host_name?: string;
+  host_type?: string;
+  is_popular?: boolean;
+  original_price?: number | null;
+};

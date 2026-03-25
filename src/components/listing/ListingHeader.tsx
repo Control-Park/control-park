@@ -5,18 +5,20 @@ type Props = {
   title?: string;
   address?: string;
   rating?: any;
-  reviewCount?: number;
+  review_count?: number;
   isGuestFavorite?: boolean;
-  host?: { name?: string; type?: string };
+  host_name?: string;
+  host_type?: string;
 };
 
 export default function ListingHeader({
   title,
   address,
   rating,
-  reviewCount,
+  review_count,
   isGuestFavorite,
-  host,
+  host_name,
+  host_type,
 }: Props) {
   const textStyle = { fontFamily: "ABeeZee-Regular" };
   const subTextClass = "text-[#6A6A6A] font-md mt-4 text-md";
@@ -24,7 +26,7 @@ export default function ListingHeader({
   const stats = [
     String(rating),
     isGuestFavorite ? "Guest Favorite" : "Student Favorite",
-    String(reviewCount),
+    String(review_count),
   ].join("     |     ");
 
   return (
@@ -69,7 +71,7 @@ export default function ListingHeader({
         <View className="w-[1px] h-10 bg-[#c5c5c5]" />
         <View className="items-center px-6">
           <Text style={textStyle} className="text-xl">
-            {reviewCount}
+            {review_count}
           </Text>
           <Text style={textStyle} className="text-xs">
             Reviews
@@ -77,7 +79,7 @@ export default function ListingHeader({
         </View>
       </View>
 
-      {host ? ( // if host passed as param, load it. otherwise hide
+      {host_name ? ( // if host passed as param, load it. otherwise hide
         <View className="flex w-full items-start">
           <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
 
@@ -88,9 +90,9 @@ export default function ListingHeader({
             />
             <View className="flex-col ml-4 gap-1.5">
               <Text className="font-abeezee">
-                {host ? "Hosted by" : ""} {host?.name}
+                {host_name ? "Hosted by" : ""} {host_name}
               </Text>
-              <Text className="font-abeezee text-[#525252]">{host?.type}</Text>
+              <Text className="font-abeezee text-[#525252]">{host_type}</Text>
             </View>
           </View>
 

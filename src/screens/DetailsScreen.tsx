@@ -52,6 +52,8 @@ export default function DetailsScreen({ route }: Props) {
   if (isError) return <Text>Error: {(error as Error)?.message}</Text>;
   if (!listing) return null;
 
+  console.log(listing.review_count);
+  console.log(fetchListingById);
   const textStyle = { fontFamily: "ABeeZee-Regular" };
 
   return (
@@ -77,9 +79,10 @@ export default function DetailsScreen({ route }: Props) {
             title={listing?.title}
             address={listing?.address}
             rating={listing?.rating ?? "0.00"}
-            reviewCount={listing?.reviewCount ?? 0}
-            isGuestFavorite={listing?.isGuestFavorite}
-            host={listing?.host}
+            review_count={listing?.review_count ?? 0}
+            isGuestFavorite={listing?.is_guest_favorite} 
+            host_name={listing?.host_name}
+            host_type={listing?.host_type}
           />
         </View>
         <View className="flex items-center justify-center px-6">
@@ -123,8 +126,8 @@ export default function DetailsScreen({ route }: Props) {
         <View className="h-[2px] w-[100%] bg-[#ECAA00] mb-2" />
 
         <ListingBooking
-          originalPrice={listing?.originalPrice ?? 0}
-          price={listing?.price ?? 0}
+          original_price={listing?.original_price ?? 0}
+          price={listing?.price_per_hour ?? 0}
           id={listing?.id}
         />
       </View>
