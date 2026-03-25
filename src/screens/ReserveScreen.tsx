@@ -27,6 +27,7 @@ import { fetchListingById, reportListing } from "../api/listings";
 import { Listing } from "../types/listing";
 import { useQuery } from "@tanstack/react-query";
 import { getListingImage } from "../utils/listingImages";
+import { reserveCancel, reserveSuccess } from "../utils/validation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Reserve">;
 
@@ -406,6 +407,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
   const handleReserveConfirm = () => {
     setIsReserveConfirmVisible(false);
     setIsReserveSuccessVisible(true);
+    reserveSuccess("Reservation has been made");
   };
 
   const closeReserveSuccess = () => {
@@ -678,7 +680,9 @@ export default function ReserveScreen({ route, navigation }: Props) {
                   backgroundColor: "#FFF8E1",
                 }}
               >
-                <Text className="font-abeezee text-[11px] text-[#6B7280]">Start</Text>
+                <Text className="font-abeezee text-[11px] text-[#6B7280]">
+                  Start
+                </Text>
                 <Text className="mt-1 font-abeezee text-[13px] text-[#111111]">
                   {formatDateLabel(draftStart)}
                 </Text>
@@ -694,7 +698,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
                   </Text>
                 </Pressable>
               </Pressable>
-                
+
               <Pressable
                 onPress={() => {
                   setActiveEditor("end");
@@ -703,16 +707,22 @@ export default function ReserveScreen({ route, navigation }: Props) {
                 className="flex-1 rounded-xl border px-3 py-2"
                 style={{
                   borderColor:
-                    activeEditor === "end" && hasSelectedEndDate ? "#111111" : "#E5E7EB",
+                    activeEditor === "end" && hasSelectedEndDate
+                      ? "#111111"
+                      : "#E5E7EB",
                   backgroundColor:
-                    activeEditor === "end" && hasSelectedEndDate ? "#111111" : "#FFFFFF",
+                    activeEditor === "end" && hasSelectedEndDate
+                      ? "#111111"
+                      : "#FFFFFF",
                 }}
               >
                 <Text
                   className="font-abeezee text-[11px]"
                   style={{
                     color:
-                      activeEditor === "end" && hasSelectedEndDate ? "#D1D5DB" : "#6B7280",
+                      activeEditor === "end" && hasSelectedEndDate
+                        ? "#D1D5DB"
+                        : "#6B7280",
                   }}
                 >
                   End
@@ -721,7 +731,9 @@ export default function ReserveScreen({ route, navigation }: Props) {
                   className="mt-1 font-abeezee text-[13px]"
                   style={{
                     color:
-                      activeEditor === "end" && hasSelectedEndDate ? "#FFFFFF" : "#111111",
+                      activeEditor === "end" && hasSelectedEndDate
+                        ? "#FFFFFF"
+                        : "#111111",
                   }}
                 >
                   {formatDateLabel(draftEnd)}
@@ -734,14 +746,18 @@ export default function ReserveScreen({ route, navigation }: Props) {
                   className="mt-2 self-start rounded-full px-3 py-1"
                   style={{
                     backgroundColor:
-                      activeEditor === "end" && hasSelectedEndDate ? "#2C2C2E" : "#F3F4F6",
+                      activeEditor === "end" && hasSelectedEndDate
+                        ? "#2C2C2E"
+                        : "#F3F4F6",
                   }}
                 >
                   <Text
                     className="font-abeezee text-[13px]"
                     style={{
                       color:
-                        activeEditor === "end" && hasSelectedEndDate ? "#FFFFFF" : "#111111",
+                        activeEditor === "end" && hasSelectedEndDate
+                          ? "#FFFFFF"
+                          : "#111111",
                     }}
                   >
                     {formatTimeLabel(draftEnd)}
@@ -749,7 +765,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
                 </Pressable>
               </Pressable>
             </View>
-                  
+
             <View
               className="flex-row self-center pb-1"
               style={{ width: 7 * 36 }}
@@ -765,74 +781,75 @@ export default function ReserveScreen({ route, navigation }: Props) {
               ))}
             </View>
 
-                <View
-                  className="flex-row flex-wrap self-center"
-                  style={{ width: 7 * 36 }}
-                >
+            <View
+              className="flex-row flex-wrap self-center"
+              style={{ width: 7 * 36 }}
+            >
               {calendarDays.map(({ date, isCurrentMonth }) => {
                 const isPast = isPastDate(date);
                 const isStartDate = isSameDay(date, draftStart);
-                const isEndDate = hasSelectedEndDate && isSameDay(date, draftEnd);
+                const isEndDate =
+                  hasSelectedEndDate && isSameDay(date, draftEnd);
                 const isInRange =
                   hasSelectedEndDate &&
                   isDateInRangeExclusive(date, draftStart, draftEnd);
-              
+
                 let backgroundColor = "transparent";
                 let textColor = isCurrentMonth ? "#111111" : "#111111";
                 let borderRadius = 999;
-              
+
                 if (isPast) {
                   textColor = "#D1D5DB";
                 }
-              
+
                 if (!isPast && isInRange) {
                   backgroundColor = "#E5E7EB";
                   textColor = "#111111";
                   borderRadius = 10;
                 }
-              
+
                 if (!isPast && isStartDate) {
                   backgroundColor = "#ECAA00";
                   textColor = "#111111";
                   borderRadius = 999;
                 }
-              
+
                 if (!isPast && isEndDate) {
                   backgroundColor = "#111111";
                   textColor = "#FFFFFF";
                   borderRadius = 999;
                 }
-              
+
                 return (
-                <Pressable
-                  key={date.toISOString()}
-                  onPress={() => {
-                    if (!isPast) {
-                      updateDraftDate(date);
-                    }
-                  }}
-                  disabled={isPast}
-                  className="mb-1 items-center justify-center"
-                  style={{
-                    width: 36,
-                    opacity: isPast ? 0.45 : 1,
-                  }}
-                >
-                  <View
-                    className="h-8 w-8 items-center justify-center"
+                  <Pressable
+                    key={date.toISOString()}
+                    onPress={() => {
+                      if (!isPast) {
+                        updateDraftDate(date);
+                      }
+                    }}
+                    disabled={isPast}
+                    className="mb-1 items-center justify-center"
                     style={{
-                      backgroundColor,
-                      borderRadius,
+                      width: 36,
+                      opacity: isPast ? 0.45 : 1,
                     }}
                   >
-                    <Text
-                      className="font-abeezee text-[12px]"
-                      style={{ color: textColor }}
+                    <View
+                      className="h-8 w-8 items-center justify-center"
+                      style={{
+                        backgroundColor,
+                        borderRadius,
+                      }}
                     >
-                      {date.getDate()}
-                    </Text>
-                  </View>
-                </Pressable>
+                      <Text
+                        className="font-abeezee text-[12px]"
+                        style={{ color: textColor }}
+                      >
+                        {date.getDate()}
+                      </Text>
+                    </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -1051,13 +1068,17 @@ export default function ReserveScreen({ route, navigation }: Props) {
 
             <View className="flex-row border-t border-[#E5E7EB]">
               <Pressable
-                onPress={() => setIsReserveConfirmVisible(false)}
+                onPress={() => {
+                  setIsReserveConfirmVisible(false);
+                  reserveCancel("Reservation has been canceled.");
+                }}
                 className="flex-1 items-center justify-center py-3"
               >
                 <Text className="font-abeezee text-[13px] text-[#111111]">
                   No
                 </Text>
               </Pressable>
+
               <Pressable
                 onPress={handleReserveConfirm}
                 className="flex-1 items-center justify-center border-l border-[#E5E7EB] py-3"
