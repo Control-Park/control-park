@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, FlatList, ScrollView } from "react-native";
+import { View, StyleSheet, FlatList, ScrollView, Text } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -16,21 +16,19 @@ import { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar, { TabKey } from "../components/Navbar";
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
-import { parkingLots, lotsNearYou } from "../data/mockListings";
+// import { parkingLots, lotsNearYou } from "../data/mockListings";
 import { useFavoritesStore } from "../context/favoritesStore";
 import { showSavedRemove, showSavedSuccess } from "../utils/validation";
+import { fetchListings } from "../api/listings";
+import { useQuery } from "@tanstack/react-query";
+import { Listing } from "../types/listing";
+import { getListingImages } from "../utils/listingImages";
 
 const MAX_WIDTH = 428;
 
-// useEffect(() => {
-//   fetchListings()
-//     .then(data => setListings(data))
-//     .catch(err => console.log(err))
-// }, [])
-
 export default function HomeScreen({ navigation }: Props) {
-  const [listings, setListings] = useState<ParkingCardData[]>([]);
-  
+  // const [listings, setListings] = useState<ParkingCardData[]>([]);
+
   // placeholder: move function to another screen once implemented
   const insets = useSafeAreaInsets();
   const baseUrl = "http://localhost:9001/auth/user";
@@ -63,22 +61,43 @@ export default function HomeScreen({ navigation }: Props) {
   const renderCard = ({ item }: { item: ParkingCardData }) => (
     <View style={{ marginRight: 12 }}>
       <ParkingCard
-        data={{ ...item, isFavorited: !!favorites[item.id] }}
+        data={{
+          ...item,
+          images: getListingImages(item),
+          isFavorited: !!favorites[item.id],
+        }}
         onToggleFavorite={() => {
-        const isCurrentlyFavorited = !!favorites[item.id];
-        toggleFavorite(item.id);
-        if (!isCurrentlyFavorited) {
-          showSavedSuccess("Added to your saved listings");
-        } else {
-          showSavedRemove("Removed from saved listings");
-        }
-      }}
+          const isCurrentlyFavorited = !!favorites[item.id];
+          toggleFavorite(item.id);
+          if (!isCurrentlyFavorited) {
+            showSavedSuccess("Added to your saved listings");
+          } else {
+            showSavedRemove("Removed from saved listings");
+          }
+        }}
         onPress={() => navigation.navigate("Details", { id: item.id })}
       />
     </View>
   );
 
-  
+  const {
+    data: listings,
+    isLoading,
+    isError,
+  } = useQuery<Listing[]>({
+    queryKey: ["listings"],
+    queryFn: () => fetchListings(),
+  });
+  if (isLoading) return <Text>Loading...</Text>;
+  if (isError) return <Text>Something went wrong</Text>;
+  if (!listings) {
+    console.log("No listings returned");
+    return <Text>No listings found</Text>;
+  }
+
+  const parkingLots = listings.slice(0, 3);
+  const lotsNearYou = listings.slice(3, 6);
+
   return (
     <View style={styles.safe}>
       {/* Scrollable content */}

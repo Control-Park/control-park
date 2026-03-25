@@ -19,6 +19,7 @@ import { useFavoritesStore } from "../context/favoritesStore";
 import { useQuery } from "@tanstack/react-query";
 import { fetchListingById } from "../api/listings";
 import { Listing } from "../types/listing";
+import { getListingImages } from "../utils/listingImages";
 
 const MAX_WIDTH = 480;
 
@@ -50,7 +51,7 @@ export default function DetailsScreen({ route }: Props) {
     >
       <View style={{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center" }}>
         <View className="relative">
-          <ListingImage source={listing?.images[0]} imageWidth={width} />
+          <ListingImage source={getListingImages(listing)[0]} imageWidth={width} />
           <ReportButton />
           <SaveButton
             onPress={() => toggleFavorite(id)}
@@ -113,9 +114,9 @@ export default function DetailsScreen({ route }: Props) {
         <View className="h-[2px] w-[100%] bg-[#ECAA00] mb-2" />
 
         <ListingBooking
-          originalPrice={listing?.originalPrice}
-          price={listing?.price}
-          id={listing?.id}
+          originalPrice={listing?.originalPrice ?? 0}
+          price={listing?.price ?? 0}
+          id={listing?.id ?? 0}
         />
       </View>
       {/* <View style={{ height: 25 }} /> */}

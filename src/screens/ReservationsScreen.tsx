@@ -20,6 +20,7 @@ import { useFavoritesStore } from "../context/favoritesStore";
 import { fetchListings } from "../api/listings";
 import { Listing } from "../types/listing";
 import { useQuery } from "@tanstack/react-query";
+import { getListingImage, getListingImages } from "../utils/listingImages";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Reservations">;
 
@@ -39,7 +40,7 @@ const reservationCards = [
   },
   {
     id: "res-2",
-    listingId: "2",
+    listingId: "03dd697f-ae0b-45b1-b73a-9d8f57c4f777",
     title: "Lot G9",
     date: "Nov 12",
     time: "3:25 PM",
@@ -49,7 +50,7 @@ const reservationCards = [
   },
   {
     id: "res-3",
-    listingId: "1",
+    listingId: "30d3ad11-bd54-4990-ab29-e1a4d831983e",
     title: "Lot E1",
     date: "Nov 10",
     time: "11:00 AM",
@@ -91,7 +92,10 @@ export default function ReservationsScreen({ navigation }: Props) {
   if (isError) return <Text>Something went wrong</Text>;
   if (!listings) return null;
 
+  console.log("listings:", listings);
   const savedListings = listings.filter((listing) => favorites[listing.id]);
+  console.log("listings:", savedListings);
+  console.log(savedListings)
 
   return (
     <View style={styles.safe}>
@@ -201,7 +205,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                     navigation.navigate("Details", { id: item.id })
                   }
                 >
-                  <Image source={item.images[0]} style={styles.avatarImage} />
+                  <Image source={getListingImage(item)} style={styles.avatarImage} />
 
                   <View style={styles.listTextBlock}>
                     <Text style={styles.listTitle}>{item.title}</Text>

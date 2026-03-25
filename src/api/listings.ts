@@ -4,11 +4,8 @@ import { lotsNearYou, parkingLots } from "../data/mockListings";
 
 // LISTINGS:
 export const fetchListings = async (): Promise<Listing[]> => {
-  //   const {data} = await client.post(`/listings`);;
-  //   return data;
-
-  //   TEMPORARY:
-  return [...parkingLots, ...lotsNearYou];
+  const { data } = await client.get(`/listings`);
+  return data.listings;
 };
 
 export const createNewListing = async (

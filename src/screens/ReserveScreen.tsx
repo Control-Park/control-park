@@ -26,6 +26,7 @@ import { useVehicleStore } from "../context/vehicleStore";
 import { fetchListingById } from "../api/listings";
 import { Listing } from "../types/listing";
 import { useQuery } from "@tanstack/react-query";
+import { getListingImage } from "../utils/listingImages";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Reserve">;
 
@@ -355,7 +356,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
     >
       <View style={{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center" }}>
         <View className="relative">
-          <ListingImage source={listing.images[0]} imageWidth={width} />
+          <ListingImage source={getListingImage(listing)} imageWidth={width} />
           <ReportButton />
           <SaveButton
             onPress={() => toggleFavorite(id)}
