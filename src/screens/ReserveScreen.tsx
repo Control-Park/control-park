@@ -23,7 +23,7 @@ import { useFavoritesStore } from "../context/favoritesStore";
 import CustomButton from "../components/CustomButton";
 import { useVehicleStore } from "../context/vehicleStore";
 
-import { fetchListingById } from "../api/listings";
+import { fetchListingById, reportListing } from "../api/listings";
 import { Listing } from "../types/listing";
 import { useQuery } from "@tanstack/react-query";
 import { getListingImage } from "../utils/listingImages";
@@ -408,7 +408,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
       <View style={{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center" }}>
         <View className="relative">
           <ListingImage source={getListingImage(listing)} imageWidth={width} />
-          <ReportButton />
+          <ReportButton listingId={listing.id} />
           <SaveButton
             onPress={() => toggleFavorite(id)}
             isFavorited={isFavorited}

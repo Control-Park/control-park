@@ -56,9 +56,8 @@ export const fetchListingById = async (id: string): Promise<Listing> => {
 
 export const reportListing = async (
   id: string,
-  reason: string,
 ): Promise<void> => {
-  const { data } = await client.post(`/listings/${id}/report`, { reason });
+  const { data } = await client.post(`/listings/${id}/report`);
   return data;
 };
 
