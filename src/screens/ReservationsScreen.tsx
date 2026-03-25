@@ -16,6 +16,11 @@ import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useFavoritesStore } from "../context/favoritesStore";
+import {
+  ReservationRecord,
+  ReservationStatus,
+  useReservationStore,
+} from "../context/reservationStore";
 
 import { fetchListings } from "../api/listings";
 import { Listing } from "../types/listing";
@@ -24,65 +29,59 @@ import { getListingImage } from "../utils/listingImages";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Reservations">;
 
+// TODO: MAKE RESERVED SCREENS UNIQUE.
+
 const MAX_WIDTH = 428;
 
-// TODO: transition to using backend instead of hardcoded data
-const reservationCards = [
-  {
-    id: "res-1",
-    listingId: "164352ef-c16a-433b-bf34-3a7f2e33cea2",
-    title: "Bevan Ave",
-    date: "Nov 12",
-    time: "9:30 AM",
-    duration: "2 hrs",
-    status: "Active",
-    image: require("../../assets/thaipicture.png"),
-  },
-  {
-    id: "res-2",
-    listingId: "03dd697f-ae0b-45b1-b73a-9d8f57c4f777",
-    title: "Lot G9",
-    date: "Nov 12",
-    time: "3:25 PM",
-    duration: "1.5 hrs",
-    status: "Upcoming",
-    image: require("../../assets/parking5.png"),
-  },
-  {
-    id: "res-3",
-    listingId: "30d3ad11-bd54-4990-ab29-e1a4d831983e",
-    title: "Lot E1",
-    date: "Nov 10",
-    time: "11:00 AM",
-    duration: "1 hr",
-    status: "Expired",
-    image: require("../../assets/parking4.png"),
-  },
-];
+const getReservationStatus = (
+  reservation: Pick<ReservationRecord, "reservedFrom" | "reservedUntil">,
+): ReservationStatus => {
+  const now = Date.now();
+  const start = new Date(reservation.reservedFrom).getTime();
+  const end = new Date(reservation.reservedUntil).getTime();
 
-const resolveListingForReservation = (
-  card: (typeof reservationCards)[number],
-  listings: Listing[],
-) => {
-  return (
-    listings.find((listing) => listing.id === card.listingId) ??
-    listings.find(
-      (listing) =>
-        listing.title?.toLowerCase() === card.title.toLowerCase() ||
-        listing.structure_name?.toLowerCase() === card.title.toLowerCase(),
-    ) ??
-    null
-  );
+  if (now < start) return "Upcoming";
+  if (now > end) return "Expired";
+  return "Active";
 };
 
-const getStatusColor = (status: string) => {
+const formatReservationDate = (date: Date) =>
+  date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+
+const formatReservationTime = (date: Date) =>
+  date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+const formatReservationDuration = (start: Date, end: Date) => {
+  const totalMinutes = Math.max(
+    15,
+    Math.round((end.getTime() - start.getTime()) / (1000 * 60)),
+  );
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours && minutes) {
+    return `${hours}.${Math.floor((minutes / 60) * 10)} hrs`;
+  }
+
+  if (hours) {
+    return `${hours} hr${hours > 1 ? "s" : ""}`;
+  }
+
+  return `${minutes} min`;
+};
+
+const getStatusColor = (status: ReservationStatus) => {
   switch (status) {
     case "Active":
       return "#22C55E";
     case "Upcoming":
       return "#F59E0B";
-    case "Completed":
-      return "#9A9A9A";
     case "Expired":
       return "#EF4444";
     default:
@@ -90,9 +89,15 @@ const getStatusColor = (status: string) => {
   }
 };
 
+const resolveListingForReservation = (
+  reservation: ReservationRecord,
+  listings: Listing[],
+) => listings.find((listing) => listing.id === reservation.listingId) ?? null;
+
 export default function ReservationsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { favorites } = useFavoritesStore();
+  const reservations = useReservationStore((state) => state.reservations);
 
   const {
     data: listings,
@@ -110,18 +115,31 @@ export default function ReservationsScreen({ navigation }: Props) {
 
   const savedListings = listings.filter((listing) => favorites[listing.id]);
 
-  const handleRenewReservation = (card: (typeof reservationCards)[number]) => {
-    const resolvedListing = resolveListingForReservation(card, listings);
+  const reservationCards = reservations
+    .map((reservation) => {
+      const listing = resolveListingForReservation(reservation, listings);
 
-    if (!resolvedListing) {
-      Alert.alert(
-        "Listing unavailable",
-        "We couldn't find the matching listing for this reservation anymore.",
-      );
-      return;
-    }
+      if (!listing) {
+        return null;
+      }
 
-    navigation.navigate("Reserve", { id: resolvedListing.id });
+      const start = new Date(reservation.reservedFrom);
+      const end = new Date(reservation.reservedUntil);
+
+      return {
+        reservation,
+        listing,
+        title: listing.title || listing.structure_name,
+        date: formatReservationDate(start),
+        time: formatReservationTime(start),
+        duration: formatReservationDuration(start, end),
+        status: getReservationStatus(reservation),
+      };
+    })
+    .filter((card): card is NonNullable<typeof card> => card !== null);
+
+  const handleRenewReservation = (reservation: ReservationRecord) => {
+    navigation.navigate("Reserve", { id: reservation.listingId });
   };
 
   return (
@@ -153,75 +171,84 @@ export default function ReservationsScreen({ navigation }: Props) {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.cardsRow}
             >
-              {reservationCards.map((card) => {
-                const resolvedListing = resolveListingForReservation(card, listings);
-
-                return (
-                <Pressable
-                  key={card.id}
-                  style={({ pressed }) => [
-                    styles.card,
-                    card.status === "Expired" && styles.expiredCard,
-                    pressed && { opacity: 0.75 },
-                  ]}
-                  onPress={() => {
-                    if (card.status === "Expired") {
-                      Alert.alert(
-                        "Your reservation has ended",
-                        "You have a 5 minute grace period. Would you like to renew?",
-                        [
-                          { text: "No", style: "cancel" },
-                          {
-                            text: "Renew",
-                            onPress: () => handleRenewReservation(card),
-                          },
-                        ],
-                      );
-                      return;
-                    }
-
-                    navigation.navigate("ActiveReservation");
-                  }}
-                >
-                  <View style={styles.cardImageWrapper}>
-                    <Image
-                      source={resolvedListing ? getListingImage(resolvedListing) : card.image}
-                      style={styles.cardImage}
-                    />
-
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        { backgroundColor: getStatusColor(card.status) },
-                      ]}
-                    >
-                      <Text style={styles.statusBadgeText}>{card.status}</Text>
-                    </View>
-                  </View>
-
-                  <Text style={styles.cardTitle}>{card.title}</Text>
-                  <Text style={styles.cardMeta}>
-                    {card.date} • {card.time}
+              {reservationCards.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyTitle}>No reservations yet</Text>
+                  <Text style={styles.emptyText}>
+                    Reserve a listing and it will show up here with its live
+                    status.
                   </Text>
-                  <Text style={styles.cardDuration}>{card.duration}</Text>
+                </View>
+              ) : (
+                reservationCards.map((card) => (
+                  <Pressable
+                    key={card.reservation.id}
+                    style={({ pressed }) => [
+                      styles.card,
+                      card.status === "Expired" && styles.expiredCard,
+                      pressed && { opacity: 0.75 },
+                    ]}
+                    onPress={() => {
+                      if (card.status === "Expired") {
+                        Alert.alert(
+                          "Your reservation has ended",
+                          "Would you like to renew this reservation?",
+                          [
+                            { text: "No", style: "cancel" },
+                            {
+                              text: "Renew",
+                              onPress: () =>
+                                handleRenewReservation(card.reservation),
+                            },
+                          ],
+                        );
+                        return;
+                      }
 
-                  {card.status === "Expired" && (
-                    <>
-                      <Text style={styles.expiredText}>
-                        This reservation has expired.
-                      </Text>
+                      navigation.navigate("ActiveReservation", {
+                        reservationId: card.reservation.id,
+                      });
+                    }}
+                  >
+                    <View style={styles.cardImageWrapper}>
+                      <Image
+                        source={getListingImage(card.listing)}
+                        style={styles.cardImage}
+                      />
 
-                      <Pressable
-                        style={styles.renewButton}
-                        onPress={() => handleRenewReservation(card)}
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          { backgroundColor: getStatusColor(card.status) },
+                        ]}
                       >
-                        <Text style={styles.renewButtonText}>Renew</Text>
-                      </Pressable>
-                    </>
-                  )}
-                </Pressable>
-                );
-              })}
+                        <Text style={styles.statusBadgeText}>{card.status}</Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.cardTitle}>{card.title}</Text>
+                    <Text style={styles.cardMeta}>
+                      {card.date} | {card.time}
+                    </Text>
+                    <Text style={styles.cardDuration}>{card.duration}</Text>
+
+                    {card.status === "Expired" && (
+                      <>
+                        <Text style={styles.expiredText}>
+                          This reservation has expired.
+                        </Text>
+
+                        <Pressable
+                          style={styles.renewButton}
+                          onPress={() => handleRenewReservation(card.reservation)}
+                        >
+                          <Text style={styles.renewButtonText}>Renew</Text>
+                        </Pressable>
+                      </>
+                    )}
+                  </Pressable>
+                ))
+              )}
             </ScrollView>
 
             <View style={styles.section}>
@@ -235,9 +262,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                     styles.listItem,
                     pressed && { opacity: 0.75 },
                   ]}
-                  onPress={() =>
-                    navigation.navigate("Details", { id: item.id })
-                  }
+                  onPress={() => navigation.navigate("Details", { id: item.id })}
                 >
                   <Image
                     source={getListingImage(item)}
@@ -247,13 +272,15 @@ export default function ReservationsScreen({ navigation }: Props) {
                   <View style={styles.listTextBlock}>
                     <Text style={styles.listTitle}>{item.title}</Text>
                     <View style={styles.ratingRow}>
-                      <Text style={styles.ratingText}>{item.rating}</Text>
-                      <Ionicons
-                        name="star"
-                        size={14}
-                        color="#F59E0B"
-                        style={{ marginLeft: 4 }}
-                      />
+                      <Text style={styles.ratingText}>{item.rating ?? "New"}</Text>
+                      {item.rating ? (
+                        <Ionicons
+                          name="star"
+                          size={14}
+                          color="#F59E0B"
+                          style={{ marginLeft: 4 }}
+                        />
+                      ) : null}
                     </View>
                     <Text style={styles.savedAddress}>{item.address}</Text>
                   </View>
@@ -315,6 +342,23 @@ const styles = StyleSheet.create({
   },
   cardsRow: {
     paddingBottom: 26,
+  },
+  emptyState: {
+    width: 220,
+    padding: 18,
+    borderRadius: 18,
+    backgroundColor: "#F7F7F7",
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111111",
+  },
+  emptyText: {
+    marginTop: 6,
+    fontSize: 13,
+    color: "#555555",
+    lineHeight: 18,
   },
   card: {
     width: 124,
@@ -415,10 +459,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#111111",
     marginBottom: 2,
-  },
-  listSubtitle: {
-    fontSize: 14,
-    color: "#111111",
   },
   savedAddress: {
     fontSize: 14,

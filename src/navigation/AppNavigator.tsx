@@ -40,7 +40,7 @@ export type RootStackParamList = {
   Message: undefined;
   Profile: undefined;
   Reserve: { id: string };
-  ActiveReservation: undefined;
+  ActiveReservation: { reservationId: string };
   VehicleManagement: undefined;
   // TODO: add userId and profile and send those as parameters into necessary screens
 };

@@ -22,8 +22,9 @@ import SaveButton from "../components/SaveButton";
 import { useFavoritesStore } from "../context/favoritesStore";
 import CustomButton from "../components/CustomButton";
 import { useVehicleStore } from "../context/vehicleStore";
+import { useReservationStore } from "../context/reservationStore";
 
-import { fetchListingById, reportListing } from "../api/listings";
+import { fetchListingById } from "../api/listings";
 import { Listing } from "../types/listing";
 import { useQuery } from "@tanstack/react-query";
 import { getListingImage } from "../utils/listingImages";
@@ -160,6 +161,7 @@ const getTimeParts = (date: Date) => {
 
 export default function ReserveScreen({ route, navigation }: Props) {
   const { favorites, toggleFavorite } = useFavoritesStore();
+  const addReservation = useReservationStore((state) => state.addReservation);
   const { id } = route.params;
   const isFavorited = favorites[id];
 
@@ -411,6 +413,11 @@ export default function ReserveScreen({ route, navigation }: Props) {
   };
 
   const handleReserveConfirm = () => {
+    addReservation({
+      listingId: id,
+      reservedFrom: reservationStart.toISOString(),
+      reservedUntil: reservationEnd.toISOString(),
+    });
     setIsReserveConfirmVisible(false);
     setIsReserveSuccessVisible(true);
     reserveSuccess("Reservation has been made");
