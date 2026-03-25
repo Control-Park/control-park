@@ -163,6 +163,8 @@ export default function ReserveScreen({ route, navigation }: Props) {
   const [activeEditor, setActiveEditor] = useState<"start" | "end">("start");
   const [isDateTimeModalVisible, setIsDateTimeModalVisible] = useState(false);
   const [isTimePickerVisible, setIsTimePickerVisible] = useState(false);
+  const [isReserveConfirmVisible, setIsReserveConfirmVisible] = useState(false);
+  const [isReserveSuccessVisible, setIsReserveSuccessVisible] = useState(false);
   const hourListRef = useRef<FlatList<string>>(null);
   const minuteListRef = useRef<FlatList<string>>(null);
   const periodListRef = useRef<FlatList<string>>(null);
@@ -190,7 +192,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
     );
   }
 
-  const hourlyRate = listing.price_per_hour ?? listing.price ?? 0;
+  const hourlyRate = listing.price_per_hour ?? 0;
   const durationMinutes = Math.max(
     15,
     Math.round(
@@ -254,6 +256,19 @@ export default function ReserveScreen({ route, navigation }: Props) {
     activeTime.period,
     isTimePickerVisible,
   ]);
+
+  useEffect(() => {
+    if (!isReserveSuccessVisible) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setIsReserveSuccessVisible(false);
+      navigation.navigate("Reservations");
+    }, 1800);
+
+    return () => clearTimeout(timeout);
+  }, [isReserveSuccessVisible, navigation]);
 
   const openDateTimeModal = () => {
     setDraftStart(reservationStart);
@@ -348,6 +363,20 @@ export default function ReserveScreen({ route, navigation }: Props) {
     setDraftEnd(nextEnd);
     setIsTimePickerVisible(false);
     setIsDateTimeModalVisible(false);
+  };
+
+  const handleReservePress = () => {
+    setIsReserveConfirmVisible(true);
+  };
+
+  const handleReserveConfirm = () => {
+    setIsReserveConfirmVisible(false);
+    setIsReserveSuccessVisible(true);
+  };
+
+  const closeReserveSuccess = () => {
+    setIsReserveSuccessVisible(false);
+    navigation.navigate("Reservations");
   };
 
   return (
@@ -518,10 +547,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
             title="Reserve"
             color="#ECAA00"
             className="flex items-center justify-center rounded-full font-abeezee"
-            onPress={() => {
-              console.log("Reserve pressed");
-              navigation.navigate("ActiveReservation");
-            }}
+            onPress={handleReservePress}
           />
         </View>
       </View>
@@ -871,6 +897,76 @@ export default function ReserveScreen({ route, navigation }: Props) {
                 </View>
               </View>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
+        visible={isReserveConfirmVisible}
+        animationType="fade"
+        onRequestClose={() => setIsReserveConfirmVisible(false)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/30 px-6">
+          <Pressable
+            className="absolute inset-0"
+            onPress={() => setIsReserveConfirmVisible(false)}
+            accessibilityLabel="Close reserve confirmation"
+          />
+          <View className="w-full max-w-[280px] overflow-hidden rounded-2xl bg-white">
+            <View className="border-b border-[#E5E7EB] px-5 py-4">
+              <Text className="text-center font-abeezee text-[14px] text-[#111111]">
+                Confirm Reservation
+              </Text>
+            </View>
+
+            <View className="px-5 py-4">
+              <Text className="text-center font-abeezee text-[13px] text-[#555555]">
+                Do you want to confirm this spot?
+              </Text>
+            </View>
+
+            <View className="flex-row border-t border-[#E5E7EB]">
+              <Pressable
+                onPress={() => setIsReserveConfirmVisible(false)}
+                className="flex-1 items-center justify-center py-3"
+              >
+                <Text className="font-abeezee text-[13px] text-[#111111]">
+                  No
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={handleReserveConfirm}
+                className="flex-1 items-center justify-center border-l border-[#E5E7EB] py-3"
+              >
+                <Text className="font-abeezee text-[13px] text-[#111111]">
+                  Yes
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
+        visible={isReserveSuccessVisible}
+        animationType="fade"
+        onRequestClose={closeReserveSuccess}
+      >
+        <View className="flex-1 items-center justify-center bg-black/20 px-8">
+          <Pressable
+            className="absolute inset-0"
+            onPress={closeReserveSuccess}
+            accessibilityLabel="Close reservation success message"
+          />
+          <View className="w-full max-w-[220px] rounded-2xl bg-white px-5 py-4">
+            <Text className="text-center font-abeezee text-[14px] text-[#111111]">
+              Successful!
+            </Text>
+            <Text className="mt-2 text-center font-abeezee text-[13px] text-[#555555]">
+              Thank you for reserving this listing
+            </Text>
           </View>
         </View>
       </Modal>
