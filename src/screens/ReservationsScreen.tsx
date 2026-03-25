@@ -20,7 +20,7 @@ import { useFavoritesStore } from "../context/favoritesStore";
 import { fetchListings } from "../api/listings";
 import { Listing } from "../types/listing";
 import { useQuery } from "@tanstack/react-query";
-import { getListingImage, getListingImages } from "../utils/listingImages";
+import { getListingImage } from "../utils/listingImages";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Reservations">;
 
@@ -60,6 +60,21 @@ const reservationCards = [
   },
 ];
 
+const resolveListingForReservation = (
+  card: (typeof reservationCards)[number],
+  listings: Listing[],
+) => {
+  return (
+    listings.find((listing) => listing.id === card.listingId) ??
+    listings.find(
+      (listing) =>
+        listing.title?.toLowerCase() === card.title.toLowerCase() ||
+        listing.structure_name?.toLowerCase() === card.title.toLowerCase(),
+    ) ??
+    null
+  );
+};
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case "Active":
@@ -93,10 +108,21 @@ export default function ReservationsScreen({ navigation }: Props) {
   if (isError) return <Text>Error: {(error as Error)?.message}</Text>;
   if (!listings) return null;
 
-  console.log("listings:", listings);
   const savedListings = listings.filter((listing) => favorites[listing.id]);
-  console.log("listings:", savedListings);
-  console.log(savedListings);
+
+  const handleRenewReservation = (card: (typeof reservationCards)[number]) => {
+    const resolvedListing = resolveListingForReservation(card, listings);
+
+    if (!resolvedListing) {
+      Alert.alert(
+        "Listing unavailable",
+        "We couldn't find the matching listing for this reservation anymore.",
+      );
+      return;
+    }
+
+    navigation.navigate("Reserve", { id: resolvedListing.id });
+  };
 
   return (
     <View style={styles.safe}>
@@ -127,7 +153,10 @@ export default function ReservationsScreen({ navigation }: Props) {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.cardsRow}
             >
-              {reservationCards.map((card) => (
+              {reservationCards.map((card) => {
+                const resolvedListing = resolveListingForReservation(card, listings);
+
+                return (
                 <Pressable
                   key={card.id}
                   style={({ pressed }) => [
@@ -144,10 +173,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                           { text: "No", style: "cancel" },
                           {
                             text: "Renew",
-                            onPress: () =>
-                              navigation.navigate("Reserve", {
-                                id: card.listingId,
-                              }),
+                            onPress: () => handleRenewReservation(card),
                           },
                         ],
                       );
@@ -158,7 +184,10 @@ export default function ReservationsScreen({ navigation }: Props) {
                   }}
                 >
                   <View style={styles.cardImageWrapper}>
-                    <Image source={card.image} style={styles.cardImage} />
+                    <Image
+                      source={resolvedListing ? getListingImage(resolvedListing) : card.image}
+                      style={styles.cardImage}
+                    />
 
                     <View
                       style={[
@@ -184,18 +213,15 @@ export default function ReservationsScreen({ navigation }: Props) {
 
                       <Pressable
                         style={styles.renewButton}
-                        onPress={() =>
-                          navigation.navigate("Reserve", {
-                            id: card.listingId,
-                          })
-                        }
+                        onPress={() => handleRenewReservation(card)}
                       >
                         <Text style={styles.renewButtonText}>Renew</Text>
                       </Pressable>
                     </>
                   )}
                 </Pressable>
-              ))}
+                );
+              })}
             </ScrollView>
 
             <View style={styles.section}>
