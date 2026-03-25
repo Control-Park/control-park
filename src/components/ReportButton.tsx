@@ -1,23 +1,29 @@
 import React, { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { supabase } from "../utils/supabase";
+
+const BASE_URL = process.env.EXPO_PUBLIC_SERVER_URL;
 
 const REPORT_REASONS = [
-  "Inaccurate listing",
-  "Scam listing (false advertisement)",
-  "Inappropriate",
+  ["inappropriate_content", "Inappropriate"],
+  ["incorrect_information", "Inaccurate listing"],
+  ["scam", "Scam listing (false advertisement)"],
+  ["other", "Other"],
 ] as const;
 
 type ReportReason = (typeof REPORT_REASONS)[number];
 
-export default function ReportButton() {
+export default function ReportButton({ listingId }: { listingId: string }) {
   const [isReportModalVisible, setIsReportModalVisible] = useState(false);
   const [isReportSuccessVisible, setIsReportSuccessVisible] = useState(false);
-  const [selectedReportReason, setSelectedReportReason] =
-    useState<ReportReason | null>(null);
+  const [selectedReportReason, setSelectedReportReason] = useState<ReportReason | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const openReportFlow = () => {
     setSelectedReportReason(null);
+    setSubmitError(null);
     setIsReportSuccessVisible(false);
     setIsReportModalVisible(true);
   };
@@ -25,20 +31,43 @@ export default function ReportButton() {
   const closeReportModal = () => {
     setIsReportModalVisible(false);
     setSelectedReportReason(null);
+    setSubmitError(null);
   };
 
-  const submitReport = () => {
-    if (!selectedReportReason) {
-      return;
+  const submitReport = async () => {
+    if (!selectedReportReason) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      const res = await fetch(`${BASE_URL}/listings/${listingId}/report`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ reason: selectedReportReason[0] }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setSubmitError(data?.error ?? "Failed to submit report");
+        return;
+      }
+
+      setIsReportModalVisible(false);
+      setSelectedReportReason(null);
+      setIsReportSuccessVisible(true);
+      setTimeout(() => setIsReportSuccessVisible(false), 1800);
+    } catch {
+      setSubmitError("Network error. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsReportModalVisible(false);
-    setSelectedReportReason(null);
-    setIsReportSuccessVisible(true);
-
-    setTimeout(() => {
-      setIsReportSuccessVisible(false);
-    }, 1800);
   };
 
   return (
@@ -80,11 +109,11 @@ export default function ReportButton() {
 
             <View>
               {REPORT_REASONS.map((reason) => {
-                const isSelected = selectedReportReason === reason;
+                const isSelected = selectedReportReason?.[0] === reason[0];
 
                 return (
                   <Pressable
-                    key={reason}
+                    key={reason[0]}
                     onPress={() => setSelectedReportReason(reason)}
                     className="border-b border-[#E5E7EB] px-4 py-3"
                     style={{
@@ -95,16 +124,25 @@ export default function ReportButton() {
                       className="font-abeezee text-[13px]"
                       style={{ color: isSelected ? "#ECAA00" : "#111827" }}
                     >
-                      {reason}
+                      {reason[1]}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
 
+            {submitError && (
+              <View className="border-b border-[#E5E7EB] px-4 py-2">
+                <Text className="font-abeezee text-[12px] text-red-500">
+                  {submitError}
+                </Text>
+              </View>
+            )}
+
             <View className="flex-row">
               <Pressable
                 onPress={closeReportModal}
+                disabled={isSubmitting}
                 className="flex-1 items-center justify-center px-4 py-3"
               >
                 <Text className="font-abeezee text-[13px] text-[#111827]">
@@ -113,16 +151,16 @@ export default function ReportButton() {
               </Pressable>
               <Pressable
                 onPress={submitReport}
-                disabled={!selectedReportReason}
+                disabled={!selectedReportReason || isSubmitting}
                 className="flex-1 items-center justify-center px-4 py-3"
               >
                 <Text
                   className="font-abeezee text-[13px]"
                   style={{
-                    color: selectedReportReason ? "#111827" : "#9CA3AF",
+                    color: selectedReportReason && !isSubmitting ? "#111827" : "#9CA3AF",
                   }}
                 >
-                  Report
+                  {isSubmitting ? "Submitting..." : "Report"}
                 </Text>
               </Pressable>
             </View>

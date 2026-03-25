@@ -67,7 +67,7 @@ export default function DetailsScreen({ route }: Props) {
             source={getListingImages(listing)[0]}
             imageWidth={width}
           />
-          <ReportButton />
+          <ReportButton listingId={id} />
           <SaveButton
             onPress={() => toggleFavorite(id)}
             isFavorited={isFavorited}
