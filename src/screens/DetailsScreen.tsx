@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchListingById } from "../api/listings";
 import { Listing } from "../types/listing";
 import { getListingImages } from "../utils/listingImages";
+import DetailsScreenSkeleton from "../components/skeletons/DetailsScreenSkeleton";
 
 const MAX_WIDTH = 480;
 
@@ -37,8 +38,16 @@ export default function DetailsScreen({ route }: Props) {
     queryKey: ["listing", id],
     queryFn: () => fetchListingById(id),
   });
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSkeleton(false);
+    }, 50);
 
-  if (isLoading) return <Text>Listing not added to API yet...</Text>;
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading || showSkeleton) return <DetailsScreenSkeleton />;
   if (isError) return <Text>Something went wrong</Text>;
   if (!listing) return null;
 
@@ -51,7 +60,10 @@ export default function DetailsScreen({ route }: Props) {
     >
       <View style={{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center" }}>
         <View className="relative">
-          <ListingImage source={getListingImages(listing)[0]} imageWidth={width} />
+          <ListingImage
+            source={getListingImages(listing)[0]}
+            imageWidth={width}
+          />
           <ReportButton />
           <SaveButton
             onPress={() => toggleFavorite(id)}
@@ -69,7 +81,6 @@ export default function DetailsScreen({ route }: Props) {
             host={listing?.host}
           />
         </View>
-        {/* Divider */}
         <View className="flex items-center justify-center px-6">
           <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
         </View>
@@ -83,14 +94,12 @@ export default function DetailsScreen({ route }: Props) {
           ))}
         </View>
 
-        {/* Divider */}
         <View className="flex items-center justify-center px-6">
           <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
         </View>
 
         <ListingDescription description={listing?.description} />
 
-        {/* Divider */}
         <View className="flex items-center justify-center px-6">
           <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
         </View>
@@ -103,7 +112,6 @@ export default function DetailsScreen({ route }: Props) {
 
         <View className="h-[2px] w-[100%] bg-[#ECAA00]" />
 
-        {/* Banner */}
         <View className="flex justify-end">
           <View className="bg-[#cacaca] h-[52px] flex justify-center items-center">
             <Text className="font-abeezee">
@@ -116,10 +124,9 @@ export default function DetailsScreen({ route }: Props) {
         <ListingBooking
           originalPrice={listing?.originalPrice ?? 0}
           price={listing?.price ?? 0}
-          id={listing?.id ?? 0}
+          id={listing?.id}
         />
       </View>
-      {/* <View style={{ height: 25 }} /> */}
     </ScrollView>
   );
 }
