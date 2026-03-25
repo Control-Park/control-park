@@ -93,7 +93,7 @@ export default function DetailsScreen({ route }: Props) {
             <ListingPerks
               key={index}
               perk={perk}
-              subHeading={listing?.subHeading?.[index]}
+              subHeading={listing?.sub_heading?.[index]}
             />
           ))}
         </View>
