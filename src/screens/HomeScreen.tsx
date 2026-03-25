@@ -54,7 +54,6 @@ export default function HomeScreen({ navigation }: Props) {
       console.log("Fetch error:", error);
     }
   }
-  getUserTest();
 
   const { favorites, toggleFavorite } = useFavoritesStore();
 
@@ -80,6 +79,10 @@ export default function HomeScreen({ navigation }: Props) {
     </View>
   );
 
+  useEffect(() => {
+    getUserTest();
+  }, []);
+
   const {
     data: listings,
     isLoading,
@@ -91,13 +94,13 @@ export default function HomeScreen({ navigation }: Props) {
   });
   if (isLoading) return <Text>Loading...</Text>;
   if (isError) return <Text>Error: {(error as Error)?.message}</Text>;
-  if (!listings) {
-    console.log("No listings returned");
-    return <Text>No listings found</Text>;
+  if (!Array.isArray(listings)) {
+    return <Text>Listings response is invalid</Text>;
   }
 
   const parkingLots = listings.slice(0, 3);
   const lotsNearYou = listings.slice(3, 6);
+  console.log(listings);
 
   return (
     <View style={styles.safe}>

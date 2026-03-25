@@ -7,7 +7,20 @@ import axios from "axios";
 export const fetchListings = async (): Promise<Listing[]> => {
   try {
     const res = await client.get("/listings");
-    return res.data;
+
+    if (Array.isArray(res.data)) {
+      return res.data;
+    }
+
+    if (Array.isArray(res.data.listings)) {
+      return res.data.listings;
+    }
+
+    if (Array.isArray(res.data.data)) {
+      return res.data.data;
+    }
+
+    throw new Error("Expected /listings to return an array");
   } catch (err) {
     if (axios.isAxiosError(err)) {
       console.error("Axios error details:", err);
