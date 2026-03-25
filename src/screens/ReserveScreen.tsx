@@ -14,7 +14,7 @@ import {
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "../navigation/AppNavigator";
-// import { allListings } from "../data/mockListings";
+import { allListings } from "../data/mockListings";
 import ListingImage from "../components/listing/ListingImage";
 import { useWindowDimensions } from "react-native";
 import ReportButton from "../components/ReportButton";
@@ -196,19 +196,9 @@ export default function ReserveScreen({ route, navigation }: Props) {
     queryFn: () => fetchListingById(id),
   });
 
-  if (isLoading) return <Text>Listing not added to API yet...</Text>;
-  if (isError) return <Text>Error: {(error as Error)?.message}</Text>;
-  if (!listing) return null;
-
-  if (!listing) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <Text className="text-base text-black">Listing not found.</Text>
-      </View>
-    );
-  }
-
-  const hourlyRate = listing.price_per_hour ?? 0;
+  const fallbackListing = allListings.find((item) => item.id === id);
+  const listingData = listing ?? fallbackListing;
+  const hourlyRate = listingData?.price_per_hour ?? 0;
   const durationMinutes = Math.max(
     15,
     Math.round(
@@ -291,6 +281,22 @@ export default function ReserveScreen({ route, navigation }: Props) {
 
     return () => clearTimeout(timeout);
   }, [isReserveSuccessVisible, navigation]);
+
+  if (isLoading && !fallbackListing) {
+    return <Text>Listing not added to API yet...</Text>;
+  }
+
+  if (isError && !fallbackListing) {
+    return <Text>Error: {(error as Error)?.message}</Text>;
+  }
+
+  if (!listingData) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white">
+        <Text className="text-base text-black">Listing not found.</Text>
+      </View>
+    );
+  }
 
   const openDateTimeModal = () => {
     setDraftStart(reservationStart);
@@ -422,8 +428,11 @@ export default function ReserveScreen({ route, navigation }: Props) {
     >
       <View style={{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center" }}>
         <View className="relative">
-          <ListingImage source={getListingImage(listing)} imageWidth={width} />
-          <ReportButton listingId={listing.id} />
+          <ListingImage
+            source={getListingImage(listingData)}
+            imageWidth={width}
+          />
+          <ReportButton listingId={listingData.id} />
           <SaveButton
             onPress={() => toggleFavorite(id)}
             isFavorited={isFavorited}
@@ -432,7 +441,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
 
         <View className="px-4 pt-4">
           <Text className="text-[18px] font-bold text-[#111111]">
-            {listing.title}
+            {listingData.title}
           </Text>
         </View>
 
@@ -441,7 +450,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
             Address details
           </Text>
           <Text className="mt-2 text-[14px] text-[#555555]">
-            {listing.address}
+            {listingData.address}
           </Text>
           <Text className="mt-1 text-[13px] text-[#777777]">
             Campus Parking Lot • Multiple Levels • Easy Access
