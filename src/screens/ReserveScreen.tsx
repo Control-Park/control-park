@@ -180,6 +180,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
   const [isReserveConfirmVisible, setIsReserveConfirmVisible] = useState(false);
   const [isReserveSuccessVisible, setIsReserveSuccessVisible] = useState(false);
   const [hasSelectedEndDate, setHasSelectedEndDate] = useState(false);
+  const [vehicleError, setVehicleError] = useState("");
   const hourListRef = useRef<FlatList<string>>(null);
   const minuteListRef = useRef<FlatList<string>>(null);
   const periodListRef = useRef<FlatList<string>>(null);
@@ -270,6 +271,12 @@ export default function ReserveScreen({ route, navigation }: Props) {
     activeTime.period,
     isTimePickerVisible,
   ]);
+
+  useEffect(() => {
+    if (selectedVehicle) {
+      setVehicleError("");
+    }
+  }, [selectedVehicle]);
 
   useEffect(() => {
     if (!isReserveSuccessVisible) {
@@ -387,6 +394,12 @@ export default function ReserveScreen({ route, navigation }: Props) {
   };
 
   const handleReservePress = () => {
+    if (!selectedVehicle) {
+      setVehicleError("Please select a vehicle before reserving.");
+      return;
+    }
+
+    setVehicleError("");
     setIsReserveConfirmVisible(true);
   };
 
@@ -513,21 +526,38 @@ export default function ReserveScreen({ route, navigation }: Props) {
           </View>
 
           <View className="mt-3 flex-row items-center justify-between">
-            <View>
-              <Text className="text-[14px] text-[#555555]">
-                {selectedVehicle.name}
-              </Text>
-              <Text className="mt-1 text-[13px] text-[#8a8a8a]">
-                {selectedVehicle.plate}
-              </Text>
+            <View className="flex-1 pr-3">
+              {selectedVehicle ? (
+                <>
+                  <Text className="text-[14px] text-[#555555]">
+                    {selectedVehicle.name}
+                  </Text>
+                  <Text className="mt-1 text-[13px] text-[#8a8a8a]">
+                    {selectedVehicle.plate}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text className="text-[14px] text-[#555555]">
+                    No vehicle selected
+                  </Text>
+                  <Text className="mt-1 text-[13px] text-[#8a8a8a]">
+                    Add or choose a vehicle to continue
+                  </Text>
+                </>
+              )}
             </View>
-
-            <View className="h-[72px] w-[110px] items-center justify-center overflow-hidden rounded-md bg-[#d9d9d9]">
-              <Image
-                source={selectedVehicle.image}
-                style={{ width: 120, height: 90 }}
-                resizeMode="contain"
-              />
+            
+            <View className="h-[72px] w-[110px] items-center justify-center overflow-hidden rounded-md bg-[#F3F4F6]">
+              {selectedVehicle ? (
+                <Image
+                  source={selectedVehicle.image}
+                  style={{ width: 120, height: 90 }}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Ionicons name="car-outline" size={28} color="#9CA3AF" />
+              )}
             </View>
           </View>
 
@@ -564,6 +594,12 @@ export default function ReserveScreen({ route, navigation }: Props) {
         </View>
 
         <View className="px-4 pb-6 pt-6">
+          {vehicleError ? (
+            <Text className="mb-3 text-[13px] text-red-500 text-center">
+              {vehicleError}
+            </Text>
+          ) : null}
+
           <CustomButton
             title="Reserve"
             color="#ECAA00"

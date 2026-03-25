@@ -1,12 +1,12 @@
 import { create } from "zustand";
-import { mockVehicles, Vehicle } from "../data/mockVehicles";
+import { Vehicle } from "../data/mockVehicles";
 
 type VehicleStore = {
-  selectedVehicle: Vehicle;
-  setSelectedVehicle: (vehicle: Vehicle) => void;
+  selectedVehicle: Vehicle | null;
+  setSelectedVehicle: (vehicle: Vehicle | null) => void;
 };
 
 export const useVehicleStore = create<VehicleStore>((set) => ({
-  selectedVehicle: mockVehicles[1], // default BMW
+  selectedVehicle: null,
   setSelectedVehicle: (vehicle) => set({ selectedVehicle: vehicle }),
 }));

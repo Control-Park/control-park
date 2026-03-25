@@ -52,7 +52,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
 
           <View className="mt-5 gap-5">
             {mockVehicles.map((vehicle) => {
-              const isSelected = selectedVehicle.id === vehicle.id;
+              const isSelected = selectedVehicle?.id === vehicle.id;
 
               return (
                 <Pressable
