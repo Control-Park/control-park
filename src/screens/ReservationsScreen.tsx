@@ -83,19 +83,20 @@ export default function ReservationsScreen({ navigation }: Props) {
     data: listings,
     isLoading,
     isError,
+    error,
   } = useQuery<Listing[]>({
     queryKey: ["listings"],
     queryFn: fetchListings,
   });
 
   if (isLoading) return <Text>Loading reservations...</Text>;
-  if (isError) return <Text>Something went wrong</Text>;
+  if (isError) return <Text>Error: {(error as Error)?.message}</Text>;
   if (!listings) return null;
 
   console.log("listings:", listings);
   const savedListings = listings.filter((listing) => favorites[listing.id]);
   console.log("listings:", savedListings);
-  console.log(savedListings)
+  console.log(savedListings);
 
   return (
     <View style={styles.safe}>
@@ -145,7 +146,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                             text: "Renew",
                             onPress: () => navigation.navigate("Explore"),
                           },
-                        ]
+                        ],
                       );
                       return;
                     }
@@ -205,7 +206,10 @@ export default function ReservationsScreen({ navigation }: Props) {
                     navigation.navigate("Details", { id: item.id })
                   }
                 >
-                  <Image source={getListingImage(item)} style={styles.avatarImage} />
+                  <Image
+                    source={getListingImage(item)}
+                    style={styles.avatarImage}
+                  />
 
                   <View style={styles.listTextBlock}>
                     <Text style={styles.listTitle}>{item.title}</Text>

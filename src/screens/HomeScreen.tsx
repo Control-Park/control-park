@@ -84,12 +84,13 @@ export default function HomeScreen({ navigation }: Props) {
     data: listings,
     isLoading,
     isError,
+    error,
   } = useQuery<Listing[]>({
     queryKey: ["listings"],
     queryFn: () => fetchListings(),
   });
   if (isLoading) return <Text>Loading...</Text>;
-  if (isError) return <Text>Something went wrong</Text>;
+  if (isError) return <Text>Error: {(error as Error)?.message}</Text>;
   if (!listings) {
     console.log("No listings returned");
     return <Text>No listings found</Text>;

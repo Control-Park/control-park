@@ -34,6 +34,7 @@ export default function DetailsScreen({ route }: Props) {
     data: listing,
     isLoading,
     isError,
+    error,
   } = useQuery<Listing>({
     queryKey: ["listing", id],
     queryFn: () => fetchListingById(id),
@@ -48,7 +49,7 @@ export default function DetailsScreen({ route }: Props) {
   }, []);
 
   if (isLoading || showSkeleton) return <DetailsScreenSkeleton />;
-  if (isError) return <Text>Something went wrong</Text>;
+  if (isError) return <Text>Error: {(error as Error)?.message}</Text>;
   if (!listing) return null;
 
   const textStyle = { fontFamily: "ABeeZee-Regular" };

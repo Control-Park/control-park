@@ -1,11 +1,32 @@
 import client from "./client";
 import { Listing } from "../types/listing";
 import { lotsNearYou, parkingLots } from "../data/mockListings";
+import axios from "axios";
 
 // LISTINGS:
 export const fetchListings = async (): Promise<Listing[]> => {
-  const { data } = await client.get(`/listings`);
-  return data.listings;
+  try {
+    const res = await client.get("/listings");
+    return res.data;
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      console.error("Axios error details:", err);
+
+      if (err.response) {
+        throw new Error(
+          `Request failed: ${err.response.status} ${err.response.statusText}`,
+        );
+      }
+
+      if (err.request) {
+        throw new Error(
+          "Could not reach the server. It may be down, the URL may be wrong, or CORS may be blocking the request.",
+        );
+      }
+    }
+
+    throw err;
+  }
 };
 
 export const createNewListing = async (

@@ -172,13 +172,14 @@ export default function ReserveScreen({ route, navigation }: Props) {
     data: listing,
     isLoading,
     isError,
+    error,
   } = useQuery<Listing>({
     queryKey: ["listing", id],
     queryFn: () => fetchListingById(id),
   });
 
   if (isLoading) return <Text>Listing not added to API yet...</Text>;
-  if (isError) return <Text>Something went wrong</Text>;
+  if (isError) return <Text>Error: {(error as Error)?.message}</Text>;
   if (!listing) return null;
 
   if (!listing) {
