@@ -1,12 +1,19 @@
 import client from "./client";
 import { Listing } from "../types/listing";
-import { lotsNearYou, parkingLots } from "../data/mockListings";
 import axios from "axios";
 
+export interface ListingSearchParams {
+  availability?: string;
+  location?: string;
+  name?: string;
+  priceMax?: number;
+  priceMin?: number;
+}
+
 // LISTINGS:
-export const fetchListings = async (): Promise<Listing[]> => {
+export const fetchListings = async (params?: ListingSearchParams): Promise<Listing[]> => {
   try {
-    const res = await client.get("/listings");
+    const res = await client.get("/listings", { params });
 
     if (Array.isArray(res.data)) {
       return res.data;
