@@ -20,6 +20,7 @@ export default function NotificationScreen({ navigation }: Props) {
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.pageMax}>
           <View style={[styles.topArea, { paddingTop: insets.top }]}>
@@ -35,18 +36,26 @@ export default function NotificationScreen({ navigation }: Props) {
               <NotificationsButton onPress={() => {}} />
             </View>
 
-            <Text style={styles.title}>Notification</Text>
+            <Text style={styles.title}>Notifications</Text>
 
-            <View style={styles.section}>
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>No notifications yet</Text>
-                <Text style={styles.emptyText}>
-                  Updates, alerts, and reservation activity will appear here.
+            <View style={styles.divider} />
+
+            <View style={styles.emptyStateWrap}>
+              <Text style={styles.emptyTitle}>No new notifications</Text>
+
+              <Text style={styles.emptyText}>
+                You&apos;ve got a blank slate (for now). We will let you know
+                when updates arrive
+              </Text>
+
+              <Pressable style={styles.settingsButton}>
+                <Text style={styles.settingsButtonText}>
+                  Notification Settings
                 </Text>
-              </View>
+              </Pressable>
             </View>
 
-            <View style={{ height: 100 }} />
+            <View style={{ height: 120 }} />
           </View>
         </View>
       </ScrollView>
@@ -68,14 +77,19 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   pageMax: {
     paddingHorizontal: 16,
     width: "100%",
     maxWidth: MAX_WIDTH,
     alignSelf: "center",
+    flex: 1,
   },
   topArea: {
     backgroundColor: "#FFFFFF",
+    flex: 1,
   },
   topRow: {
     height: 44,
@@ -96,27 +110,45 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#111111",
     marginTop: 20,
-    marginBottom: 18,
+    marginBottom: 32,
   },
-  section: {
-    marginBottom: 18,
+  divider: {
+    height: 1,
+    backgroundColor: "#E5E5E5",
+    marginHorizontal: 28,
   },
-  emptyState: {
-    width: 220,
-    padding: 18,
-    borderRadius: 18,
-    backgroundColor: "#F7F7F7",
+  emptyStateWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+    minHeight: 420,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
     color: "#111111",
+    textAlign: "center",
+    marginBottom: 10,
   },
   emptyText: {
-    marginTop: 6,
-    fontSize: 13,
-    color: "#555555",
-    lineHeight: 18,
+    fontSize: 14,
+    color: "#666666",
+    lineHeight: 22,
+    textAlign: "center",
+    maxWidth: 260,
+    marginBottom: 28,
+  },
+  settingsButton: {
+    backgroundColor: "#ECAA00",
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+  },
+  settingsButtonText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#111111",
   },
   navbarWrapper: {
     backgroundColor: "#FFFFFF",

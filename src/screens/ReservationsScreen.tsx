@@ -160,7 +160,7 @@ export default function ReservationsScreen({ navigation }: Props) {
               </Pressable>
 
               <NotificationsButton
-                onPress={() => console.log("Notifications")}
+                onPress={() => navigation.navigate("Notification")}
               />
             </View>
 
