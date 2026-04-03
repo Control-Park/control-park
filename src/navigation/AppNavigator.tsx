@@ -127,6 +127,7 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Notification"
         component={NotificationScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
