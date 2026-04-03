@@ -114,7 +114,7 @@ export default function HomeScreen({ navigation }: Props) {
           <View style={[styles.topArea, { paddingTop: insets.top + 0 }]}>
             <View style={styles.topRow}>
               <NotificationsButton
-                onPress={() => console.log("Notifications")}
+                onPress={() => navigation.navigate("Notification")}
               />
             </View>
 
