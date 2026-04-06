@@ -22,6 +22,20 @@ export interface NotificationSettings {
   user_id: string;
 }
 
+export const registerPushToken = async (expoPushToken: string): Promise<void> => {
+  await client.post("/auth/push-token", { expo_push_token: expoPushToken });
+};
+
+export const pushNotification = async (payload: {
+  body: string;
+  title: string;
+  type: Notification["type"];
+  user_id: string;
+}): Promise<{ message: string } | Notification> => {
+  const { data } = await client.post("/notifications", payload);
+  return data;
+};
+
 export const fetchNotifications = async (): Promise<Notification[]> => {
   const { data } = await client.get("/notifications");
   return data.notifications;
