@@ -11,10 +11,13 @@ import { NavigationContainer } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { toastConfig } from "./src/components/ToastConfig";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { usePushNotifications } from "./src/hooks/usePushNotifications";
 
 const queryClient = new QueryClient();
 
 export default function App() {
+  usePushNotifications();
+
   const [fontsLoaded] = useFonts({
     "ABeeZee-Regular": require("./assets/fonts/ABeeZee-Regular.ttf"),
     "ABeeZee-Italic": require("./assets/fonts/ABeeZee-Italic.ttf"),
