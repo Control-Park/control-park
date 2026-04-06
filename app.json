@@ -27,6 +27,12 @@
       "expo-web-browser",
       "expo-font",
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ab93d1b4-1aec-4d89-8ba9-2769d8f06f09"
+      }
+    },
+    "owner": "bilele123123s-organization"
   }
 }
