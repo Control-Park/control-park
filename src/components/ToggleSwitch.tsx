@@ -1,11 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import {
-  Animated,
-  Easing,
-  Pressable,
-  StyleSheet,
-  ViewStyle,
-} from "react-native";
+import {Animated, Easing, Pressable, StyleSheet, ViewStyle,} from "react-native";
 
 type Props = {
   value: boolean;

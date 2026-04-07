@@ -51,7 +51,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   return (
-    <Stack.Navigator initialRouteName="Profile">
+    <Stack.Navigator initialRouteName="Home">
       {/* screenOptions={headerShown: false} */}
       <Stack.Screen
         name="Home"

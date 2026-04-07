@@ -114,6 +114,15 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={styles.menuRow}
+            onPress={() => navigation.navigate("Notification")}
+          >
+            <Ionicons name="notifications-outline" size={28} color="#111111" />
+            <Text style={styles.menuText}>Notification settings</Text>
+            <Ionicons name="chevron-forward" size={24} color="#111111" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuRow}
             onPress={() => console.log("Payment methods pressed")}
           >
             <MaterialCommunityIcons

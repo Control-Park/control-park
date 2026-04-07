@@ -53,6 +53,15 @@ export const reserveSuccess = (message: string) => {
   });
 };
 
+export const showNotification = (title: string, body: string) => {
+  Toast.show({
+    type: "success",
+    text1: title,
+    text2: body,
+    topOffset: 100,
+  });
+};
+
 export const reserveCancel = (message: string) => {
   Toast.show({
     type: "error",
