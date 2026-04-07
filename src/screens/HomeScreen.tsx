@@ -31,30 +31,6 @@ export default function HomeScreen({ navigation }: Props) {
 
   // placeholder: move function to another screen once implemented
   const insets = useSafeAreaInsets();
-  const baseUrl = "http://localhost:9001/auth/user";
-  const queryParams = {
-    email: "tple06203@gmail.com",
-  };
-  const url = new URL(baseUrl);
-
-  url.search = new URLSearchParams(queryParams).toString();
-  console.log(url.href);
-
-  async function getUserTest() {
-    try {
-      const response = await fetch(url.href);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log(data);
-    } catch (error) {
-      console.log("Fetch error:", error);
-    }
-  }
-
   const { favorites, toggleFavorite } = useFavoritesStore();
 
   const renderCard = ({ item }: { item: Listing }) => (
@@ -81,10 +57,6 @@ export default function HomeScreen({ navigation }: Props) {
       />
     </View>
   );
-
-  useEffect(() => {
-    getUserTest();
-  }, []);
 
   const {
     data: listings,

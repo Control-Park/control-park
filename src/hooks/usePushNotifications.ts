@@ -4,6 +4,7 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { registerPushToken } from "../api/notifications";
 import { supabase } from "../utils/supabase";
+import { showNotification } from "../utils/validation";
 
 // Controls how notifications are presented when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -16,30 +17,62 @@ Notifications.setNotificationHandler({
   }),
 });
 
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL ?? "http://localhost:9001";
+// Convert http(s) to ws(s) for the WebSocket connection
+const WS_URL = SERVER_URL.replace(/^http/, "ws");
+
 export function usePushNotifications() {
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     registerToken();
 
-    // Fires when a notification is received while the app is foregrounded
+    // Fires when a notification is received while the app is foregrounded (dev builds)
     notificationListener.current = Notifications.addNotificationReceivedListener(
       (notification) => {
         console.log("Notification received:", notification);
       },
     );
 
-    // Fires when the user taps a notification
+    // Fires when the user taps a notification (dev builds)
     responseListener.current = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         console.log("Notification tapped:", response.notification.request.content.data);
       },
     );
 
+    // WebSocket connection for real-time in-app notifications
+    supabase.auth.getSession().then(({ data }) => {
+      const token = data.session?.access_token;
+      if (!token) return;
+
+      const ws = new WebSocket(`${WS_URL}?token=${token}`);
+
+      ws.onmessage = (event) => {
+        try {
+          const { body, title } = JSON.parse(event.data as string) as {
+            body: string;
+            title: string;
+          };
+          showNotification(title, body);
+        } catch {
+          console.warn("Failed to parse WebSocket message:", event.data);
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.warn("WebSocket error:", err);
+      };
+
+      wsRef.current = ws;
+    });
+
     return () => {
       notificationListener.current?.remove();
       responseListener.current?.remove();
+      wsRef.current?.close();
     };
   }, []);
 }
@@ -73,13 +106,19 @@ async function registerToken() {
 
   const { data: session } = await supabase.auth.getSession();
   if (!session.session) {
-    // User not signed in yet — token will be registered after sign-in
     return;
   }
 
-  const { data: tokenData } = await Notifications.getExpoPushTokenAsync({
-    projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
-  });
+  let tokenData: Notifications.ExpoPushToken;
+  try {
+    tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+    });
+  } catch (err) {
+    // Expo Go SDK 53+ does not support remote push notifications — requires a development build
+    console.warn("Push token registration skipped (not supported in this environment):", err);
+    return;
+  }
 
-  await registerPushToken(tokenData);
+  await registerPushToken(tokenData.data);
 }
