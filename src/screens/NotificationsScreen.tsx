@@ -10,7 +10,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
@@ -18,6 +22,7 @@ import { RootStackParamList } from "../navigation/AppNavigator";
 import {
   deleteNotification,
   fetchNotifications,
+  markNotificationRead,
   Notification,
 } from "../api/notifications";
 
@@ -37,9 +42,9 @@ const formatNotificationTime = (dateString: string) => {
 export default function NotificationScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
-  const [activeNotificationId, setActiveNotificationId] = useState<
-    string | null
-  >(null);
+  const [activeNotificationId, setActiveNotificationId] = useState<string | null>(
+    null,
+  );
 
   const {
     data: notifications,
@@ -49,6 +54,13 @@ export default function NotificationScreen({ navigation }: Props) {
   } = useQuery<Notification[]>({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
+  });
+
+  const markAsReadMutation = useMutation({
+    mutationFn: markNotificationRead,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
 
   const { mutate: removeNotification, isPending: isRemoving } = useMutation({
@@ -125,12 +137,7 @@ export default function NotificationScreen({ navigation }: Props) {
             ) : (
               <View style={styles.list}>
                 {notifications.map((item) => {
-                  const isRead =
-                    "read" in item
-                      ? Boolean(item.read)
-                      : "is_read" in item
-                        ? Boolean(item.is_read)
-                        : false;
+                  const isRead = Boolean(item.is_read);
 
                   return (
                     <Pressable
@@ -146,7 +153,11 @@ export default function NotificationScreen({ navigation }: Props) {
                           current === item.id ? null : current,
                         )
                       }
-                      onPress={() => console.log("Pressed notification:", item.id)}
+                      onPress={() => {
+                        if (!isRead) {
+                          markAsReadMutation.mutate(item.id);
+                        }
+                      }}
                     >
                       <View
                         style={[
