@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   useMutation,
   useQuery,
@@ -53,10 +54,19 @@ export default function NotificationScreen({ navigation }: Props) {
     isLoading,
     isError,
     error,
+    refetch,
   } = useQuery<Notification[]>({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch]),
+  );
 
   const markAsReadMutation = useMutation({
     mutationFn: markNotificationRead,
