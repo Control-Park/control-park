@@ -21,12 +21,14 @@ import {
 
 import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
+import CustomButton from "../components/CustomButton";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import {
   deleteNotification,
   fetchNotifications,
   markNotificationRead,
   Notification,
+  pushNotification,
 } from "../api/notifications";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Notification">;
@@ -60,6 +62,7 @@ export default function NotificationScreen({ navigation }: Props) {
     queryFn: fetchNotifications,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    refetchInterval: 5000,
   });
 
   useFocusEffect(
@@ -320,6 +323,25 @@ const handleClearAllNotifications = () => {
         </View>
       </ScrollView>
 
+      <View style={styles.testArea}>
+        <CustomButton
+          title="Send test notification"
+          color="#34D399"
+          className="mt-4"
+          onPress={async () => {
+            try {
+              await pushNotification({
+                user_id: "c02960ae-13b5-45df-97a7-d353c71b28d2",
+                title: "testing",
+                body: "test notification button",
+                type: "new_listing",
+              });
+            } catch (err) {
+              console.error("test notification failed", err);
+            }
+          }}
+        />
+      </View>
       <View style={styles.navbarWrapper}>
         <View style={styles.navbarContent}>
           <Navbar activeTab="Home" />
@@ -554,5 +576,9 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: MAX_WIDTH,
     alignSelf: "center",
+  },
+  testArea: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
 });
