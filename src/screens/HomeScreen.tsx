@@ -272,6 +272,7 @@ export default function HomeScreen({ navigation }: Props) {
                     value={searchValue}
                     onChangeText={setSearchValue}
                     onSubmit={handleSearch}
+                    onClear={clearSearch}
                     onFocus={() => setIsSearchFocused(true)}
                     onBlur={() => setIsSearchFocused(false)}
                   />
@@ -289,14 +290,6 @@ export default function HomeScreen({ navigation }: Props) {
                 </Pressable>
               </View>
             </View>
-
-            {(isSearchFocused || searchValue) && (
-              <View style={styles.searchActions}>
-                <Pressable onPress={clearSearch}>
-                  <Text style={styles.searchClear}>Clear</Text>
-                </Pressable>
-              </View>
-            )}
 
             {activeFilters.length > 0 ? (
               <ScrollView
@@ -603,12 +596,6 @@ const styles = StyleSheet.create({
   },
   sectionGap: {
     height: 6,
-  },
-  searchActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 12,
   },
   searchClear: {
     color: "#111827",
