@@ -90,7 +90,7 @@ export default function NotificationScreen({ navigation }: Props) {
 
                 <Pressable
                   style={styles.settingsButton}
-                  onPress={() => console.log("Open notification settings")}
+                  onPress={() => navigation.navigate("NotificationSettings")}
                 >
                   <Text style={styles.settingsButtonText}>
                     Notification Settings

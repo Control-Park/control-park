@@ -39,7 +39,7 @@ export default function ProfileScreen() {
 
             <TouchableOpacity
               style={styles.iconButton}
-              onPress={() => navigation.navigate("Notification")}
+              onPress={() => navigation.navigate("NotificationSettings")}
             >
               <Ionicons name="settings-outline" size={24} color="#111111" />
             </TouchableOpacity>
@@ -114,7 +114,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={styles.menuRow}
-            onPress={() => navigation.navigate("Notification")}
+            onPress={() => navigation.navigate("NotificationSettings")}
           >
             <Ionicons name="notifications-outline" size={28} color="#111111" />
             <Text style={styles.menuText}>Notification settings</Text>
