@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   StyleSheet,
@@ -10,12 +10,16 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import { fetchNotifications, Notification } from "../api/notifications";
+import {
+  deleteNotification,
+  fetchNotifications,
+  Notification,
+} from "../api/notifications";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Notification">;
 
@@ -32,6 +36,10 @@ const formatNotificationTime = (dateString: string) => {
 
 export default function NotificationScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+  const [activeNotificationId, setActiveNotificationId] = useState<
+    string | null
+  >(null);
 
   const {
     data: notifications,
@@ -42,6 +50,23 @@ export default function NotificationScreen({ navigation }: Props) {
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
   });
+
+  const { mutate: removeNotification, isPending: isRemoving } = useMutation({
+    mutationFn: deleteNotification,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const handleRemoveNotification = (notificationId: string) => {
+    removeNotification(notificationId, {
+      onSuccess: () => {
+        setActiveNotificationId((current) =>
+          current === notificationId ? null : current,
+        );
+      },
+    });
+  };
 
   return (
     <View style={styles.safe}>
@@ -115,6 +140,12 @@ export default function NotificationScreen({ navigation }: Props) {
                         isRead ? styles.cardRead : styles.cardUnread,
                         pressed && styles.cardPressed,
                       ]}
+                      onHoverIn={() => setActiveNotificationId(item.id)}
+                      onHoverOut={() =>
+                        setActiveNotificationId((current) =>
+                          current === item.id ? null : current,
+                        )
+                      }
                       onPress={() => console.log("Pressed notification:", item.id)}
                     >
                       <View
@@ -168,6 +199,30 @@ export default function NotificationScreen({ navigation }: Props) {
                         >
                           {isRead ? "Read" : "Unread"}
                         </Text>
+
+                        {activeNotificationId === item.id ? (
+                          <View style={styles.cardActions}>
+                            <Pressable
+                              style={({ pressed }) => [
+                                styles.removeButton,
+                                pressed && styles.removeButtonPressed,
+                              ]}
+                              onHoverIn={() => setActiveNotificationId(item.id)}
+                              onHoverOut={() =>
+                                setActiveNotificationId((current) =>
+                                  current === item.id ? null : current,
+                                )
+                              }
+                              onPress={() => handleRemoveNotification(item.id)}
+                              disabled={isRemoving}
+                              hitSlop={6}
+                            >
+                              <Text style={styles.removeButtonText}>
+                                {isRemoving ? "Removing..." : "Remove"}
+                              </Text>
+                            </Pressable>
+                          </View>
+                        ) : null}
                       </View>
                     </Pressable>
                   );
@@ -285,6 +340,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 12,
+    position: "relative",
   },
   cardUnread: {
     backgroundColor: "#FFF8E1",
@@ -312,6 +368,7 @@ const styles = StyleSheet.create({
   cardBody: {
     flex: 1,
     paddingTop: 2,
+    paddingBottom: 26,
   },
   cardHeaderRow: {
     flexDirection: "row",
@@ -369,6 +426,25 @@ const styles = StyleSheet.create({
   },
   statusRead: {
     color: "#9CA3AF",
+  },
+  cardActions: {
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+  },
+  removeButton: {
+    backgroundColor: "#E5E7EB",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  removeButtonPressed: {
+    opacity: 0.72,
+  },
+  removeButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6B7280",
   },
   navbarWrapper: {
     backgroundColor: "#FFFFFF",
