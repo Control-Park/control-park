@@ -5,40 +5,19 @@ import {
   ScrollView,
   Text,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useQuery } from "@tanstack/react-query";
 
 import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
 import { RootStackParamList } from "../navigation/AppNavigator";
+import { fetchNotifications, Notification } from "../api/notifications";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Notification">;
-
-// Temporary type for mock notification data used to build the UI before API integration
-type MockNotification = {
-  id: string;
-  title: string;
-  body: string;
-  created_at: string;
-};
-
-// Mock data commented out, will uncomment to show notifications list
-const mockNotifications: MockNotification[] = [
-  // {
-  //   id: "1",
-  //   title: "Reminder",
-  //   body: "Control Park: Reservation for Walter Pyramid",
-  //   created_at: "2025-09-09T09:30:00",
-  // },
-  // {
-  //   id: "2",
-  //   title: "Reminder",
-  //   body: "Control Park: Confirm your payment",
-  //   created_at: "2025-09-09T15:25:00",
-  // },
-];
 
 const MAX_WIDTH = 428;
 
@@ -53,6 +32,16 @@ const formatNotificationTime = (dateString: string) => {
 
 export default function NotificationScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+
+  const {
+    data: notifications,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<Notification[]>({
+    queryKey: ["notifications"],
+    queryFn: fetchNotifications,
+  });
 
   return (
     <View style={styles.safe}>
@@ -79,7 +68,19 @@ export default function NotificationScreen({ navigation }: Props) {
 
             <View style={styles.divider} />
 
-            {mockNotifications.length === 0 ? (
+            {isLoading ? (
+              <View style={styles.emptyStateWrap}>
+                <ActivityIndicator size="small" color="#111111" />
+                <Text style={styles.loadingText}>Loading notifications...</Text>
+              </View>
+            ) : isError ? (
+              <View style={styles.emptyStateWrap}>
+                <Text style={styles.emptyTitle}>Unable to load notifications</Text>
+                <Text style={styles.emptyText}>
+                  {(error as Error)?.message || "Something went wrong."}
+                </Text>
+              </View>
+            ) : !notifications || notifications.length === 0 ? (
               <View style={styles.emptyStateWrap}>
                 <Text style={styles.emptyTitle}>No new notifications</Text>
                 <Text style={styles.emptyText}>
@@ -98,7 +99,7 @@ export default function NotificationScreen({ navigation }: Props) {
               </View>
             ) : (
               <View style={styles.list}>
-                {mockNotifications.map((item) => (
+                {notifications.map((item) => (
                   <Pressable
                     key={item.id}
                     style={({ pressed }) => [
@@ -221,6 +222,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     maxWidth: 260,
     marginBottom: 28,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#666666",
   },
   settingsButton: {
     backgroundColor: "#ECAA00",
