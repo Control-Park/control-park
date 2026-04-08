@@ -4,26 +4,52 @@ import { Ionicons } from "@expo/vector-icons";
 
 type Props = {
   placeholder?: string;
+  value?: string;
+  onChangeText?: (text: string) => void;
+  onSubmit?: () => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
 };
 
-export default function SearchBar({ placeholder = "Start your search" }: Props) {
-  const [value, setValue] = useState("");
+export default function SearchBar({
+  placeholder = "Start your search",
+  value,
+  onChangeText,
+  onSubmit,
+  onFocus,
+  onBlur,
+}: Props) {
+  const [internalValue, setInternalValue] = useState("");
   const inputRef = useRef<TextInput>(null);
+  const textValue = value ?? internalValue;
+
+  const handleChange = (text: string) => {
+    onChangeText?.(text);
+    if (value === undefined) {
+      setInternalValue(text);
+    }
+  };
+
+  const handleSubmit = () => {
+    onSubmit?.();
+  };
 
   return (
     <Pressable style={styles.wrapper} onPress={() => inputRef.current?.focus()}>
       <View style={styles.inner}>
-        {/* icon overlay */}
         <Ionicons name="search" size={18} color="#111827" style={styles.icon} />
-
         <TextInput
-          ref={inputRef}
-          value={value}
-          onChangeText={setValue}
-          placeholder={placeholder}
-          placeholderTextColor="#111827"
-          style={styles.text}
-        />
+        ref={inputRef}
+        value={textValue}
+        onChangeText={handleChange}
+        placeholder={placeholder}
+        placeholderTextColor="#111827"
+        style={styles.text}
+        returnKeyType="search"
+        onSubmitEditing={handleSubmit}
+        onFocus={onFocus}
+        onBlur={onBlur}
+      />
       </View>
     </Pressable>
   );
