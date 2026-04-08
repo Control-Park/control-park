@@ -99,42 +99,79 @@ export default function NotificationScreen({ navigation }: Props) {
               </View>
             ) : (
               <View style={styles.list}>
-                {notifications.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    style={({ pressed }) => [
-                      styles.card,
-                      pressed && styles.cardPressed,
-                    ]}
-                    onPress={() =>
-                      console.log("Pressed notification:", item.id)
-                    }
-                  >
-                    <View style={styles.iconWrap}>
-                      <Ionicons
-                        name="notifications-outline"
-                        size={22}
-                        color="#111111"
-                      />
-                    </View>
+                {notifications.map((item) => {
+                  const isRead =
+                    "read" in item
+                      ? Boolean(item.read)
+                      : "is_read" in item
+                        ? Boolean(item.is_read)
+                        : false;
 
-                    <View style={styles.cardBody}>
-                      <View style={styles.cardHeaderRow}>
-                        <Text style={styles.cardTitle} numberOfLines={1}>
-                          {item.title}
-                        </Text>
-
-                        <Text style={styles.timestamp}>
-                          {formatNotificationTime(item.created_at)}
-                        </Text>
+                  return (
+                    <Pressable
+                      key={item.id}
+                      style={({ pressed }) => [
+                        styles.card,
+                        isRead ? styles.cardRead : styles.cardUnread,
+                        pressed && styles.cardPressed,
+                      ]}
+                      onPress={() => console.log("Pressed notification:", item.id)}
+                    >
+                      <View
+                        style={[
+                          styles.iconWrap,
+                          isRead ? styles.iconWrapRead : styles.iconWrapUnread,
+                        ]}
+                      >
+                        <Ionicons
+                          name="notifications-outline"
+                          size={22}
+                          color="#111111"
+                        />
                       </View>
 
-                      <Text style={styles.cardMessage} numberOfLines={2}>
-                        {item.body}
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))}
+                      <View style={styles.cardBody}>
+                        <View style={styles.cardHeaderRow}>
+                          <Text
+                            style={[
+                              styles.cardTitle,
+                              isRead ? styles.cardTitleRead : styles.cardTitleUnread,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {item.title}
+                          </Text>
+
+                          <View style={styles.headerRight}>
+                            {!isRead && <View style={styles.unreadDot} />}
+                            <Text style={styles.timestamp}>
+                              {formatNotificationTime(item.created_at)}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <Text
+                          style={[
+                            styles.cardMessage,
+                            isRead ? styles.cardMessageRead : styles.cardMessageUnread,
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {item.body}
+                        </Text>
+
+                        <Text
+                          style={[
+                            styles.statusText,
+                            isRead ? styles.statusRead : styles.statusUnread,
+                          ]}
+                        >
+                          {isRead ? "Read" : "Unread"}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
               </View>
             )}
 
@@ -245,6 +282,15 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "flex-start",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  cardUnread: {
+    backgroundColor: "#FFF8E1",
+  },
+  cardRead: {
+    backgroundColor: "#F8F8F8",
   },
   cardPressed: {
     opacity: 0.72,
@@ -253,10 +299,15 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#ECAA00",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
+  },
+  iconWrapUnread: {
+    backgroundColor: "#ECAA00",
+  },
+  iconWrapRead: {
+    backgroundColor: "#E5E7EB",
   },
   cardBody: {
     flex: 1,
@@ -268,11 +319,28 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 8,
   },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#ECAA00",
+    marginTop: 1,
+  },
   cardTitle: {
     flex: 1,
     fontSize: 14,
-    fontWeight: "500",
     color: "#111111",
+  },
+  cardTitleUnread: {
+    fontWeight: "700",
+  },
+  cardTitleRead: {
+    fontWeight: "500",
   },
   timestamp: {
     fontSize: 12,
@@ -280,11 +348,27 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   cardMessage: {
-    marginTop: 2,
+    marginTop: 4,
     fontSize: 13,
     lineHeight: 18,
-    color: "#333333",
     paddingRight: 8,
+  },
+  cardMessageUnread: {
+    color: "#333333",
+  },
+  cardMessageRead: {
+    color: "#6B7280",
+  },
+  statusText: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  statusUnread: {
+    color: "#B77900",
+  },
+  statusRead: {
+    color: "#9CA3AF",
   },
   navbarWrapper: {
     backgroundColor: "#FFFFFF",
