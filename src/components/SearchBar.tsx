@@ -9,6 +9,7 @@ type Props = {
   onSubmit?: () => void;
   onFocus?: () => void;
   onBlur?: () => void;
+  onClear?: () => void;
 };
 
 export default function SearchBar({
@@ -18,6 +19,7 @@ export default function SearchBar({
   onSubmit,
   onFocus,
   onBlur,
+  onClear,
 }: Props) {
   const [internalValue, setInternalValue] = useState("");
   const inputRef = useRef<TextInput>(null);
@@ -32,6 +34,12 @@ export default function SearchBar({
 
   const handleSubmit = () => {
     onSubmit?.();
+  };
+
+  const handleClear = () => {
+    onClear?.();
+    handleChange("");
+    inputRef.current?.focus();
   };
 
   return (
@@ -50,6 +58,15 @@ export default function SearchBar({
         onFocus={onFocus}
         onBlur={onBlur}
       />
+        {textValue ? (
+          <Pressable
+            style={styles.clearButton}
+            onPress={handleClear}
+            hitSlop={8}
+          >
+            <Ionicons name="close" size={18} color="#6B7280" />
+          </Pressable>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -87,5 +104,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingLeft: ICON_PAD,
     paddingRight: ICON_PAD,
+  },
+  clearButton: {
+    position: "absolute",
+    right: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
