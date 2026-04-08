@@ -6,6 +6,7 @@ import {
   Text,
   Pressable,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -80,6 +81,36 @@ export default function NotificationScreen({ navigation }: Props) {
     });
   };
 
+  const handleClearAllNotifications = () => {
+    if (!notifications || notifications.length === 0 || isRemoving) {
+      return;
+    }
+
+    Alert.alert(
+      "Clear all notifications",
+      "Do you really want to clear all your notifications?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Clear All",
+          style: "destructive",
+          onPress: () => {
+            notifications.forEach((item) => {
+              removeNotification(item.id);
+            });
+            setActiveNotificationId(null);
+          },
+        },
+      ],
+    );
+  };
+
+  const canClearAll =
+    !isLoading && !isError && !!notifications && notifications.length > 0 && !isRemoving;
+
   return (
     <View style={styles.safe}>
       <ScrollView
@@ -101,7 +132,25 @@ export default function NotificationScreen({ navigation }: Props) {
               <NotificationsButton onPress={() => {}} />
             </View>
 
-            <Text style={styles.title}>Notifications</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>Notifications</Text>
+
+              <Pressable
+                style={[
+                  styles.clearAllButton,
+                  !canClearAll && styles.clearAllButtonDisabled,
+                ]}
+                onPress={handleClearAllNotifications}
+                disabled={!canClearAll}
+                hitSlop={10}
+              >
+                <Ionicons
+                  name="trash-outline"
+                  size={20}
+                  color={canClearAll ? "#111111" : "#9CA3AF"}
+                />
+              </Pressable>
+            </View>
 
             <View style={styles.divider} />
 
@@ -291,12 +340,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  titleRow: {
+    marginTop: 20,
+    marginBottom: 28,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   title: {
     fontSize: 24,
     fontWeight: "600",
     color: "#111111",
-    marginTop: 20,
-    marginBottom: 28,
+  },
+  clearAllButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F3F3F3",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  clearAllButtonDisabled: {
+    opacity: 0.5,
   },
   divider: {
     height: 1,
