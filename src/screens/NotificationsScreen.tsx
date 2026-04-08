@@ -7,6 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -81,32 +82,46 @@ export default function NotificationScreen({ navigation }: Props) {
     });
   };
 
-  const handleClearAllNotifications = () => {
-    if (!notifications || notifications.length === 0 || isRemoving) {
-      return;
+const handleClearAllNotifications = () => {
+  if (!notifications || notifications.length === 0 || isRemoving) {
+    return;
+  }
+
+  const clearAll = () => {
+    notifications.forEach((item) => {
+      removeNotification(item.id);
+    });
+    setActiveNotificationId(null);
+  };
+
+  if (Platform.OS === "web") {
+    const confirmed = window.confirm(
+      "Do you really want to clear all your notifications?",
+    );
+
+    if (confirmed) {
+      clearAll();
     }
 
-    Alert.alert(
-      "Clear all notifications",
-      "Do you really want to clear all your notifications?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Clear All",
-          style: "destructive",
-          onPress: () => {
-            notifications.forEach((item) => {
-              removeNotification(item.id);
-            });
-            setActiveNotificationId(null);
-          },
-        },
-      ],
-    );
-  };
+    return;
+  }
+
+  Alert.alert(
+    "Clear all notifications",
+    "Do you really want to clear all your notifications?",
+    [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Clear All",
+        style: "destructive",
+        onPress: clearAll,
+      },
+    ],
+  );
+};
 
   const canClearAll =
     !isLoading && !isError && !!notifications && notifications.length > 0 && !isRemoving;
