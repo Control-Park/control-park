@@ -16,7 +16,7 @@ import { usePushNotifications } from "./src/hooks/usePushNotifications";
 const queryClient = new QueryClient();
 
 export default function App() {
-  usePushNotifications();
+  usePushNotifications(queryClient);
 
   const [fontsLoaded] = useFonts({
     "ABeeZee-Regular": require("./assets/fonts/ABeeZee-Regular.ttf"),

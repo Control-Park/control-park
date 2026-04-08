@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { QueryClient } from "@tanstack/react-query";
 import { registerPushToken } from "../api/notifications";
 import { supabase } from "../utils/supabase";
 import { showNotification } from "../utils/validation";
@@ -21,13 +22,48 @@ const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL ?? "http://localhost:9001"
 // Convert http(s) to ws(s) for the WebSocket connection
 const WS_URL = SERVER_URL.replace(/^http/, "ws");
 
-export function usePushNotifications() {
+export function usePushNotifications(queryClient: QueryClient) {
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     registerToken();
+
+    const connectWebSocket = (accessToken?: string | null) => {
+      wsRef.current?.close();
+      wsRef.current = null;
+
+      if (!accessToken) {
+        return;
+      }
+
+      const ws = new WebSocket(`${WS_URL}?token=${accessToken}`);
+
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data as string) as {
+            body?: string;
+            title?: string;
+          };
+
+          if (payload.title && payload.body) {
+            showNotification(payload.title, payload.body);
+          }
+
+          queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        } catch {
+          console.warn("Failed to parse WebSocket message:", event.data);
+          queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.warn("WebSocket error:", err);
+      };
+
+      wsRef.current = ws;
+    };
 
     // Fires when a notification is received while the app is foregrounded (dev builds)
     notificationListener.current = Notifications.addNotificationReceivedListener(
@@ -43,38 +79,23 @@ export function usePushNotifications() {
       },
     );
 
-    // WebSocket connection for real-time in-app notifications
     supabase.auth.getSession().then(({ data }) => {
-      const token = data.session?.access_token;
-      if (!token) return;
+      connectWebSocket(data.session?.access_token);
+    });
 
-      const ws = new WebSocket(`${WS_URL}?token=${token}`);
-
-      ws.onmessage = (event) => {
-        try {
-          const { body, title } = JSON.parse(event.data as string) as {
-            body: string;
-            title: string;
-          };
-          showNotification(title, body);
-        } catch {
-          console.warn("Failed to parse WebSocket message:", event.data);
-        }
-      };
-
-      ws.onerror = (err) => {
-        console.warn("WebSocket error:", err);
-      };
-
-      wsRef.current = ws;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      connectWebSocket(session?.access_token);
     });
 
     return () => {
       notificationListener.current?.remove();
       responseListener.current?.remove();
+      subscription.unsubscribe();
       wsRef.current?.close();
     };
-  }, []);
+  }, [queryClient]);
 }
 
 async function registerToken() {
