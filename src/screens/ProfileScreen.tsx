@@ -5,7 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Pressable,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -17,272 +19,323 @@ type ProfileScreenNavigationProp = NativeStackNavigationProp<
   "Profile"
 >;
 
+const MAX_WIDTH = 428;
+
 export default function ProfileScreen() {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View style={styles.safe}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
+        <View style={styles.pageMax}>
+          <View style={[styles.topArea, { paddingTop: insets.top }]}>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Profile</Text>
 
-          <View style={styles.headerIcons}>
+              <View style={styles.headerIcons}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.iconButton,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => console.log("Search pressed")}
+                >
+                  <Feather name="search" size={20} color="#111111" />
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.iconButton,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => navigation.navigate("NotificationSettings")}
+                >
+                  <Ionicons name="settings-outline" size={20} color="#111111" />
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.profileCard}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>M</Text>
+              </View>
+
+              <Text style={styles.name}>Minh</Text>
+              <Text style={styles.role}>Guest</Text>
+            </View>
+
             <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => console.log("Search pressed")}
+              style={styles.reservationsCard}
+              onPress={() => navigation.navigate("Reservations")}
+              activeOpacity={0.8}
             >
-              <Feather name="search" size={24} color="#111111" />
+              <Text style={styles.reservationsText}>Reservations</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => navigation.navigate("NotificationSettings")}
+              style={styles.hostCard}
+              onPress={() => console.log("Become a host pressed")}
+              activeOpacity={0.8}
             >
-              <Ionicons name="settings-outline" size={24} color="#111111" />
+              <Text style={styles.hostTitle}>Become a host</Text>
+              <Text style={styles.hostSubtitle}>
+                It’s easy to start hosting and earn extra income.
+              </Text>
             </TouchableOpacity>
+
+            <View style={styles.menuList}>
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => console.log("Account settings pressed")}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="account-cog-outline"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>Account settings</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => navigation.navigate("VehicleManagement")}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="car-outline"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>Vehicles</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => console.log("View profile pressed")}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="account-outline"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>View profile</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => navigation.navigate("NotificationSettings")}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name="notifications-outline"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>Notification settings</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => console.log("Payment methods pressed")}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="credit-card-outline"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>Payment methods</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => navigation.navigate("Login")}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="logout"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>Log out</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ height: 100 }} />
           </View>
-        </View>
-
-        <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>M</Text>
-          </View>
-
-          <Text style={styles.name}>Minh</Text>
-          <Text style={styles.role}>Guest</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.reservationsCard}
-          onPress={() => navigation.navigate("Reservations")}
-        >
-          <Text style={styles.reservationsText}>Reservations</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.hostCard}
-          onPress={() => console.log("Become a host pressed")}
-        >
-          <Text style={styles.hostTitle}>Become a host</Text>
-          <Text style={styles.hostSubtitle}>
-            It’s easy to start hosting and earn extra income.
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.menuList}>
-          <TouchableOpacity
-            style={styles.menuRow}
-            onPress={() => console.log("Account settings pressed")}
-          >
-            <MaterialCommunityIcons
-              name="account-cog-outline"
-              size={28}
-              color="#111111"
-            />
-            <Text style={styles.menuText}>Account settings</Text>
-            <Ionicons name="chevron-forward" size={24} color="#111111" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuRow}
-            onPress={() => navigation.navigate("VehicleManagement")}
-          >
-            <MaterialCommunityIcons
-              name="car-outline"
-              size={28}
-              color="#111111"
-            />
-            <Text style={styles.menuText}>Vehicles</Text>
-            <Ionicons name="chevron-forward" size={24} color="#111111" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuRow}
-            onPress={() => console.log("View profile pressed")}
-          >
-            <MaterialCommunityIcons
-              name="account-outline"
-              size={28}
-              color="#111111"
-            />
-            <Text style={styles.menuText}>View profile</Text>
-            <Ionicons name="chevron-forward" size={24} color="#111111" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuRow}
-            onPress={() => navigation.navigate("NotificationSettings")}
-          >
-            <Ionicons name="notifications-outline" size={28} color="#111111" />
-            <Text style={styles.menuText}>Notification settings</Text>
-            <Ionicons name="chevron-forward" size={24} color="#111111" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuRow}
-            onPress={() => console.log("Payment methods pressed")}
-          >
-            <MaterialCommunityIcons
-              name="credit-card-outline"
-              size={28}
-              color="#111111"
-            />
-            <Text style={styles.menuText}>Payment methods</Text>
-            <Ionicons name="chevron-forward" size={24} color="#111111" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuRow}
-            onPress={() => navigation.navigate("Login")}
-          >
-            <MaterialCommunityIcons
-              name="logout"
-              size={28}
-              color="#111111"
-            />
-            <Text style={styles.menuText}>Log out</Text>
-            <Ionicons name="chevron-forward" size={24} color="#111111" />
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
-      <Navbar activeTab="Profile" />
+      <View style={styles.navbarWrapper}>
+        <View style={styles.navbarContent}>
+          <Navbar activeTab="Profile" />
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    backgroundColor: "#F8F8F8",
+    backgroundColor: "#FFFFFF",
   },
-  scrollContent: {
-    paddingTop: 72,
-    paddingHorizontal: 28,
-    paddingBottom: 120,
+  scrollContainer: {
+    flex: 1,
+  },
+  pageMax: {
+    width: "100%",
+    maxWidth: MAX_WIDTH,
+    alignSelf: "center",
+    paddingHorizontal: 16,
+  },
+  topArea: {
+    backgroundColor: "#FFFFFF",
   },
   header: {
+    height: 44,
+    marginTop: 4,
+    marginBottom: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 34,
   },
   headerTitle: {
-    fontSize: 44,
-    fontWeight: "400",
-    color: "#000000",
-    letterSpacing: -1,
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#111111",
   },
   headerIcons: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 10,
   },
   iconButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: "#ECECEC",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F3F3F3",
     justifyContent: "center",
     alignItems: "center",
+  },
+  pressed: {
+    opacity: 0.75,
   },
   profileCard: {
-    backgroundColor: "#F3F3F3",
-    borderRadius: 28,
+    backgroundColor: "#F7F7F7",
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 34,
-    marginBottom: 26,
+    paddingVertical: 24,
+    marginBottom: 18,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
   },
   avatar: {
-    width: 174,
-    height: 174,
-    borderRadius: 87,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     backgroundColor: "#232326",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 12,
   },
   avatarText: {
-    fontSize: 74,
+    fontSize: 48,
     fontWeight: "300",
     color: "#FFFFFF",
   },
   name: {
-    fontSize: 50,
-    fontWeight: "400",
-    color: "#000000",
-    lineHeight: 56,
+    fontSize: 28,
+    fontWeight: "500",
+    color: "#111111",
+    lineHeight: 34,
   },
   role: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "400",
-    color: "#000000",
-    marginTop: 6,
+    color: "#555555",
+    marginTop: 4,
   },
   reservationsCard: {
-    backgroundColor: "#F3F3F3",
-    borderRadius: 24,
+    backgroundColor: "#F7F7F7",
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 24,
-    marginBottom: 24,
+    paddingVertical: 18,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
   },
   reservationsText: {
-    fontSize: 20,
-    fontWeight: "400",
-    color: "#000000",
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#111111",
   },
   hostCard: {
-    backgroundColor: "#F3F3F3",
-    borderRadius: 24,
-    paddingVertical: 24,
-    paddingHorizontal: 24,
-    marginBottom: 26,
+    backgroundColor: "#F7F7F7",
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    marginBottom: 18,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
   },
   hostTitle: {
-    fontSize: 20,
-    fontWeight: "500",
-    color: "#000000",
-    marginBottom: 6,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111111",
+    marginBottom: 4,
   },
   hostSubtitle: {
     fontSize: 14,
     fontWeight: "400",
-    color: "#000000",
+    color: "#555555",
     lineHeight: 20,
   },
   menuList: {
-    marginTop: 2,
+    marginTop: 4,
   },
   menuRow: {
+    minHeight: 56,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 18,
+    paddingVertical: 10,
   },
   menuText: {
     flex: 1,
-    fontSize: 21,
+    fontSize: 17,
     fontWeight: "400",
     color: "#1F1F1F",
-    marginLeft: 18,
+    marginLeft: 14,
+  },
+  navbarWrapper: {
+    backgroundColor: "#FFFFFF",
+  },
+  navbarContent: {
+    width: "100%",
+    maxWidth: MAX_WIDTH,
+    alignSelf: "center",
   },
 });
