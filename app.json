@@ -30,7 +30,14 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow this app to access your photos so you can add a vehicle image.",
+          "cameraPermission": "Allow this app to use your camera so you can take a vehicle photo."
+        }
+      ]
     ],
     "extra": {
       "eas": {
