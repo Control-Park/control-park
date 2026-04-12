@@ -1,15 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
 import {
+  Alert,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as ImagePicker from "expo-image-picker";
+
 import { RootStackParamList } from "../navigation/AppNavigator";
 import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
@@ -21,7 +26,7 @@ type Vehicle = {
   id: string;
   name: string;
   plate: string;
-  image: any;
+  image?: string;
 };
 
 const MAX_WIDTH = 428;
@@ -29,13 +34,92 @@ const MAX_WIDTH = 428;
 export default function VehicleManagementScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { selectedVehicle, setSelectedVehicle } = useVehicleStore();
+
   const vehicles: Vehicle[] = [];
+
+  const [isAddVehicleModalVisible, setIsAddVehicleModalVisible] =
+    useState(false);
+
+  const [plateNumber, setPlateNumber] = useState("");
+  const [vehicleMake, setVehicleMake] = useState("");
+  const [vehicleModel, setVehicleModel] = useState("");
+  const [vehicleYear, setVehicleYear] = useState("");
+  const [vehicleColor, setVehicleColor] = useState("");
+  const [vehicleImageUri, setVehicleImageUri] = useState<string | null>(null);
 
   const hasVehicles = vehicles.length > 0;
 
-  const handleAddVehicle = () => {
-    console.log("Add vehicle pressed");
-    // navigation.navigate("AddVehicle");
+  const openAddVehicleModal = () => {
+    setIsAddVehicleModalVisible(true);
+  };
+
+  const closeAddVehicleModal = () => {
+    setIsAddVehicleModalVisible(false);
+    setPlateNumber("");
+    setVehicleMake("");
+    setVehicleModel("");
+    setVehicleYear("");
+    setVehicleColor("");
+    setVehicleImageUri(null);
+  };
+
+  const handleTakePicture = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        "Camera permission needed",
+        "Please allow camera access to take a vehicle photo.",
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setVehicleImageUri(result.assets[0].uri);
+    }
+  };
+
+  const handleChooseFromExisting = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        "Photo library permission needed",
+        "Please allow photo access to choose an existing vehicle image.",
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setVehicleImageUri(result.assets[0].uri);
+    }
+  };
+
+  const handleConfirmAddVehicle = () => {
+    console.log("Confirm add vehicle", {
+      plateNumber,
+      vehicleMake,
+      vehicleModel,
+      vehicleYear,
+      vehicleColor,
+      vehicleImageUri,
+    });
+
+    closeAddVehicleModal();
   };
 
   return (
@@ -70,7 +154,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
 
               {hasVehicles ? (
                 <Pressable
-                  onPress={handleAddVehicle}
+                  onPress={openAddVehicleModal}
                   style={({ pressed }) => pressed && styles.pressed}
                 >
                   <Text style={styles.addNewText}>+ Add new car</Text>
@@ -82,12 +166,12 @@ export default function VehicleManagementScreen({ navigation }: Props) {
               <View style={styles.cardsList}>
                 {vehicles.map((vehicle: Vehicle) => {
                   const isSelected = selectedVehicle?.id === vehicle.id;
-                
+
                   return (
                     <Pressable
                       key={vehicle.id}
                       onPress={() => {
-                        setSelectedVehicle(vehicle);
+                        setSelectedVehicle(vehicle as any);
                         navigation.goBack();
                       }}
                       style={({ pressed }) => [
@@ -100,13 +184,21 @@ export default function VehicleManagementScreen({ navigation }: Props) {
                         <Text style={styles.vehicleName}>{vehicle.name}</Text>
                         <Text style={styles.vehiclePlate}>{vehicle.plate}</Text>
                       </View>
-                    
+
                       <View style={styles.imageWrapper}>
-                        <Image
-                          source={vehicle.image}
-                          style={styles.vehicleImage}
-                          resizeMode="contain"
-                        />
+                        {vehicle.image ? (
+                          <Image
+                            source={{ uri: vehicle.image }}
+                            style={styles.vehicleImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Ionicons
+                            name="car-outline"
+                            size={28}
+                            color="#666666"
+                          />
+                        )}
                       </View>
                     </Pressable>
                   );
@@ -120,7 +212,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
                 </Text>
 
                 <Pressable
-                  onPress={handleAddVehicle}
+                  onPress={openAddVehicleModal}
                   style={({ pressed }) => [
                     styles.addVehicleCard,
                     pressed && styles.pressed,
@@ -145,6 +237,147 @@ export default function VehicleManagementScreen({ navigation }: Props) {
           <Navbar activeTab="Profile" />
         </View>
       </View>
+
+      <Modal
+        visible={isAddVehicleModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeAddVehicleModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Pressable
+              onPress={closeAddVehicleModal}
+              style={({ pressed }) => [
+                styles.closeButton,
+                pressed && styles.pressed,
+              ]}
+              hitSlop={10}
+            >
+              <Ionicons name="close" size={18} color="#444444" />
+            </Pressable>
+
+            <View style={styles.formContent}>
+              <Text style={styles.inputLabel}>Plate Number*</Text>
+              <TextInput
+                value={plateNumber}
+                onChangeText={setPlateNumber}
+                style={styles.fullInput}
+                placeholder=""
+                placeholderTextColor="#999999"
+              />
+
+              <View style={styles.rowInputs}>
+                <View style={styles.halfInputWrapper}>
+                  <Text style={styles.inputLabel}>Vehicle Make*</Text>
+                  <TextInput
+                    value={vehicleMake}
+                    onChangeText={setVehicleMake}
+                    style={styles.halfInput}
+                    placeholder=""
+                    placeholderTextColor="#999999"
+                  />
+                </View>
+
+                <View style={styles.halfInputWrapper}>
+                  <Text style={styles.inputLabel}>Vehicle Model*</Text>
+                  <TextInput
+                    value={vehicleModel}
+                    onChangeText={setVehicleModel}
+                    style={styles.halfInput}
+                    placeholder=""
+                    placeholderTextColor="#999999"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.rowInputs}>
+                <View style={styles.halfInputWrapper}>
+                  <Text style={styles.inputLabel}>Vehicle Year*</Text>
+                  <TextInput
+                    value={vehicleYear}
+                    onChangeText={setVehicleYear}
+                    style={styles.halfInput}
+                    placeholder=""
+                    placeholderTextColor="#999999"
+                    keyboardType="number-pad"
+                  />
+                </View>
+
+                <View style={styles.halfInputWrapper}>
+                  <Text style={styles.inputLabel}>Vehicle Color*</Text>
+                  <TextInput
+                    value={vehicleColor}
+                    onChangeText={setVehicleColor}
+                    style={styles.halfInput}
+                    placeholder=""
+                    placeholderTextColor="#999999"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.photoActions}>
+                <Pressable
+                  onPress={handleTakePicture}
+                  style={({ pressed }) => [
+                    styles.photoActionButton,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Ionicons name="camera-outline" size={18} color="#111111" />
+                  <Text style={styles.photoActionText}>Take picture</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleChooseFromExisting}
+                  style={({ pressed }) => [
+                    styles.photoActionButton,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Ionicons name="images-outline" size={18} color="#111111" />
+                  <Text style={styles.photoActionText}>
+                    Choose from existing
+                  </Text>
+                </Pressable>
+
+                {vehicleImageUri ? (
+                  <View style={styles.previewWrapper}>
+                    <Image
+                      source={{ uri: vehicleImageUri }}
+                      style={styles.previewImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+                ) : null}
+              </View>
+            </View>
+
+            <View style={styles.modalFooter}>
+              <Pressable
+                onPress={closeAddVehicleModal}
+                style={({ pressed }) => [
+                  styles.footerButton,
+                  styles.footerButtonBorder,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.footerButtonText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleConfirmAddVehicle}
+                style={({ pressed }) => [
+                  styles.footerButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.footerButtonText}>Confirm</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -250,8 +483,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   vehicleImage: {
-    width: 88,
-    height: 58,
+    width: "100%",
+    height: "100%",
   },
   emptyStateWrapper: {
     alignItems: "center",
@@ -260,7 +493,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 24,
-    fontWeight: "500",
+    fontWeight: "600",
     color: "#111111",
     textAlign: "center",
     marginTop: 18,
@@ -268,7 +501,7 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     marginTop: 10,
     fontSize: 13,
-    color: "#444444",
+    color: "#666666",
     textAlign: "center",
     lineHeight: 18,
     fontStyle: "italic",
@@ -301,14 +534,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 16,
   },
-
   addVehicleText: {
     fontSize: 18,
     fontWeight: "600",
     color: "#111111",
-  },
-  pressed: {
-    opacity: 0.75,
   },
   navbarWrapper: {
     backgroundColor: "#FFFFFF",
@@ -317,5 +546,117 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: MAX_WIDTH,
     alignSelf: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.18)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 392,
+    backgroundColor: "#ECECEC",
+    borderRadius: 14,
+    overflow: "hidden",
+    position: "relative",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#D3D3D3",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+  formContent: {
+    paddingTop: 44,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 11,
+    color: "#666666",
+    marginBottom: 6,
+  },
+  fullInput: {
+    height: 40,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    marginBottom: 20,
+  },
+  rowInputs: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 18,
+    gap: 12,
+  },
+  halfInputWrapper: {
+    flex: 1,
+  },
+  halfInput: {
+    height: 40,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+  },
+  photoActions: {
+    marginTop: 6,
+    gap: 12,
+  },
+  photoActionButton: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#DADADA",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  photoActionText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#111111",
+  },
+  previewWrapper: {
+    marginTop: 6,
+    alignItems: "center",
+  },
+  previewImage: {
+    width: "100%",
+    height: 160,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+  },
+  modalFooter: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#D0D0D0",
+  },
+  footerButton: {
+    flex: 1,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  footerButtonBorder: {
+    borderRightWidth: 1,
+    borderRightColor: "#D0D0D0",
+  },
+  footerButtonText: {
+    fontSize: 14,
+    color: "#111111",
+    fontWeight: "500",
+  },
+  pressed: {
+    opacity: 0.75,
   },
 });
