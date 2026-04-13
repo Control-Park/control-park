@@ -190,7 +190,20 @@ export default function HomeScreen({ navigation }: Props) {
     return <Text>Listings response is invalid</Text>;
   }
 
-  const handleSearch = () => {
+  const getPriceParams = () => {
+    switch (priceFilter) {
+      case "under5":
+        return { priceMin: 0, priceMax: 5 };
+      case "5to10":
+        return { priceMin: 5, priceMax: 10 };
+      case "10plus":
+        return { priceMin: 10 };
+      default:
+        return {};
+    }
+  };
+
+  const handleSearch = async () => {
     const trimmed = searchValue.trim();
     if (!trimmed) {
       setSearchResults(null);
@@ -198,19 +211,21 @@ export default function HomeScreen({ navigation }: Props) {
     }
 
     setIsSearching(true);
-    const normalized = trimmed.toLowerCase();
-    const filtered = filteredAndSortedListings.filter((listing) => {
-      const fields = [
-        listing.title,
-        listing.structure_name,
-        listing.address,
-        listing.description,
-      ];
-      return fields.some((field) => field?.toLowerCase().includes(normalized));
-    });
-
-    setSearchResults(filtered);
-    setIsSearching(false);
+    try {
+      const priceParams = getPriceParams();
+      const availabilityParam =
+        availabilityFilter === "availableNow"
+          ? new Date().toISOString()
+          : undefined;
+      const response = await fetchListings({
+        name: trimmed,
+        ...priceParams,
+        availability: availabilityParam,
+      });
+      setSearchResults(response);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const clearSearch = () => {

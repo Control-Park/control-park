@@ -12,6 +12,7 @@ import Toast from "react-native-toast-message";
 import { toastConfig } from "./src/components/ToastConfig";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { usePushNotifications } from "./src/hooks/usePushNotifications";
+import { PaymentMethodsProvider } from "./src/context/paymentMethodsContext";
 
 const queryClient = new QueryClient();
 
@@ -37,10 +38,12 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <NavigationContainer>
-          <View className="flex-1">
-            <StatusBar barStyle="dark-content" />
-            {isShowSplash ? <SplashScreen /> : <AppNavigator />}
-          </View>
+          <PaymentMethodsProvider>
+            <View className="flex-1">
+              <StatusBar barStyle="dark-content" />
+              {isShowSplash ? <SplashScreen /> : <AppNavigator />}
+            </View>
+          </PaymentMethodsProvider>
         </NavigationContainer>
         <Toast config={toastConfig} />
       </SafeAreaProvider>
