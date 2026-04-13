@@ -18,6 +18,7 @@ import ActiveReservationScreen from "../screens/ActiveReservationScreen";
 import VehicleManagementScreen from "../screens/VehicleManagementScreen";
 import NotificationScreen from "../screens/NotificationsScreen";
 import NotificationSettingsScreen from "../screens/NotificationSettingsScreen";
+import PaymentScreen from "../screens/PaymentScreen";
 
 export type RootStackParamList = {
   // change type based on parameters a screen expects to receive
@@ -46,6 +47,7 @@ export type RootStackParamList = {
   VehicleManagement: undefined;
   Notification: undefined;
   NotificationSettings: undefined;
+  Payment: undefined;
   // TODO: add userId and profile and send those as parameters into necessary screens
 };
 
@@ -134,6 +136,11 @@ export default function AppNavigator() {
       <Stack.Screen
         name="NotificationSettings"
         component={NotificationSettingsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Payment"
+        component={PaymentScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

@@ -1,108 +1,403 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
+  SafeAreaView,
+  ScrollView,
   View,
   Text,
   StyleSheet,
   Pressable,
-  SafeAreaView,
+  TextInput,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Navbar from "../components/Navbar";
 import { useNavigation } from "@react-navigation/native";
+import { usePaymentMethods } from "../context/paymentMethodsContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import NotificationsButton from "../components/NotificationsButton";
+
+const MAX_WIDTH = 428;
+const CARD_LOGOS = [
+  require("../../assets/visa-logo.png"),
+  require("../../assets/mastercard-logo.png"),
+  require("../../assets/discover-logo.jpg"),
+  require("../../assets/amex-logo.svg"),
+];
 
 export default function PaymentScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const { methods, addMethod } = usePaymentMethods();
+  const [showForm, setShowForm] = useState(false);
+  const [name, setName] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [cvv, setCvv] = useState("");
+  const [postal, setPostal] = useState("");
+
+  const sanitizeDigits = (value: string) => value.replace(/\D/g, "").slice(0, 16);
+  const formatCardNumber = (value: string) => {
+    const digits = sanitizeDigits(value);
+    return digits.match(/.{1,4}/g)?.join("-") ?? "";
+  };
+  const last4 = useMemo(() => sanitizeDigits(cardNumber).slice(-4), [cardNumber]);
+
+  const handleAdd = () => {
+    const digits = sanitizeDigits(cardNumber);
+    if (!name || !digits) return;
+    addMethod({ brand: "Card", last4: digits.slice(-4) || "0000", holder: name, typeLabel: "Card" });
+    setShowForm(false);
+    setName("");
+    setCardNumber("");
+    setExpiry("");
+    setCvv("");
+    setPostal("");
+  };
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyStateWrapper}>
+      <Text style={styles.emptyTitle}>No Payment Found</Text>
+      <Text style={styles.emptySubtitle} className="mb-10">You can add and edit payments during checkout</Text>
+      <Pressable style={styles.addVehicleCard} onPress={() => setShowForm(true)}>
+        <View style={styles.plusCircle}>
+          <Ionicons name="add" size={28} color="#111" />
+        </View>
+        <Text style={styles.addVehicleText}>Add Payment Method</Text>
+      </Pressable>
+    </View>
+  );
 
   return (
-    <SafeAreaView style={styles.container}>
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#111" />
-        </Pressable>
+    <SafeAreaView style={[styles.safe, { paddingTop: insets.top }]}> 
+      <View style={styles.pageMax}>
+        <View style={styles.headerRow}>
+          <Pressable onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={24} color="#111" />
+          </Pressable>
+          <Text style={styles.title}>Payment Methods</Text>
+          <NotificationsButton
+            onPress={() => navigation.navigate("Notification")}
+          />
+        </View>
 
-        <Text style={styles.title}>Payment Methods</Text>
+        {!showForm && methods.length === 0 && renderEmptyState()}
 
-        {/* Spacer to balance header */}
-        <View style={{ width: 24 }} />
+        {!showForm && methods.length > 0 && (
+          <View style={styles.listSection}>
+            {methods.map(method => (
+              <Pressable key={method.id} style={styles.methodRow}>
+                <View>
+                  <Text style={styles.methodBrand}>{method.brand}</Text>
+                  <Text style={styles.methodNumber}>**** {method.last4}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#111" />
+              </Pressable>
+            ))}
+            <Pressable style={styles.addRow} onPress={() => setShowForm(true)}>
+              <Text style={styles.addRowText}>Add Payment Method</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {showForm && (
+          <ScrollView contentContainerStyle={styles.formContainer}>
+            <Text style={styles.sectionLabel}>Accepted</Text>
+            <View style={styles.cardLogos}>
+              {CARD_LOGOS.map((logo, index) => (
+                <View key={index} style={styles.logoWrapper}>
+                  <Image source={logo} style={styles.logoImage} resizeMode="contain" />
+                </View>
+              ))}
+            </View>
+
+            <Pressable style={styles.scanButton}>
+              <View style={styles.scanIconWrapper}>
+                <Ionicons name="scan" size={22} color="#D4A017" />
+                <View style={styles.scanLine} />
+              </View>
+              <Text style={styles.scanText}>Scan Card</Text>
+            </Pressable>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Name On Card</Text>
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                style={styles.input}
+                placeholder="NAME"
+                placeholderTextColor="#D4A017"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Card Number</Text>
+              <TextInput
+                value={formatCardNumber(cardNumber)}
+                onChangeText={value => setCardNumber(sanitizeDigits(value))}
+                style={styles.input}
+                placeholder="XXXX-XXXX-XXXX-XXXX"
+                keyboardType="number-pad"
+                placeholderTextColor="#D4A017"
+              />
+            </View>
+
+            <View style={styles.rowContainer}>
+              <View style={[styles.formGroupHalf, styles.rowSpacing]}>
+                <Text style={styles.label}>Expiry Date</Text>
+                <TextInput
+                  value={expiry}
+                  onChangeText={setExpiry}
+                  style={styles.input}
+                  placeholder="MM/YY"
+                  placeholderTextColor="#D4A017"
+                />
+              </View>
+              <View style={styles.formGroupHalf}>
+                <Text style={styles.label}>Security Code</Text>
+                <TextInput
+                  value={cvv}
+                  onChangeText={setCvv}
+                  style={styles.input}
+                  placeholder="CVV"
+                  placeholderTextColor="#D4A017"
+                />
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>ZIP / Postal Code</Text>
+              <TextInput
+                value={postal}
+                onChangeText={setPostal}
+                style={styles.input}
+                placeholder="XXXXX"
+                placeholderTextColor="#D4A017"
+              />
+            </View>
+
+            <Pressable style={styles.addButton} onPress={handleAdd}>
+              <Text style={styles.addButtonText}>Add</Text>
+            </Pressable>
+          </ScrollView>
+        )}
       </View>
 
-      {/* Empty State */}
-      <View style={styles.center}>
-        <Text style={styles.emptyTitle}>No Payment Found</Text>
-        <Text style={styles.subText}>
-          You can add and edit payments during checkout
-        </Text>
-
-        <Pressable style={styles.addButton}>
-          <Ionicons name="add" size={28} color="#111" />
-          <Text style={styles.addText}>Add Payment Method</Text>
-        </Pressable>
+      <View style={styles.navbarWrapper}>
+        <View style={styles.pageMax}>
+          <Navbar activeTab="Home" />
+        </View>
       </View>
-
-      {/* Bottom Navbar */}
-      <Navbar activeTab="Home" />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
     backgroundColor: "#FFFFFF",
     justifyContent: "space-between",
   },
-
-  header: {
+  pageMax: {
+    width: "100%",
+    maxWidth: MAX_WIDTH,
+    alignSelf: "center",
+    paddingHorizontal: 16,
+    flex: 1,
+  },
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingVertical: 12,
   },
-
   title: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
-    color: "#D4A017", // gold tone from your Figma
+    color: "#D4A017",
   },
-
-  center: {
+  emptyStateWrapper: {
     flex: 1,
     justifyContent: "center",
+    marginBottom: 200,
     alignItems: "center",
-    paddingHorizontal: 30,
   },
-
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 24,
     fontWeight: "600",
-    color: "#111",
     marginBottom: 8,
   },
-
-  subText: {
-    fontSize: 13,
-    color: "#777",
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
     textAlign: "center",
-    marginBottom: 40,
+    marginBottom: 24,
   },
-
-  addButton: {
+  addVehicleCard: {
     width: "100%",
+    maxWidth: 260,
+    minHeight: 160,
+    borderRadius: 8,
     backgroundColor: "#F4B400",
-    paddingVertical: 20,
-    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#A06F00",
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 28,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 5,
   },
-
-  addText: {
-    marginTop: 6,
+  plusCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: "#111",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  addVehicleText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111",
+  },
+  listSection: {
+    marginTop: 24,
+    gap: 8,
+  },
+  methodRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#EEE",
+    borderRadius: 14,
+    backgroundColor: "#FAFAFA",
+  },
+  methodBrand: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  methodNumber: {
+    fontSize: 14,
+    color: "#777",
+  },
+  addRow: {
+    marginTop: 24,
+    alignItems: "center",
+  },
+  addRowText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#D4A017",
+  },
+  formContainer: {
+    paddingBottom: 24,
+  },
+  sectionLabel: {
     fontSize: 14,
     fontWeight: "600",
     color: "#111",
+  },
+  cardLogos: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 16,
+  },
+  logoWrapper: {
+    borderWidth: 1,
+    borderColor: "#DDD",
+    borderRadius: 8,
+    padding: 6,
+    backgroundColor: "#FFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  logoImage: {
+    width: 80,
+    height: 40,
+  },
+  scanButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginBottom: 24,
+  },
+  scanIconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+    position: "relative",
+  },
+  scanLine: {
+    position: "absolute",
+    bottom: 6,
+    width: 16,
+    height: 2,
+    backgroundColor: "#D4A017",
+  },
+  scanText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#E0C053",
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  rowContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  rowSpacing: {
+    marginRight: 12,
+  },
+  formGroupHalf: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 12,
+    color: "#111",
+    marginBottom: 6,
+    fontWeight: "600",
+  },
+  input: {
+    borderWidth: 1.75,
+    borderColor: "#222",
+    borderRadius: 0,
+    height: 48,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    fontSize: 13,
+    backgroundColor: "#FAFAFA",
+    fontWeight: "500",
+  },
+  addButton: {
+    marginTop: 8,
+    backgroundColor: "#F4B400",
+    borderRadius: 999,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  addButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111",
+  },
+  navbarWrapper: {
+    backgroundColor: "#FFFFFF",
   },
 });

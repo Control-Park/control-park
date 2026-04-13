@@ -54,7 +54,6 @@ export const useSocialAuth = () => {
           access_token: accessToken,
           refresh_token: refreshToken,
         });
-
         if (sessionError) {
           showFieldError("login", sessionError.message);
           return;

@@ -146,7 +146,7 @@ export default function ProfileScreen() {
 
               <TouchableOpacity
                 style={styles.menuRow}
-                onPress={() => console.log("Payment methods pressed")}
+                onPress={() => navigation.navigate("Payment")}
                 activeOpacity={0.8}
               >
                 <MaterialCommunityIcons
