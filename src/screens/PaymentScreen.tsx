@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Navbar from "../components/Navbar";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
 import { useNavigation } from "@react-navigation/native";
 import { usePaymentMethods } from "../context/paymentMethodsContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,7 +30,11 @@ import {
 } from "../utils/validation";
 
 const MAX_WIDTH = 428;
-  const CARD_BRANDS = [
+type PaymentNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "Payment"
+>;
+const CARD_BRANDS = [
     { name: "Visa", regex: /^4/, logo: require("../../assets/visa-logo.png") },
     {
       name: "MasterCard",
@@ -48,7 +54,7 @@ const MAX_WIDTH = 428;
   ];
 
 export default function PaymentScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<PaymentNavigationProp>();
   const insets = useSafeAreaInsets();
   const { methods, addMethod, removeMethod } = usePaymentMethods();
   const [showForm, setShowForm] = useState(false);
