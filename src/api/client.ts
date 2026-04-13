@@ -15,11 +15,32 @@ const client = axios.create({
 client.interceptors.request.use(async (config) => {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  console.log("Attaching token to request:", Boolean(token));
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+// Extract the server's error message from the response body so callers see it
+client.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (
+      error !== null &&
+      typeof error === "object" &&
+      "response" in error &&
+      error.response !== null &&
+      typeof error.response === "object" &&
+      "data" in error.response &&
+      error.response.data !== null &&
+      typeof error.response.data === "object" &&
+      "error" in error.response.data &&
+      typeof error.response.data.error === "string"
+    ) {
+      return Promise.reject(new Error(error.response.data.error));
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default client;

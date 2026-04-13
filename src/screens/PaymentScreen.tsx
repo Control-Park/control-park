@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useNavigation } from "@react-navigation/native";
 import { usePaymentMethods } from "../context/paymentMethodsContext";
+import { createStripePaymentMethod, savePaymentMethod } from "../api/payments";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import NotificationsButton from "../components/NotificationsButton";
 import {
@@ -56,8 +57,9 @@ const CARD_BRANDS = [
 export default function PaymentScreen() {
   const navigation = useNavigation<PaymentNavigationProp>();
   const insets = useSafeAreaInsets();
-  const { methods, addMethod, removeMethod } = usePaymentMethods();
+  const { methods, loading, addMethod, removeMethod, refreshMethods } = usePaymentMethods();
   const [showForm, setShowForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -75,7 +77,7 @@ export default function PaymentScreen() {
   const getLogoForBrand = (brandName: string) =>
     CARD_BRANDS.find(({ name }) => name === brandName)?.logo;
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     const digits = sanitizeCardNumber(cardNumber);
     if (!name.trim()) {
       showFieldError("name", "Please enter the cardholder's name.");
@@ -85,7 +87,8 @@ export default function PaymentScreen() {
       showFieldError("card number", "Card number must be 16 digits long.");
       return;
     }
-    if (!isValidExpiryDate(formatExpiry(expiry))) {
+    const formattedExpiry = formatExpiry(expiry);
+    if (!isValidExpiryDate(formattedExpiry)) {
       showFieldError("expiry date", "Enter a valid MM/YY.");
       return;
     }
@@ -94,18 +97,38 @@ export default function PaymentScreen() {
       showFieldError("security code", "CVV must be 3 or 4 digits.");
       return;
     }
-    addMethod({
-      brand: detectedBrand,
-      last4: digits.slice(-4) || "0000",
-      holder: name,
-      typeLabel: "Card",
-    });
-    setShowForm(false);
-    setName("");
-    setCardNumber("");
-    setExpiry("");
-    setCvv("");
-    setPostal("");
+
+    const [expMonth, expYear] = formattedExpiry.split("/");
+
+    setSubmitting(true);
+    try {
+      const paymentMethodId = await createStripePaymentMethod({
+        cvc: cvvDigits,
+        exp_month: expMonth,
+        exp_year: expYear,
+        holder_name: name.trim(),
+        number: digits,
+      });
+
+      await savePaymentMethod({
+        holder_name: name.trim(),
+        payment_method_id: paymentMethodId,
+      });
+
+      await refreshMethods();
+
+      setShowForm(false);
+      setName("");
+      setCardNumber("");
+      setExpiry("");
+      setCvv("");
+      setPostal("");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to add card";
+      showFieldError("card", message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const renderEmptyState = () => (
@@ -281,8 +304,8 @@ export default function PaymentScreen() {
               />
             </View>
 
-            <Pressable style={styles.addButton} onPress={handleAdd}>
-              <Text style={styles.addButtonText}>Add</Text>
+            <Pressable style={styles.addButton} onPress={() => { void handleAdd(); }} disabled={submitting}>
+              <Text style={styles.addButtonText}>{submitting ? "Adding..." : "Add"}</Text>
             </Pressable>
           </ScrollView>
         )}
