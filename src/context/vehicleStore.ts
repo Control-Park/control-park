@@ -16,6 +16,7 @@ type VehicleStore = {
   selectedVehicle: Vehicle | null;
   setSelectedVehicle: (vehicle: Vehicle | null) => void;
   addVehicle: (vehicle: Vehicle) => void;
+  updateVehicle: (vehicle: Vehicle) => void;
   removeVehicle: (vehicleId: string) => void;
 };
 
@@ -28,6 +29,17 @@ export const useVehicleStore = create<VehicleStore>((set) => ({
   addVehicle: (vehicle) =>
     set((state) => ({
       vehicles: [...state.vehicles, vehicle],
+    })),
+
+  updateVehicle: (updatedVehicle) =>
+    set((state) => ({
+      vehicles: state.vehicles.map((vehicle) =>
+        vehicle.id === updatedVehicle.id ? updatedVehicle : vehicle,
+      ),
+      selectedVehicle:
+        state.selectedVehicle?.id === updatedVehicle.id
+          ? updatedVehicle
+          : state.selectedVehicle,
     })),
 
   removeVehicle: (vehicleId) =>
