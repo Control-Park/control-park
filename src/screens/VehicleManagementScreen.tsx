@@ -3,6 +3,7 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,11 +27,18 @@ const MAX_WIDTH = 428;
 
 export default function VehicleManagementScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { vehicles, selectedVehicle, setSelectedVehicle, addVehicle } =
-    useVehicleStore();
+  const {
+    vehicles,
+    selectedVehicle,
+    setSelectedVehicle,
+    addVehicle,
+    updateVehicle,
+    removeVehicle,
+  } = useVehicleStore();
 
   const [isAddVehicleModalVisible, setIsAddVehicleModalVisible] =
     useState(false);
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
 
   const [plateNumber, setPlateNumber] = useState("");
   const [vehicleMake, setVehicleMake] = useState("");
@@ -47,6 +55,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
 
   const hasVehicles = vehicles.length > 0;
   const currentYear = new Date().getFullYear();
+  const isEditing = editingVehicleId !== null;
 
   const validatePlateNumber = (value: string) => {
     const trimmed = value.trim();
@@ -122,12 +131,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
     return !plateError && !makeError && !modelError && !yearError && !colorError;
   };
 
-  const openAddVehicleModal = () => {
-    setIsAddVehicleModalVisible(true);
-  };
-
-  const closeAddVehicleModal = () => {
-    setIsAddVehicleModalVisible(false);
+  const resetForm = () => {
     setPlateNumber("");
     setVehicleMake("");
     setVehicleModel("");
@@ -139,6 +143,33 @@ export default function VehicleManagementScreen({ navigation }: Props) {
     setVehicleModelError("");
     setVehicleYearError("");
     setVehicleColorError("");
+    setEditingVehicleId(null);
+  };
+
+  const openAddVehicleModal = () => {
+    resetForm();
+    setIsAddVehicleModalVisible(true);
+  };
+
+  const openEditVehicleModal = (vehicle: Vehicle) => {
+    setEditingVehicleId(vehicle.id);
+    setPlateNumber(vehicle.plate);
+    setVehicleMake(vehicle.make);
+    setVehicleModel(vehicle.model);
+    setVehicleYear(vehicle.year);
+    setVehicleColor(vehicle.color);
+    setVehicleImageUri(vehicle.image ?? null);
+    setPlateNumberError("");
+    setVehicleMakeError("");
+    setVehicleModelError("");
+    setVehicleYearError("");
+    setVehicleColorError("");
+    setIsAddVehicleModalVisible(true);
+  };
+
+  const closeAddVehicleModal = () => {
+    setIsAddVehicleModalVisible(false);
+    resetForm();
   };
 
   const handleTakePicture = async () => {
@@ -189,13 +220,13 @@ export default function VehicleManagementScreen({ navigation }: Props) {
 
   const handleConfirmAddVehicle = () => {
     const isValid = validateForm();
-  
+
     if (!isValid) {
       return;
     }
-  
-    const newVehicle: Vehicle = {
-      id: Date.now().toString(),
+
+    const normalizedVehicle: Vehicle = {
+      id: editingVehicleId ?? Date.now().toString(),
       name: `${vehicleYear.trim()} ${vehicleMake.trim()} ${vehicleModel.trim()}`,
       plate: plateNumber.trim().toUpperCase(),
       image: vehicleImageUri ?? undefined,
@@ -204,10 +235,57 @@ export default function VehicleManagementScreen({ navigation }: Props) {
       year: vehicleYear.trim(),
       color: vehicleColor.trim(),
     };
-  
-    addVehicle(newVehicle);
-    setSelectedVehicle(newVehicle);
+
+    if (isEditing) {
+      updateVehicle(normalizedVehicle);
+      setSelectedVehicle(normalizedVehicle);
+    } else {
+      addVehicle(normalizedVehicle);
+      setSelectedVehicle(normalizedVehicle);
+    }
+
     closeAddVehicleModal();
+  };
+
+  const handleRemoveVehicle = () => {
+    if (!editingVehicleId) {
+      return;
+    }
+  
+    const confirmRemoval = () => {
+      removeVehicle(editingVehicleId);
+    
+      if (selectedVehicle?.id === editingVehicleId) {
+        setSelectedVehicle(null);
+      }
+    
+      closeAddVehicleModal();
+    };
+  
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Are you sure you want to remove this vehicle?",
+      );
+    
+      if (confirmed) {
+        confirmRemoval();
+      }
+    
+      return;
+    }
+  
+    Alert.alert(
+      "Remove vehicle",
+      "Are you sure you want to remove this vehicle?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: confirmRemoval,
+        },
+      ],
+    );
   };
 
   return (
@@ -258,10 +336,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
                   return (
                     <Pressable
                       key={vehicle.id}
-                      onPress={() => {
-                        setSelectedVehicle(vehicle);
-                        navigation.goBack();
-                      }}
+                      onPress={() => openEditVehicleModal(vehicle)}
                       style={({ pressed }) => [
                         styles.vehicleCard,
                         isSelected && styles.selectedCard,
@@ -519,9 +594,23 @@ export default function VehicleManagementScreen({ navigation }: Props) {
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={styles.footerButtonText}>Confirm</Text>
+                <Text style={styles.footerButtonText}>
+                  {isEditing ? "Save" : "Confirm"}
+                </Text>
               </Pressable>
             </View>
+
+            {isEditing ? (
+              <Pressable
+                onPress={handleRemoveVehicle}
+                style={({ pressed }) => [
+                  styles.removeVehicleButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.removeVehicleText}>- Remove Vehicle</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </Modal>
@@ -811,6 +900,16 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 12,
     color: "#DC2626",
+  },
+  removeVehicleButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+  },
+  removeVehicleText: {
+    fontSize: 14,
+    color: "#6C63FF",
+    fontWeight: "500",
   },
   pressed: {
     opacity: 0.75,
