@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
+  Alert,
   SafeAreaView,
   ScrollView,
   View,
@@ -15,19 +16,41 @@ import { useNavigation } from "@react-navigation/native";
 import { usePaymentMethods } from "../context/paymentMethodsContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import NotificationsButton from "../components/NotificationsButton";
+import {
+  formatCardNumber,
+  formatExpiry,
+  isValidExpiryDate,
+  sanitizeCardNumber,
+  sanitizeCvv,
+  sanitizeExpiry,
+  sanitizePostal,
+  showFieldError,
+} from "../utils/validation";
 
 const MAX_WIDTH = 428;
-const CARD_LOGOS = [
-  require("../../assets/visa-logo.png"),
-  require("../../assets/mastercard-logo.png"),
-  require("../../assets/discover-logo.jpg"),
-  require("../../assets/amex-logo.svg"),
-];
+  const CARD_BRANDS = [
+    { name: "Visa", regex: /^4/, logo: require("../../assets/visa-logo.png") },
+    {
+      name: "MasterCard",
+      regex: /^5[1-5]/,
+      logo: require("../../assets/mastercard-logo.png"),
+    },
+    {
+      name: "Discover",
+      regex: /^(6011|65|64[4-9])/,
+      logo: require("../../assets/discover-logo.jpg"),
+    },
+    {
+      name: "American Express",
+      regex: /^3[47]/,
+      logo: require("../../assets/amex-logo.svg"),
+    },
+  ];
 
 export default function PaymentScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { methods, addMethod } = usePaymentMethods();
+  const { methods, addMethod, removeMethod } = usePaymentMethods();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
@@ -35,17 +58,42 @@ export default function PaymentScreen() {
   const [cvv, setCvv] = useState("");
   const [postal, setPostal] = useState("");
 
-  const sanitizeDigits = (value: string) => value.replace(/\D/g, "").slice(0, 16);
-  const formatCardNumber = (value: string) => {
-    const digits = sanitizeDigits(value);
-    return digits.match(/.{1,4}/g)?.join("-") ?? "";
+  const sanitizedCard = useMemo(() => sanitizeCardNumber(cardNumber), [cardNumber]);
+  const last4 = useMemo(() => sanitizedCard.slice(-4), [sanitizedCard]);
+  const getBrand = (digits: string) => {
+    if (!digits) return "Card";
+    const found = CARD_BRANDS.find(({ regex }) => regex.test(digits));
+    return found ? found.name : "Card";
   };
-  const last4 = useMemo(() => sanitizeDigits(cardNumber).slice(-4), [cardNumber]);
+  const detectedBrand = useMemo(() => getBrand(sanitizedCard), [sanitizedCard]);
+  const getLogoForBrand = (brandName: string) =>
+    CARD_BRANDS.find(({ name }) => name === brandName)?.logo;
 
   const handleAdd = () => {
-    const digits = sanitizeDigits(cardNumber);
-    if (!name || !digits) return;
-    addMethod({ brand: "Card", last4: digits.slice(-4) || "0000", holder: name, typeLabel: "Card" });
+    const digits = sanitizeCardNumber(cardNumber);
+    if (!name.trim()) {
+      showFieldError("name", "Please enter the cardholder's name.");
+      return;
+    }
+    if (digits.length !== 16) {
+      showFieldError("card number", "Card number must be 16 digits long.");
+      return;
+    }
+    if (!isValidExpiryDate(formatExpiry(expiry))) {
+      showFieldError("expiry date", "Enter a valid MM/YY.");
+      return;
+    }
+    const cvvDigits = sanitizeCvv(cvv);
+    if (![3, 4].includes(cvvDigits.length)) {
+      showFieldError("security code", "CVV must be 3 or 4 digits.");
+      return;
+    }
+    addMethod({
+      brand: detectedBrand,
+      last4: digits.slice(-4) || "0000",
+      holder: name,
+      typeLabel: "Card",
+    });
     setShowForm(false);
     setName("");
     setCardNumber("");
@@ -85,12 +133,55 @@ export default function PaymentScreen() {
         {!showForm && methods.length > 0 && (
           <View style={styles.listSection}>
             {methods.map(method => (
-              <Pressable key={method.id} style={styles.methodRow}>
-                <View>
-                  <Text style={styles.methodBrand}>{method.brand}</Text>
-                  <Text style={styles.methodNumber}>**** {method.last4}</Text>
+              <Pressable
+                key={method.id}
+                style={styles.methodRow}
+                onPress={() => {
+                  Alert.alert(
+                    "Remove Payment Method?",
+                    `${method.brand} ending in **** ${method.last4} will be removed from your account.`,
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Remove",
+                        style: "destructive",
+                        onPress: () => removeMethod(method.id),
+                      },
+                    ],
+                  );
+                }}
+              >
+                <View style={styles.rowContent}>
+                  <View style={styles.rowLogo}>
+                    <Image
+                      source={getLogoForBrand(method.brand) ?? CARD_BRANDS[0].logo}
+                      style={styles.rowLogoImage}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <View>
+                    <Text style={styles.methodBrand}>{method.brand}</Text>
+                    <Text style={styles.methodNumber}>**** {method.last4}</Text>
+                  </View>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#111" />
+                <Pressable
+                  onPress={() =>
+                    Alert.alert(
+                      "Remove Payment Method?",
+                      `${method.brand} ending in **** ${method.last4} will be removed from your account.`,
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Remove",
+                          style: "destructive",
+                          onPress: () => removeMethod(method.id),
+                        },
+                      ],
+                    )
+                  }
+                >
+                  <Ionicons name="chevron-forward" size={20} color="#111" />
+                </Pressable>
               </Pressable>
             ))}
             <Pressable style={styles.addRow} onPress={() => setShowForm(true)}>
@@ -103,9 +194,15 @@ export default function PaymentScreen() {
           <ScrollView contentContainerStyle={styles.formContainer}>
             <Text style={styles.sectionLabel}>Accepted</Text>
             <View style={styles.cardLogos}>
-              {CARD_LOGOS.map((logo, index) => (
-                <View key={index} style={styles.logoWrapper}>
-                  <Image source={logo} style={styles.logoImage} resizeMode="contain" />
+              {CARD_BRANDS.map((brand, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.logoWrapper,
+                    detectedBrand === brand.name && styles.activeLogo,
+                  ]}
+                >
+                  <Image source={brand.logo} style={styles.logoImage} resizeMode="contain" />
                 </View>
               ))}
             </View>
@@ -133,7 +230,7 @@ export default function PaymentScreen() {
               <Text style={styles.label}>Card Number</Text>
               <TextInput
                 value={formatCardNumber(cardNumber)}
-                onChangeText={value => setCardNumber(sanitizeDigits(value))}
+                onChangeText={value => setCardNumber(sanitizeCardNumber(value))}
                 style={styles.input}
                 placeholder="XXXX-XXXX-XXXX-XXXX"
                 keyboardType="number-pad"
@@ -144,33 +241,36 @@ export default function PaymentScreen() {
             <View style={styles.rowContainer}>
               <View style={[styles.formGroupHalf, styles.rowSpacing]}>
                 <Text style={styles.label}>Expiry Date</Text>
-                <TextInput
-                  value={expiry}
-                  onChangeText={setExpiry}
-                  style={styles.input}
-                  placeholder="MM/YY"
-                  placeholderTextColor="#D4A017"
-                />
+                  <TextInput
+                    value={formatExpiry(expiry)}
+                    onChangeText={value => setExpiry(sanitizeExpiry(value))}
+                    style={styles.input}
+                    placeholder="MM/YY"
+                    keyboardType="number-pad"
+                    placeholderTextColor="#D4A017"
+                  />
               </View>
-              <View style={styles.formGroupHalf}>
-                <Text style={styles.label}>Security Code</Text>
-                <TextInput
-                  value={cvv}
-                  onChangeText={setCvv}
-                  style={styles.input}
-                  placeholder="CVV"
-                  placeholderTextColor="#D4A017"
-                />
-              </View>
+            <View style={styles.formGroupHalf}>
+              <Text style={styles.label}>Security Code</Text>
+              <TextInput
+                value={cvv}
+                onChangeText={value => setCvv(sanitizeCvv(value))}
+                style={styles.input}
+                placeholder="CVV"
+                keyboardType="number-pad"
+                placeholderTextColor="#D4A017"
+              />
+            </View>
             </View>
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>ZIP / Postal Code</Text>
               <TextInput
                 value={postal}
-                onChangeText={setPostal}
+                onChangeText={value => setPostal(sanitizePostal(value))}
                 style={styles.input}
                 placeholder="XXXXX"
+                keyboardType="number-pad"
                 placeholderTextColor="#D4A017"
               />
             </View>
@@ -273,12 +373,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: "#EEE",
     borderRadius: 14,
     backgroundColor: "#FAFAFA",
+  },
+  rowContent: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   methodBrand: {
     fontSize: 16,
@@ -286,11 +390,26 @@ const styles = StyleSheet.create({
   },
   methodNumber: {
     fontSize: 14,
-    color: "#777",
+    color: "#D4A017",
+  },
+  rowLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#DDD",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 22,
+    backgroundColor: "#fff",
+  },
+  rowLogoImage: {
+    width: 36,
+    height: 24,
   },
   addRow: {
     marginTop: 24,
-    alignItems: "center",
+    alignItems: "flex-start",
   },
   addRowText: {
     fontSize: 15,
@@ -322,6 +441,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  activeLogo: {
+    borderColor: "#ECAA00",
+    shadowColor: "#ECAA00",
+    shadowOpacity: 0.45,
+  },
   logoImage: {
     width: 80,
     height: 40,
@@ -344,7 +468,8 @@ const styles = StyleSheet.create({
   },
   scanLine: {
     position: "absolute",
-    bottom: 6,
+    top: "50%",
+    transform: [{ translateY: -1 }],
     width: 16,
     height: 2,
     backgroundColor: "#D4A017",

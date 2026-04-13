@@ -71,6 +71,30 @@ export const reserveCancel = (message: string) => {
   });
 };
 
+export const sanitizeCardNumber = (value: string) =>
+  value.replace(/\D/g, "").slice(0, 16);
+
+export const formatCardNumber = (value: string) => {
+  const digits = sanitizeCardNumber(value);
+  return digits.match(/.{1,4}/g)?.join("-") ?? "";
+};
+
+export const sanitizeCvv = (value: string) => value.replace(/\D/g, "").slice(0, 4);
+
+export const isValidExpiryDate = (value: string) =>
+  /^(0[1-9]|1[0-2])\/\d{2}$/.test(value);
+
+export const sanitizeExpiry = (value: string) => value.replace(/\D/g, "").slice(0, 4);
+
+export const formatExpiry = (value: string) => {
+  const digits = sanitizeExpiry(value);
+  if (!digits) return "";
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+};
+
+export const sanitizePostal = (value: string) => value.replace(/\D/g, "").slice(0, 5);
+
 
 export const formatDate = (text: string) => {
   // Remove all non-digits

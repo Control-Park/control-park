@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   },
   scanLine: {
     position: "absolute",
-    bottom: 16,
+    bottom: 14,
     width: 13,
     height: 2,
     backgroundColor: "#E0C053",
