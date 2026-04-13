@@ -18,24 +18,16 @@ import * as ImagePicker from "expo-image-picker";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
-import { useVehicleStore } from "../context/vehicleStore";
+import { useVehicleStore, type Vehicle } from "../context/vehicleStore";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VehicleManagement">;
-
-type Vehicle = {
-  id: string;
-  name: string;
-  plate: string;
-  image?: string;
-};
 
 const MAX_WIDTH = 428;
 
 export default function VehicleManagementScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { selectedVehicle, setSelectedVehicle } = useVehicleStore();
-
-  const vehicles: Vehicle[] = [];
+  const { vehicles, selectedVehicle, setSelectedVehicle, addVehicle } =
+    useVehicleStore();
 
   const [isAddVehicleModalVisible, setIsAddVehicleModalVisible] =
     useState(false);
@@ -47,7 +39,88 @@ export default function VehicleManagementScreen({ navigation }: Props) {
   const [vehicleColor, setVehicleColor] = useState("");
   const [vehicleImageUri, setVehicleImageUri] = useState<string | null>(null);
 
+  const [plateNumberError, setPlateNumberError] = useState("");
+  const [vehicleMakeError, setVehicleMakeError] = useState("");
+  const [vehicleModelError, setVehicleModelError] = useState("");
+  const [vehicleYearError, setVehicleYearError] = useState("");
+  const [vehicleColorError, setVehicleColorError] = useState("");
+
   const hasVehicles = vehicles.length > 0;
+  const currentYear = new Date().getFullYear();
+
+  const validatePlateNumber = (value: string) => {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      return "Plate number is required.";
+    }
+
+    if (trimmed.length < 2) {
+      return "Plate number is too short.";
+    }
+
+    return "";
+  };
+
+  const validateVehicleMake = (value: string) => {
+    if (!value.trim()) {
+      return "Vehicle make is required.";
+    }
+
+    return "";
+  };
+
+  const validateVehicleModel = (value: string) => {
+    if (!value.trim()) {
+      return "Vehicle model is required.";
+    }
+
+    return "";
+  };
+
+  const validateVehicleYear = (value: string) => {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      return "Vehicle year is required.";
+    }
+
+    if (!/^\d{4}$/.test(trimmed)) {
+      return "Enter a valid 4-digit year.";
+    }
+
+    const numericYear = Number(trimmed);
+
+    if (numericYear < 1900 || numericYear > currentYear + 1) {
+      return `Year must be between 1900 and ${currentYear + 1}.`;
+    }
+
+    return "";
+  };
+
+  const validateVehicleColor = (value: string) => {
+    if (!value.trim()) {
+      return "Vehicle color is required.";
+    }
+
+    return "";
+  };
+
+  const validateForm = () => {
+    const plateError = validatePlateNumber(plateNumber);
+    const makeError = validateVehicleMake(vehicleMake);
+    const modelError = validateVehicleModel(vehicleModel);
+    const yearError = validateVehicleYear(vehicleYear);
+    const colorError = validateVehicleColor(vehicleColor);
+
+    setPlateNumberError(plateError);
+    setVehicleMakeError(makeError);
+    setVehicleModelError(modelError);
+    setVehicleYearError(yearError);
+    setVehicleColorError(colorError);
+
+    return !plateError && !makeError && !modelError && !yearError && !colorError;
+  };
 
   const openAddVehicleModal = () => {
     setIsAddVehicleModalVisible(true);
@@ -61,6 +134,11 @@ export default function VehicleManagementScreen({ navigation }: Props) {
     setVehicleYear("");
     setVehicleColor("");
     setVehicleImageUri(null);
+    setPlateNumberError("");
+    setVehicleMakeError("");
+    setVehicleModelError("");
+    setVehicleYearError("");
+    setVehicleColorError("");
   };
 
   const handleTakePicture = async () => {
@@ -110,15 +188,25 @@ export default function VehicleManagementScreen({ navigation }: Props) {
   };
 
   const handleConfirmAddVehicle = () => {
-    console.log("Confirm add vehicle", {
-      plateNumber,
-      vehicleMake,
-      vehicleModel,
-      vehicleYear,
-      vehicleColor,
-      vehicleImageUri,
-    });
-
+    const isValid = validateForm();
+  
+    if (!isValid) {
+      return;
+    }
+  
+    const newVehicle: Vehicle = {
+      id: Date.now().toString(),
+      name: `${vehicleYear.trim()} ${vehicleMake.trim()} ${vehicleModel.trim()}`,
+      plate: plateNumber.trim().toUpperCase(),
+      image: vehicleImageUri ?? undefined,
+      make: vehicleMake.trim(),
+      model: vehicleModel.trim(),
+      year: vehicleYear.trim(),
+      color: vehicleColor.trim(),
+    };
+  
+    addVehicle(newVehicle);
+    setSelectedVehicle(newVehicle);
     closeAddVehicleModal();
   };
 
@@ -171,7 +259,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
                     <Pressable
                       key={vehicle.id}
                       onPress={() => {
-                        setSelectedVehicle(vehicle as any);
+                        setSelectedVehicle(vehicle);
                         navigation.goBack();
                       }}
                       style={({ pressed }) => [
@@ -261,33 +349,68 @@ export default function VehicleManagementScreen({ navigation }: Props) {
               <Text style={styles.inputLabel}>Plate Number*</Text>
               <TextInput
                 value={plateNumber}
-                onChangeText={setPlateNumber}
-                style={styles.fullInput}
+                onChangeText={(text) => {
+                  const normalized = text.toUpperCase();
+                  setPlateNumber(normalized);
+                  if (plateNumberError) {
+                    setPlateNumberError(validatePlateNumber(normalized));
+                  }
+                }}
+                style={[
+                  styles.fullInput,
+                  plateNumberError ? styles.inputErrorBorder : null,
+                ]}
                 placeholder=""
                 placeholderTextColor="#999999"
+                autoCapitalize="characters"
               />
+              {plateNumberError ? (
+                <Text style={styles.errorText}>{plateNumberError}</Text>
+              ) : null}
 
               <View style={styles.rowInputs}>
                 <View style={styles.halfInputWrapper}>
                   <Text style={styles.inputLabel}>Vehicle Make*</Text>
                   <TextInput
                     value={vehicleMake}
-                    onChangeText={setVehicleMake}
-                    style={styles.halfInput}
+                    onChangeText={(text) => {
+                      setVehicleMake(text);
+                      if (vehicleMakeError) {
+                        setVehicleMakeError(validateVehicleMake(text));
+                      }
+                    }}
+                    style={[
+                      styles.halfInput,
+                      vehicleMakeError ? styles.inputErrorBorder : null,
+                    ]}
                     placeholder=""
                     placeholderTextColor="#999999"
                   />
+                  {vehicleMakeError ? (
+                    <Text style={styles.errorText}>{vehicleMakeError}</Text>
+                  ) : null}
                 </View>
 
                 <View style={styles.halfInputWrapper}>
                   <Text style={styles.inputLabel}>Vehicle Model*</Text>
                   <TextInput
                     value={vehicleModel}
-                    onChangeText={setVehicleModel}
-                    style={styles.halfInput}
+                    onChangeText={(text) => {
+                      setVehicleModel(text);
+                      if (vehicleModelError) {
+                        setVehicleModelError(validateVehicleModel(text));
+                      }
+                    }}
+                    style={[
+                      styles.halfInput,
+                      vehicleModelError ? styles.inputErrorBorder : null,
+                    ]}
                     placeholder=""
                     placeholderTextColor="#999999"
                   />
+                  {vehicleModelError ? (
+                    <Text style={styles.errorText}>{vehicleModelError}</Text>
+                  ) : null}
                 </View>
               </View>
 
@@ -296,23 +419,47 @@ export default function VehicleManagementScreen({ navigation }: Props) {
                   <Text style={styles.inputLabel}>Vehicle Year*</Text>
                   <TextInput
                     value={vehicleYear}
-                    onChangeText={setVehicleYear}
-                    style={styles.halfInput}
+                    onChangeText={(text) => {
+                      const numericOnly = text.replace(/[^0-9]/g, "");
+                      setVehicleYear(numericOnly);
+                      if (vehicleYearError) {
+                        setVehicleYearError(validateVehicleYear(numericOnly));
+                      }
+                    }}
+                    style={[
+                      styles.halfInput,
+                      vehicleYearError ? styles.inputErrorBorder : null,
+                    ]}
                     placeholder=""
                     placeholderTextColor="#999999"
                     keyboardType="number-pad"
+                    maxLength={4}
                   />
+                  {vehicleYearError ? (
+                    <Text style={styles.errorText}>{vehicleYearError}</Text>
+                  ) : null}
                 </View>
 
                 <View style={styles.halfInputWrapper}>
                   <Text style={styles.inputLabel}>Vehicle Color*</Text>
                   <TextInput
                     value={vehicleColor}
-                    onChangeText={setVehicleColor}
-                    style={styles.halfInput}
+                    onChangeText={(text) => {
+                      setVehicleColor(text);
+                      if (vehicleColorError) {
+                        setVehicleColorError(validateVehicleColor(text));
+                      }
+                    }}
+                    style={[
+                      styles.halfInput,
+                      vehicleColorError ? styles.inputErrorBorder : null,
+                    ]}
                     placeholder=""
                     placeholderTextColor="#999999"
                   />
+                  {vehicleColorError ? (
+                    <Text style={styles.errorText}>{vehicleColorError}</Text>
+                  ) : null}
                 </View>
               </View>
 
@@ -655,6 +802,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#111111",
     fontWeight: "500",
+  },
+  inputErrorBorder: {
+    borderWidth: 1,
+    borderColor: "#DC2626",
+  },
+  errorText: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#DC2626",
   },
   pressed: {
     opacity: 0.75,
