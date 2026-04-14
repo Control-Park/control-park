@@ -7,7 +7,7 @@ import {
 } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/AppNavigator";
 
-export type TabKey = "Explore" | "Listings" | "Home" | "Messages" | "Profile";
+export type TabKey = "Listings" | "Home" | "Messages" | "Profile";
 
 type Props = {
   activeTab: TabKey;
@@ -15,7 +15,6 @@ type Props = {
 };
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "Explore", label: "Explore" },
   { key: "Listings", label: "Listings" },
   { key: "Home", label: "Home" },
   { key: "Messages", label: "Messages" },
@@ -26,7 +25,6 @@ const iconNameByTab: Record<
   Exclude<TabKey, "Home">,
   keyof typeof Ionicons.glyphMap
 > = {
-  Explore: "search-outline",
   Listings: "heart-outline",
   Messages: "chatbox-outline",
   Profile: "person-outline",
@@ -37,9 +35,6 @@ export default function Navbar({ activeTab, onTabPress }: Props) {
 
   const handlePress = (tab: TabKey) => {
     switch (tab) {
-      case "Explore":
-        navigation.navigate("Explore");
-        break;
       case "Listings":
         navigation.navigate("Reservations");
         break;
@@ -110,7 +105,7 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
   },
   item: {
-    width: "20%",
+    width: "25%",
     alignItems: "center",
     justifyContent: "flex-end",
     paddingBottom: 4,
