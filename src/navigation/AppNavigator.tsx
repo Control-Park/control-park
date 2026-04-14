@@ -10,7 +10,6 @@ import TestScreen from "../screens/TestScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/ResetPasswordScreen";
 import ReservationsScreen from "../screens/ReservationsScreen";
-import ExploreScreen from "../screens/ExploreScreen";
 import MessageScreen from "../screens/MessageScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import ReserveScreen from "../screens/ReserveScreen";
@@ -39,7 +38,6 @@ export type RootStackParamList = {
   Details: { id: string };
   Test: undefined;
   Reservations: undefined;
-  Explore: undefined;
   Message: undefined;
   Profile: undefined;
   Reserve: { id: string };
@@ -101,11 +99,6 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Reservations"
         component={ReservationsScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="Explore"
-        component={ExploreScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
