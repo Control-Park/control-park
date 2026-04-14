@@ -19,6 +19,7 @@ import VehicleManagementScreen from "../screens/VehicleManagementScreen";
 import NotificationScreen from "../screens/NotificationsScreen";
 import NotificationSettingsScreen from "../screens/NotificationSettingsScreen";
 import PaymentScreen from "../screens/PaymentScreen";
+import PersonalInfoScreen from "../screens/PersonalInfoScreen";
 
 export type RootStackParamList = {
   // change type based on parameters a screen expects to receive
@@ -48,6 +49,7 @@ export type RootStackParamList = {
   Notification: undefined;
   NotificationSettings: undefined;
   Payment: undefined;
+  PersonalInfo: undefined;
   // TODO: add userId and profile and send those as parameters into necessary screens
 };
 
@@ -141,6 +143,11 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Payment"
         component={PaymentScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PersonalInfo"
+        component={PersonalInfoScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

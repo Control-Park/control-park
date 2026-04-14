@@ -90,7 +90,7 @@ export default function ProfileScreen() {
             <View style={styles.menuList}>
               <TouchableOpacity
                 style={styles.menuRow}
-                onPress={() => console.log("Account settings pressed")}
+                onPress={() => navigation.navigate("PersonalInfo")}
                 activeOpacity={0.8}
               >
                 <MaterialCommunityIcons
