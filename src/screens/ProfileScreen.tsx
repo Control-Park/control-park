@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Pressable,
+  Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -13,6 +14,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
+import { supabase } from "../utils/supabase";
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -24,6 +26,22 @@ const MAX_WIDTH = 428;
 export default function ProfileScreen() {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const insets = useSafeAreaInsets();
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleConfirmLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await supabase.auth.signOut();
+      setIsLogoutModalVisible(false);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <View style={styles.safe}>
@@ -160,7 +178,7 @@ export default function ProfileScreen() {
 
               <TouchableOpacity
                 style={styles.menuRow}
-                onPress={() => navigation.navigate("Login")}
+                onPress={() => setIsLogoutModalVisible(true)}
                 activeOpacity={0.8}
               >
                 <MaterialCommunityIcons
@@ -183,6 +201,57 @@ export default function ProfileScreen() {
           <Navbar activeTab="Profile" />
         </View>
       </View>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={isLogoutModalVisible}
+        onRequestClose={() => setIsLogoutModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => {
+            if (!isLoggingOut) {
+              setIsLogoutModalVisible(false);
+            }
+          }}
+        >
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Log out?</Text>
+            <Text style={styles.modalText}>
+              Are you sure you want to log out of your account?
+            </Text>
+
+            <View style={styles.modalActions}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalButton,
+                  styles.modalCancelButton,
+                  pressed && styles.pressed,
+                ]}
+                onPress={() => setIsLogoutModalVisible(false)}
+                disabled={isLoggingOut}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalButton,
+                  styles.modalConfirmButton,
+                  pressed && styles.pressed,
+                ]}
+                onPress={handleConfirmLogout}
+                disabled={isLoggingOut}
+              >
+                <Text style={styles.modalConfirmText}>
+                  {isLoggingOut ? "Logging out..." : "Log out"}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -337,5 +406,59 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: MAX_WIDTH,
     alignSelf: "center",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(17, 17, 17, 0.32)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 340,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#111111",
+    marginBottom: 8,
+  },
+  modalText: {
+    fontSize: 14,
+    color: "#555555",
+    lineHeight: 20,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 20,
+  },
+  modalButton: {
+    minWidth: 96,
+    borderRadius: 999,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
+  modalCancelButton: {
+    backgroundColor: "#F3F4F6",
+  },
+  modalConfirmButton: {
+    backgroundColor: "#ECAA00",
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111111",
+  },
+  modalConfirmText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111111",
   },
 });
