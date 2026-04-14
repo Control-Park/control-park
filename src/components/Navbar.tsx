@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, Image } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useNavigation,
@@ -15,19 +15,24 @@ type Props = {
 };
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "Listings", label: "Listings" },
   { key: "Home", label: "Home" },
+  { key: "Listings", label: "Listings" },
   { key: "Messages", label: "Messages" },
   { key: "Profile", label: "Profile" },
 ];
 
-const iconNameByTab: Record<
-  Exclude<TabKey, "Home">,
-  keyof typeof Ionicons.glyphMap
-> = {
-  Listings: "heart-outline",
-  Messages: "chatbox-outline",
+const iconNameByTab: Record<TabKey, keyof typeof Ionicons.glyphMap> = {
+  Home: "home-outline",
+  Listings: "bookmark-outline",
+  Messages: "chatbubble-ellipses-outline",
   Profile: "person-outline",
+};
+
+const activeIconNameByTab: Record<TabKey, keyof typeof Ionicons.glyphMap> = {
+  Home: "home",
+  Listings: "bookmark",
+  Messages: "chatbubble-ellipses",
+  Profile: "person",
 };
 
 export default function Navbar({ activeTab, onTabPress }: Props) {
@@ -62,22 +67,19 @@ export default function Navbar({ activeTab, onTabPress }: Props) {
             <Pressable
               key={t.key}
               onPress={() => handlePress(t.key)}
-              style={styles.item}
+              style={({ pressed }) => [
+                styles.item,
+                pressed && styles.itemPressed,
+              ]}
               hitSlop={10}
             >
-              {t.key === "Home" ? (
-                <Image
-                  source={require("../../assets/icon.png")}
-                  style={styles.homeIcon}
-                  resizeMode="contain"
-                />
-              ) : (
+              <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
                 <Ionicons
-                  name={iconNameByTab[t.key]}
-                  size={24}
-                  color={isActive ? "#111111" : "#9A9A9A"}
+                  name={isActive ? activeIconNameByTab[t.key] : iconNameByTab[t.key]}
+                  size={22}
+                  color={isActive ? "#111111" : "#7C8799"}
                 />
-              )}
+              </View>
 
               <Text style={[styles.label, isActive && styles.labelActive]}>
                 {t.label}
@@ -94,34 +96,44 @@ const styles = StyleSheet.create({
   outer: {
     backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderTopColor: "#E6E6E6",
+    borderTopColor: "#ECECEC",
   },
   bar: {
     backgroundColor: "#FFFFFF",
     flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-around",
-    paddingTop: 10,
-    paddingBottom: 14,
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 8,
+    paddingBottom: 12,
+    paddingHorizontal: 10,
+    minHeight: 64,
   },
   item: {
-    width: "25%",
+    flex: 1,
     alignItems: "center",
-    justifyContent: "flex-end",
-    paddingBottom: 4,
+    justifyContent: "center",
+    paddingVertical: 4,
+  },
+  itemPressed: {
+    opacity: 0.72,
+  },
+  iconWrap: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 3,
+  },
+  iconWrapActive: {
+    transform: [{ translateY: -1 }],
   },
   label: {
-    marginTop: 6,
     fontSize: 12,
-    color: "#9A9A9A",
+    color: "#7C8799",
     fontWeight: "500",
   },
   labelActive: {
     color: "#111111",
     fontWeight: "700",
-  },
-  homeIcon: {
-    width: 26,
-    height: 26,
   },
 });
