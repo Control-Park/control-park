@@ -13,6 +13,7 @@ import { toastConfig } from "./src/components/ToastConfig";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { usePushNotifications } from "./src/hooks/usePushNotifications";
 import { PaymentMethodsProvider } from "./src/context/paymentMethodsContext";
+import { AuthSessionProvider } from "./src/context/AuthSessionContext";
 
 const queryClient = new QueryClient();
 
@@ -38,12 +39,14 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <NavigationContainer>
-          <PaymentMethodsProvider>
-            <View className="flex-1">
-              <StatusBar barStyle="dark-content" />
-              {isShowSplash ? <SplashScreen /> : <AppNavigator />}
-            </View>
-          </PaymentMethodsProvider>
+          <AuthSessionProvider>
+            <PaymentMethodsProvider>
+              <View className="flex-1">
+                <StatusBar barStyle="dark-content" />
+                {isShowSplash ? <SplashScreen /> : <AppNavigator />}
+              </View>
+            </PaymentMethodsProvider>
+          </AuthSessionProvider>
         </NavigationContainer>
         <Toast config={toastConfig} />
       </SafeAreaProvider>

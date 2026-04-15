@@ -15,6 +15,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import { supabase } from "../utils/supabase";
+import { useAuthSession } from "../context/AuthSessionContext";
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -28,6 +29,10 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { displayName, isGuest } = useAuthSession();
+
+  const avatarLetter = displayName.trim().charAt(0).toUpperCase() || "G";
+  const roleLabel = isGuest ? "Guest" : "Signed in";
 
   const handleConfirmLogout = async () => {
     try {
@@ -79,11 +84,11 @@ export default function ProfileScreen() {
 
             <View style={styles.profileCard}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>M</Text>
+                <Text style={styles.avatarText}>{avatarLetter}</Text>
               </View>
 
-              <Text style={styles.name}>Minh</Text>
-              <Text style={styles.role}>Guest</Text>
+              <Text style={styles.name}>{displayName}</Text>
+              <Text style={styles.role}>{roleLabel}</Text>
             </View>
 
             <TouchableOpacity

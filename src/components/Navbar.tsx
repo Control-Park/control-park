@@ -5,7 +5,9 @@ import {
   useNavigation,
   NavigationProp,
 } from "@react-navigation/native";
+import Toast from "react-native-toast-message";
 import { RootStackParamList } from "../navigation/AppNavigator";
+import { useAuthSession } from "../context/AuthSessionContext";
 
 export type TabKey = "Listings" | "Home" | "Messages" | "Profile";
 
@@ -37,8 +39,20 @@ const activeIconNameByTab: Record<TabKey, keyof typeof Ionicons.glyphMap> = {
 
 export default function Navbar({ activeTab, onTabPress }: Props) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { isGuest } = useAuthSession();
 
   const handlePress = (tab: TabKey) => {
+    if (tab === "Profile" && isGuest) {
+      Toast.show({
+        type: "error",
+        text1: "Sign in required",
+        text2: "Sign in to access profile tab",
+        topOffset: 100,
+      });
+      navigation.navigate("Login");
+      return;
+    }
+
     switch (tab) {
       case "Listings":
         navigation.navigate("Reservations");

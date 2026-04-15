@@ -14,6 +14,7 @@ import {
   showFieldSuccess,
 } from "../utils/validation";
 import { useSocialAuth } from "../utils/useSocialAuth";
+import { supabase } from "../utils/supabase";
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
 export default function LoginScreen({ navigation }: Props) {
@@ -61,6 +62,20 @@ export default function LoginScreen({ navigation }: Props) {
         const message = data?.message || `Sign in failed (${res.status})`;
         showFieldError("login", message);
         return;
+      }
+
+      if (__DEV__) {
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.getSession();
+        const sessionUser = sessionData.session?.user ?? null;
+
+        console.log("[login] backend sign-in succeeded", {
+          backendResponseKeys:
+            data && typeof data === "object" ? Object.keys(data) : [],
+          sessionEmail: sessionUser?.email ?? null,
+          sessionError: sessionError?.message ?? null,
+          sessionUserId: sessionUser?.id ?? null,
+        });
       }
 
       showFieldSuccess("success", "Login successful! Redirecting...");
