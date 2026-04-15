@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { signUpUser } from "../utils/AuthService";
+import { signUpUser, verifySignUpOtp } from "../utils/AuthService";
 import { showFieldError, showFieldSuccess } from "../utils/validation";
 import {
   isValidName,
@@ -46,10 +46,11 @@ const toISODate = (mmddyyyy: string): string => {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-export function useSignUp() { 
+export function useSignUp() {
   const navigation = useNavigation<NavigationProp>();
   const [loading, setLoading] = useState(false);
   const [errorFields, setErrorFields] = useState<FieldErrors>(DEFAULT_ERRORS);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   const setFieldError = (field: keyof FieldErrors) =>
     setErrorFields((prev) => ({ ...prev, [field]: true }));
@@ -120,8 +121,8 @@ export function useSignUp() {
         phone: fields.phoneNumber.replace(/\D/g, ""),
       });
 
-      showFieldSuccess("success", "Account created! Please login.");
-      setTimeout(() => navigation.navigate("Login"), 2000);
+      showFieldSuccess("success", "Check your email for a verification code.");
+      setPendingEmail(fields.email.trim());
     } catch (error: any) {
       showFieldError("signup", error.message ?? "Network error. Check your server connection.");
     } finally {
@@ -129,5 +130,20 @@ export function useSignUp() {
     }
   };
 
-  return { loading, errorFields, submit };
+  const verifyOtp = async (otp: string) => {
+    if (!pendingEmail) return;
+    setLoading(true);
+    try {
+      await verifySignUpOtp(pendingEmail, otp);
+      showFieldSuccess("success", "Account created! Please login.");
+      setPendingEmail(null);
+      setTimeout(() => navigation.navigate("Login"), 1500);
+    } catch (error: any) {
+      showFieldError("signup", error.message ?? "Invalid or expired code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { loading, errorFields, pendingEmail, submit, verifyOtp };
 }

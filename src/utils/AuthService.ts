@@ -14,25 +14,23 @@ export interface SignUpResponse {
   message?: string;
 }
 
-export async function signUpUser(payload: SignUpPayload): Promise<SignUpResponse> {
-  const res = await fetch(`${BASE_URL}/auth/signup`, {
+async function request(path: string, body: object): Promise<SignUpResponse> {
+  const res = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
-
   const text = await res.text();
-
   let data: SignUpResponse | null = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    throw new Error("Unexpected server response");
-  }
-
-  if (!res.ok) {
-    throw new Error(data?.error || data?.message || "Signup failed");
-  }
-
+  try { data = text ? JSON.parse(text) : null; } catch { throw new Error("Unexpected server response"); }
+  if (!res.ok) throw new Error(data?.error ?? data?.message ?? "Request failed");
   return data ?? {};
+}
+
+export async function signUpUser(payload: SignUpPayload): Promise<SignUpResponse> {
+  return request("/auth/signup", payload);
+}
+
+export async function verifySignUpOtp(email: string, otp: string): Promise<SignUpResponse> {
+  return request("/auth/signup/verify", { email, otp });
 }
