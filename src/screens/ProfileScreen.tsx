@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import { supabase } from "../utils/supabase";
-import { useAuthSession } from "../context/AuthSessionContext";
+import { getMyProfile, UserProfile } from "../api/user";
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -29,10 +29,14 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { displayName, isGuest } = useAuthSession();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  const avatarLetter = displayName.trim().charAt(0).toUpperCase() || "G";
-  const roleLabel = isGuest ? "Guest" : "Signed in";
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) return;
+      void getMyProfile().then(setProfile).catch(() => null);
+    });
+  }, []);
 
   const handleConfirmLogout = async () => {
     try {
@@ -84,11 +88,15 @@ export default function ProfileScreen() {
 
             <View style={styles.profileCard}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{avatarLetter}</Text>
+                <Text style={styles.avatarText}>
+                  {profile ? profile.first_name.charAt(0).toUpperCase() : "?"}
+                </Text>
               </View>
 
-              <Text style={styles.name}>{displayName}</Text>
-              <Text style={styles.role}>{roleLabel}</Text>
+              <Text style={styles.name}>
+                {profile ? `${profile.first_name} ${profile.last_name}` : ""}
+              </Text>
+              <Text style={styles.role}>{profile?.role ?? "Guest"}</Text>
             </View>
 
             <TouchableOpacity
