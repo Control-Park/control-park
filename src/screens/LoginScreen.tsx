@@ -15,6 +15,7 @@ import {
 } from "../utils/validation";
 import { useSocialAuth } from "../utils/useSocialAuth";
 import { supabase } from "../utils/supabase";
+
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
 export default function LoginScreen({ navigation }: Props) {
@@ -28,11 +29,9 @@ export default function LoginScreen({ navigation }: Props) {
 
   const { loading, handleGoogleLogin, handleAppleLogin } = useSocialAuth();
 
-  const baseUrl = process.env.EXPO_PUBLIC_SERVER_URL
   const handleLogin = async () => {
     setErrorFields({ email: false, password: false });
 
-    // basic validation
     let hasError = false;
     if (!email.trim() || !isValidEmail(email)) {
       setErrorFields((prev) => ({ ...prev, email: true }));
@@ -46,44 +45,14 @@ export default function LoginScreen({ navigation }: Props) {
     }
     if (hasError) return;
 
-    try {
-      const res = await fetch(`${baseUrl}/auth/signin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      // If server returns non-JSON on error, this protects you.
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : null;
-
-      if (!res.ok) {
-        // prefer server message if it exists
-        const message = data?.message || `Sign in failed (${res.status})`;
-        showFieldError("login", message);
-        return;
-      }
-
-      if (__DEV__) {
-        const { data: sessionData, error: sessionError } =
-          await supabase.auth.getSession();
-        const sessionUser = sessionData.session?.user ?? null;
-
-        console.log("[login] backend sign-in succeeded", {
-          backendResponseKeys:
-            data && typeof data === "object" ? Object.keys(data) : [],
-          sessionEmail: sessionUser?.email ?? null,
-          sessionError: sessionError?.message ?? null,
-          sessionUserId: sessionUser?.id ?? null,
-        });
-      }
-
-      showFieldSuccess("success", "Login successful! Redirecting...");
-      navigation.navigate("Home");
-    } catch (err: any) {
-      console.error("Fetch error:", err);
-      showFieldError("login", "Network error. Check your phone + server are on the same Wi-Fi.");
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) {
+      showFieldError("login", error.message);
+      return;
     }
+
+    showFieldSuccess("success", "Login successful! Redirecting...");
+    navigation.navigate("Home");
   };
 
   return (
