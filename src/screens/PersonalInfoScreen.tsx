@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Pressable,
   Modal,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +16,17 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
+import { supabase } from "../utils/supabase";
+import {
+  getMyProfile,
+  updateMyProfile,
+  requestEmailChange,
+  verifyCurrentEmail,
+  verifyNewEmail,
+  requestPasswordChange,
+  changePassword,
+  UserProfile,
+} from "../api/user";
 
 type PersonalInfoScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -37,8 +49,11 @@ type ModalType =
   | "displayName"
   | "phone"
   | "email"
+  | "emailCurrentOtp"
+  | "emailNewOtp"
   | "address"
-  | "password";
+  | "password"
+  | "passwordOtp";
 
 type DisplayNameOption =
   | "Show my first name only"
@@ -61,7 +76,6 @@ function InfoRow({ label, value, actionText = "Edit", onPress }: InfoRowProps) {
         <Text style={styles.rowLabel}>{label}</Text>
         {!!value ? <Text style={styles.rowValue}>{value}</Text> : null}
       </View>
-
       <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
         <Text style={styles.rowAction}>{actionText}</Text>
       </TouchableOpacity>
@@ -69,79 +83,93 @@ function InfoRow({ label, value, actionText = "Edit", onPress }: InfoRowProps) {
   );
 }
 
+function profileToDisplayName(profile: UserProfile): DisplayNameOption {
+  const dn = profile.host_display_name ?? "";
+  if (dn === "last") return "Show my last name only";
+  if (dn === "legal") return "Show legal name";
+  return "Show my first name only";
+}
+
+function displayNameToKey(opt: DisplayNameOption): string {
+  if (opt === "Show my last name only") return "last";
+  if (opt === "Show legal name") return "legal";
+  return "first";
+}
+
 export default function PersonalInfoScreen() {
   const navigation = useNavigation<PersonalInfoScreenNavigationProp>();
   const insets = useSafeAreaInsets();
 
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
   const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [saving, setSaving] = useState(false);
 
-  const [legalName, setLegalName] = useState("");
-  const [preferredName, setPreferredName] = useState("");
-  const [displayNameOption, setDisplayNameOption] = useState<DisplayNameOption>(
-    "Show my first name only"
-  );
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState("example@email.com");
-
-  const [address, setAddress] = useState<AddressForm>({
-    line1: "",
-    line2: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    country: "",
-  });
-
+  // temp state for modals
   const [tempText, setTempText] = useState("");
-  const [tempDisplayNameOption, setTempDisplayNameOption] =
-    useState<DisplayNameOption>("Show my first name only");
+  const [tempDisplayNameOption, setTempDisplayNameOption] = useState<DisplayNameOption>("Show my first name only");
   const [displayDropdownOpen, setDisplayDropdownOpen] = useState(false);
+  const [tempAddress, setTempAddress] = useState<AddressForm>({ line1: "", line2: "", city: "", state: "", postalCode: "", country: "" });
 
-  const [tempAddress, setTempAddress] = useState<AddressForm>({
-    line1: "",
-    line2: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    country: "",
-  });
+  // email change flow
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [otpValue, setOtpValue] = useState("");
+
+  // password change flow
+  const [pendingNewPassword, setPendingNewPassword] = useState("");
 
   const [addressError, setAddressError] = useState("");
   const [genericError, setGenericError] = useState("");
 
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) { setLoadingProfile(false); return; }
+      void getMyProfile().then((p) => {
+        setProfile(p);
+        setLoadingProfile(false);
+      }).catch(() => setLoadingProfile(false));
+    });
+  }, []);
+
+  const legalName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : "";
+  const preferredName = profile?.preferred_name ?? "";
+  const phoneNumber = profile?.phone ?? "";
+  const email = profile?.email ?? "";
+  const displayNameOption: DisplayNameOption = profile ? profileToDisplayName(profile) : "Show my first name only";
+
+  const address: AddressForm = {
+    city: profile?.address_city ?? "",
+    country: profile?.address_country ?? "",
+    line1: profile?.address_line1 ?? "",
+    line2: profile?.address_line2 ?? "",
+    postalCode: profile?.address_postal_code ?? "",
+    state: profile?.address_state ?? "",
+  };
+
   const addressDisplay = useMemo(() => {
-    if (
-      !address.line1 &&
-      !address.city &&
-      !address.state &&
-      !address.postalCode &&
-      !address.country
-    ) {
+    if (!address.line1 && !address.city && !address.state && !address.postalCode && !address.country) {
       return "Not provided";
     }
-
-    const lineTwo = [address.city, address.state, address.postalCode]
-      .filter(Boolean)
-      .join(", ");
-
+    const lineTwo = [address.city, address.state, address.postalCode].filter(Boolean).join(", ");
     return [address.line1, lineTwo, address.country].filter(Boolean).join("\n");
   }, [address]);
 
-  const openTextModal = (type: Exclude<ModalType, null | "displayName" | "address">) => {
+  const closeModal = useCallback(() => {
+    setActiveModal(null);
     setGenericError("");
+    setAddressError("");
+    setDisplayDropdownOpen(false);
+    setOtpValue("");
+  }, []);
 
-    if (type === "legalName") {
-      setTempText(legalName);
-    } else if (type === "preferredName") {
-      setTempText(preferredName);
-    } else if (type === "phone") {
-      setTempText(phoneNumber);
-    } else if (type === "email") {
-      setTempText(email);
-    } else {
-      setTempText("");
-    }
-
+  const openTextModal = (type: Exclude<ModalType, null | "displayName" | "address" | "emailCurrentOtp" | "emailNewOtp" | "passwordOtp">) => {
+    setGenericError("");
+    if (type === "legalName") setTempText(legalName);
+    else if (type === "preferredName") setTempText(preferredName);
+    else if (type === "phone") setTempText(phoneNumber);
+    else if (type === "email") setTempText(email);
+    else setTempText("");
     setActiveModal(type);
   };
 
@@ -157,51 +185,142 @@ export default function PersonalInfoScreen() {
     setActiveModal("address");
   };
 
-  const closeModal = () => {
-    setActiveModal(null);
-    setGenericError("");
-    setAddressError("");
-    setDisplayDropdownOpen(false);
-  };
-
-  const handleConfirmTextModal = () => {
+  const handleConfirmLegalName = async () => {
     const trimmed = tempText.trim();
-
-    if (activeModal === "legalName") {
-      if (!trimmed) {
-        setGenericError("Legal name is required.");
-        return;
-      }
-      setLegalName(trimmed);
+    if (!trimmed) { setGenericError("Legal name is required."); return; }
+    const parts = trimmed.split(" ");
+    const first_name = parts[0];
+    const last_name = parts.slice(1).join(" ") || parts[0];
+    setSaving(true);
+    try {
+      const updated = await updateMyProfile({ first_name, last_name });
+      setProfile(updated);
+      closeModal();
+    } catch (err) {
+      setGenericError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
     }
-
-    if (activeModal === "preferredName") {
-      setPreferredName(trimmed);
-    }
-
-    if (activeModal === "phone") {
-      setPhoneNumber(trimmed);
-    }
-
-    if (activeModal === "email") {
-      if (!trimmed) {
-        setGenericError("Email is required.");
-        return;
-      }
-      setEmail(trimmed);
-    }
-
-    closeModal();
   };
 
-  const handleConfirmDisplayName = () => {
-    setDisplayNameOption(tempDisplayNameOption);
-    closeModal();
+  const handleConfirmPreferredName = async () => {
+    setSaving(true);
+    try {
+      const updated = await updateMyProfile({ preferred_name: tempText.trim() || null });
+      setProfile(updated);
+      closeModal();
+    } catch (err) {
+      setGenericError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleConfirmAddress = () => {
+  const handleConfirmPhone = async () => {
+    setSaving(true);
+    try {
+      const updated = await updateMyProfile({ phone: tempText.trim() || null });
+      setProfile(updated);
+      closeModal();
+    } catch (err) {
+      setGenericError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRequestEmailChange = async () => {
+    const trimmed = tempText.trim();
+    if (!trimmed) { setGenericError("Email is required."); return; }
+    setSaving(true);
+    try {
+      await requestEmailChange(trimmed);
+      setPendingEmail(trimmed);
+      setOtpValue("");
+      setGenericError("");
+      setActiveModal("emailCurrentOtp");
+    } catch (err) {
+      setGenericError(err instanceof Error ? err.message : "Failed to send code");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleVerifyCurrentEmailOtp = async () => {
+    if (otpValue.length !== 6) { setGenericError("Enter the 6-digit code."); return; }
+    setSaving(true);
+    try {
+      await verifyCurrentEmail(otpValue);
+      setOtpValue("");
+      setGenericError("");
+      setActiveModal("emailNewOtp");
+    } catch (err) {
+      setGenericError(err instanceof Error ? err.message : "Invalid or expired code");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleVerifyNewEmailOtp = async () => {
+    if (otpValue.length !== 6) { setGenericError("Enter the 6-digit code."); return; }
+    setSaving(true);
+    try {
+      await verifyNewEmail(otpValue);
+      setProfile((prev) => prev ? { ...prev, email: pendingEmail } : prev);
+      closeModal();
+    } catch (err) {
+      setGenericError(err instanceof Error ? err.message : "Invalid or expired code");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmPassword = async () => {
+    if (!tempText.trim()) { setGenericError("Password is required."); return; }
+    if (!profile?.email) { setGenericError("No email on account."); return; }
+    setSaving(true);
+    try {
+      await requestPasswordChange(profile.email);
+      setPendingNewPassword(tempText.trim());
+      setOtpValue("");
+      setGenericError("");
+      setActiveModal("passwordOtp");
+    } catch (err) {
+      setGenericError(err instanceof Error ? err.message : "Failed to send code");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmPasswordOtp = async () => {
+    if (otpValue.length !== 6) { setGenericError("Enter the 6-digit code."); return; }
+    if (!profile?.email) return;
+    setSaving(true);
+    try {
+      await changePassword(profile.email, otpValue, pendingNewPassword);
+      closeModal();
+    } catch (err) {
+      setGenericError(err instanceof Error ? err.message : "Invalid or expired code");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmDisplayName = async () => {
+    setSaving(true);
+    try {
+      const updated = await updateMyProfile({ host_display_name: displayNameToKey(tempDisplayNameOption) });
+      setProfile(updated);
+      closeModal();
+    } catch (err) {
+      setGenericError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmAddress = async () => {
     const missingFields: string[] = [];
-
     if (!tempAddress.line1.trim()) missingFields.push("Address Line 1");
     if (!tempAddress.city.trim()) missingFields.push("City / District");
     if (!tempAddress.state.trim()) missingFields.push("State / Province");
@@ -213,67 +332,72 @@ export default function PersonalInfoScreen() {
       return;
     }
 
-    setAddress({
-      line1: tempAddress.line1.trim(),
-      line2: tempAddress.line2.trim(),
-      city: tempAddress.city.trim(),
-      state: tempAddress.state.trim(),
-      postalCode: tempAddress.postalCode.trim(),
-      country: tempAddress.country.trim(),
-    });
+    setSaving(true);
+    try {
+      const updated = await updateMyProfile({
+        address_city: tempAddress.city.trim(),
+        address_country: tempAddress.country.trim(),
+        address_line1: tempAddress.line1.trim(),
+        address_line2: tempAddress.line2.trim() || null,
+        address_postal_code: tempAddress.postalCode.trim(),
+        address_state: tempAddress.state.trim(),
+      });
+      setProfile(updated);
+      closeModal();
+    } catch (err) {
+      setAddressError(err instanceof Error ? err.message : "Failed to save address");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    closeModal();
+  const handleConfirmTextModal = () => {
+    if (activeModal === "legalName") void handleConfirmLegalName();
+    else if (activeModal === "preferredName") void handleConfirmPreferredName();
+    else if (activeModal === "phone") void handleConfirmPhone();
+    else if (activeModal === "email") void handleRequestEmailChange();
+    else if (activeModal === "password") void handleConfirmPassword();
   };
 
   const renderTextModalTitle = () => {
     switch (activeModal) {
-      case "legalName":
-        return "Add legal name";
-      case "preferredName":
-        return "Add preferred name";
-      case "phone":
-        return "Add phone number";
-      case "email":
-        return "Add email";
-      case "password":
-        return "Change password";
-      default:
-        return "";
+      case "legalName": return "Edit legal name";
+      case "preferredName": return "Edit preferred name";
+      case "phone": return "Edit phone number";
+      case "email": return "Edit email";
+      case "password": return "Change password";
+      default: return "";
     }
   };
 
   const renderTextModalPlaceholder = () => {
     switch (activeModal) {
-      case "legalName":
-        return "Enter your name here";
-      case "preferredName":
-        return "Enter your preferred name here";
-      case "phone":
-        return "Enter phone number";
-      case "email":
-        return "Enter email address";
-      case "password":
-        return "Enter new password";
-      default:
-        return "";
+      case "legalName": return "Enter your full name";
+      case "preferredName": return "Enter your preferred name";
+      case "phone": return "Enter phone number";
+      case "email": return "Enter new email address";
+      case "password": return "Enter new password";
+      default: return "";
     }
   };
 
   const renderActionText = (value: string) => (value ? "Edit" : "Add");
 
+  if (loadingProfile) {
+    return (
+      <View style={[styles.safe, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color="#D4A017" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.safe}>
-      <ScrollView
-        style={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.pageMax}>
           <View style={[styles.topArea, { paddingTop: insets.top + 6 }]}>
             <Pressable
-              style={({ pressed }) => [
-                styles.backButton,
-                pressed && styles.pressed,
-              ]}
+              style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
               onPress={() => navigation.goBack()}
             >
               <Ionicons name="arrow-back" size={20} color="#111111" />
@@ -288,44 +412,36 @@ export default function PersonalInfoScreen() {
                 actionText={legalName ? "Edit" : "Add"}
                 onPress={() => openTextModal("legalName")}
               />
-
               <InfoRow
                 label="Preferred first name"
                 value={preferredName || "Not provided"}
                 actionText={renderActionText(preferredName)}
                 onPress={() => openTextModal("preferredName")}
               />
-
               <InfoRow
                 label="Host display name for experiences and services"
                 value={displayNameOption}
                 actionText="Edit"
                 onPress={openDisplayNameModal}
               />
-
               <InfoRow
                 label="Phone number"
                 value={phoneNumber || "Not provided"}
                 actionText={renderActionText(phoneNumber)}
                 onPress={() => openTextModal("phone")}
               />
-
               <InfoRow
                 label="Email"
-                value={email || "example@email.com"}
+                value={email}
                 actionText="Edit"
                 onPress={() => openTextModal("email")}
               />
-
               <InfoRow
                 label="Address"
                 value={addressDisplay}
-                actionText={
-                  addressDisplay === "Not provided" ? "Add" : "Edit"
-                }
+                actionText={addressDisplay === "Not provided" ? "Add" : "Edit"}
                 onPress={openAddressModal}
               />
-
               <InfoRow
                 label="Change Password"
                 value=""
@@ -345,6 +461,7 @@ export default function PersonalInfoScreen() {
         </View>
       </View>
 
+      {/* Text / password / email modals */}
       <Modal
         visible={
           activeModal === "legalName" ||
@@ -364,106 +481,154 @@ export default function PersonalInfoScreen() {
             <View style={styles.inputWrap}>
               <TextInput
                 value={tempText}
-                onChangeText={(text) => {
-                  setTempText(text);
-                  if (genericError) setGenericError("");
-                }}
+                onChangeText={(text) => { setTempText(text); if (genericError) setGenericError(""); }}
                 placeholder={renderTextModalPlaceholder()}
                 placeholderTextColor="#9A9A9A"
                 style={styles.singleInput}
                 secureTextEntry={activeModal === "password"}
+                autoCapitalize={activeModal === "email" || activeModal === "password" ? "none" : "words"}
+                keyboardType={activeModal === "email" ? "email-address" : activeModal === "phone" ? "phone-pad" : "default"}
               />
-
               {tempText.length > 0 ? (
-                <TouchableOpacity
-                  onPress={() => setTempText("")}
-                  style={styles.clearButton}
-                  activeOpacity={0.7}
-                >
+                <TouchableOpacity onPress={() => setTempText("")} style={styles.clearButton} activeOpacity={0.7}>
                   <Ionicons name="close-circle" size={16} color="#8B8B8B" />
                 </TouchableOpacity>
               ) : null}
             </View>
 
-            {genericError ? (
-              <Text style={styles.errorText}>{genericError}</Text>
-            ) : null}
+            {genericError ? <Text style={styles.errorText}>{genericError}</Text> : null}
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={[styles.footerButton, styles.footerDivider]}
-                onPress={closeModal}
-                activeOpacity={0.8}
-              >
+              <TouchableOpacity style={[styles.footerButton, styles.footerDivider]} onPress={closeModal} activeOpacity={0.8} disabled={saving}>
                 <Text style={styles.footerButtonText}>Cancel</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.footerButton}
-                onPress={handleConfirmTextModal}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.footerButtonText}>Confirm</Text>
+              <TouchableOpacity style={styles.footerButton} onPress={handleConfirmTextModal} activeOpacity={0.8} disabled={saving}>
+                {saving ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.footerButtonText}>Confirm</Text>}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
+      {/* Step 2: verify current email OTP */}
+      <Modal visible={activeModal === "emailCurrentOtp"} transparent animationType="fade" onRequestClose={closeModal}>
+        <View style={styles.overlay}>
+          <View style={styles.smallModal}>
+            <Text style={styles.smallModalTitle}>Confirm your identity</Text>
+            <Text style={styles.otpSubtitle}>Enter the 6-digit code sent to your current email{"\n"}{profile?.email}</Text>
+            <View style={styles.inputWrap}>
+              <TextInput
+                value={otpValue}
+                onChangeText={(text) => { setOtpValue(text.replace(/\D/g, "").slice(0, 6)); if (genericError) setGenericError(""); }}
+                placeholder="000000"
+                placeholderTextColor="#9A9A9A"
+                style={[styles.singleInput, { letterSpacing: 4, textAlign: "center" }]}
+                keyboardType="number-pad"
+              />
+            </View>
+            {genericError ? <Text style={styles.errorText}>{genericError}</Text> : null}
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={[styles.footerButton, styles.footerDivider]} onPress={closeModal} activeOpacity={0.8} disabled={saving}>
+                <Text style={styles.footerButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.footerButton} onPress={() => void handleVerifyCurrentEmailOtp()} activeOpacity={0.8} disabled={saving}>
+                {saving ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.footerButtonText}>Verify</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Step 3: verify new email OTP */}
+      <Modal visible={activeModal === "emailNewOtp"} transparent animationType="fade" onRequestClose={closeModal}>
+        <View style={styles.overlay}>
+          <View style={styles.smallModal}>
+            <Text style={styles.smallModalTitle}>Verify new email</Text>
+            <Text style={styles.otpSubtitle}>Enter the 6-digit code sent to{"\n"}{pendingEmail}</Text>
+            <View style={styles.inputWrap}>
+              <TextInput
+                value={otpValue}
+                onChangeText={(text) => { setOtpValue(text.replace(/\D/g, "").slice(0, 6)); if (genericError) setGenericError(""); }}
+                placeholder="000000"
+                placeholderTextColor="#9A9A9A"
+                style={[styles.singleInput, { letterSpacing: 4, textAlign: "center" }]}
+                keyboardType="number-pad"
+              />
+            </View>
+            {genericError ? <Text style={styles.errorText}>{genericError}</Text> : null}
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={[styles.footerButton, styles.footerDivider]} onPress={closeModal} activeOpacity={0.8} disabled={saving}>
+                <Text style={styles.footerButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.footerButton} onPress={() => void handleVerifyNewEmailOtp()} activeOpacity={0.8} disabled={saving}>
+                {saving ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.footerButtonText}>Verify</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Password OTP verification modal */}
       <Modal
-        visible={activeModal === "displayName"}
+        visible={activeModal === "passwordOtp"}
         transparent
         animationType="fade"
         onRequestClose={closeModal}
       >
         <View style={styles.overlay}>
-          <View style={styles.mediumModal}>
-            <Text style={styles.displayModalTitle}>
-              Host display name for experiences and services
-            </Text>
+          <View style={styles.smallModal}>
+            <Text style={styles.smallModalTitle}>Verify password change</Text>
+            <Text style={styles.otpSubtitle}>Enter the 6-digit code sent to{"\n"}{profile?.email}</Text>
 
-            <TouchableOpacity
-              style={styles.dropdownTrigger}
-              activeOpacity={0.8}
-              onPress={() => setDisplayDropdownOpen((prev) => !prev)}
-            >
-              <Text style={styles.dropdownTriggerText}>
-                {displayDropdownOpen
-                  ? "Display name preference"
-                  : tempDisplayNameOption}
-              </Text>
-              <Ionicons
-                name={displayDropdownOpen ? "chevron-up" : "chevron-down"}
-                size={18}
-                color="#7A7A7A"
+            <View style={styles.inputWrap}>
+              <TextInput
+                value={otpValue}
+                onChangeText={(text) => { setOtpValue(text.replace(/\D/g, "").slice(0, 6)); if (genericError) setGenericError(""); }}
+                placeholder="000000"
+                placeholderTextColor="#9A9A9A"
+                style={[styles.singleInput, { letterSpacing: 4, textAlign: "center" }]}
+                keyboardType="number-pad"
               />
+            </View>
+
+            {genericError ? <Text style={styles.errorText}>{genericError}</Text> : null}
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={[styles.footerButton, styles.footerDivider]} onPress={closeModal} activeOpacity={0.8} disabled={saving}>
+                <Text style={styles.footerButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.footerButton} onPress={() => void handleConfirmPasswordOtp()} activeOpacity={0.8} disabled={saving}>
+                {saving ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.footerButtonText}>Verify</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Display name modal */}
+      <Modal visible={activeModal === "displayName"} transparent animationType="fade" onRequestClose={closeModal}>
+        <View style={styles.overlay}>
+          <View style={styles.mediumModal}>
+            <Text style={styles.displayModalTitle}>Host display name for experiences and services</Text>
+
+            <TouchableOpacity style={styles.dropdownTrigger} activeOpacity={0.8} onPress={() => setDisplayDropdownOpen((prev) => !prev)}>
+              <Text style={styles.dropdownTriggerText}>{displayDropdownOpen ? "Display name preference" : tempDisplayNameOption}</Text>
+              <Ionicons name={displayDropdownOpen ? "chevron-up" : "chevron-down"} size={18} color="#7A7A7A" />
             </TouchableOpacity>
 
             {displayDropdownOpen ? (
               <View style={styles.dropdownList}>
-                {[
-                  "Show my first name only",
-                  "Show my last name only",
-                  "Show legal name",
-                ].map((option, index, arr) => {
+                {(["Show my first name only", "Show my last name only", "Show legal name"] as DisplayNameOption[]).map((option, index, arr) => {
                   const isSelected = tempDisplayNameOption === option;
                   const isLast = index === arr.length - 1;
-                
                   return (
                     <TouchableOpacity
                       key={option}
                       style={[styles.dropdownItem, isLast && styles.dropdownItemLast]}
                       activeOpacity={0.8}
-                      onPress={() => setTempDisplayNameOption(option as DisplayNameOption)}
+                      onPress={() => setTempDisplayNameOption(option)}
                     >
-                      <Text
-                        style={[
-                          styles.dropdownItemText,
-                          isSelected && styles.dropdownItemTextSelected,
-                        ]}
-                      >
-                        {option}
-                      </Text>
+                      <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextSelected]}>{option}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -471,146 +636,63 @@ export default function PersonalInfoScreen() {
             ) : null}
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={[styles.footerButton, styles.footerDivider]}
-                onPress={closeModal}
-                activeOpacity={0.8}
-              >
+              <TouchableOpacity style={[styles.footerButton, styles.footerDivider]} onPress={closeModal} activeOpacity={0.8} disabled={saving}>
                 <Text style={styles.footerButtonText}>Cancel</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.footerButton}
-                onPress={handleConfirmDisplayName}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.footerButtonText}>Confirm</Text>
+              <TouchableOpacity style={styles.footerButton} onPress={() => void handleConfirmDisplayName()} activeOpacity={0.8} disabled={saving}>
+                {saving ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.footerButtonText}>Confirm</Text>}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      <Modal
-        visible={activeModal === "address"}
-        transparent
-        animationType="fade"
-        onRequestClose={closeModal}
-      >
+      {/* Address modal */}
+      <Modal visible={activeModal === "address"} transparent animationType="fade" onRequestClose={closeModal}>
         <View style={styles.overlay}>
           <View style={styles.addressModal}>
-            <TouchableOpacity
-              style={styles.addressCloseButton}
-              onPress={closeModal}
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity style={styles.addressCloseButton} onPress={closeModal} activeOpacity={0.8}>
               <Ionicons name="close" size={18} color="#555555" />
             </TouchableOpacity>
 
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.addressScrollContent}
-            >
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.addressScrollContent}>
               <Text style={styles.addressLabel}>Address Line 1</Text>
-              <TextInput
-                value={tempAddress.line1}
-                onChangeText={(text) => {
-                  setTempAddress((prev) => ({ ...prev, line1: text }));
-                  if (addressError) setAddressError("");
-                }}
-                style={styles.addressInput}
-                placeholder=""
-              />
+              <TextInput value={tempAddress.line1} onChangeText={(text) => { setTempAddress((prev) => ({ ...prev, line1: text })); if (addressError) setAddressError(""); }} style={styles.addressInput} />
 
               <Text style={styles.addressLabel}>Address Line 2</Text>
-              <TextInput
-                value={tempAddress.line2}
-                onChangeText={(text) =>
-                  setTempAddress((prev) => ({ ...prev, line2: text }))
-                }
-                style={styles.addressInput}
-                placeholder=""
-              />
+              <TextInput value={tempAddress.line2} onChangeText={(text) => setTempAddress((prev) => ({ ...prev, line2: text }))} style={styles.addressInput} />
 
               <View style={styles.addressGridRow}>
                 <View style={styles.addressHalf}>
                   <Text style={styles.addressLabel}>City / District</Text>
-                  <TextInput
-                    value={tempAddress.city}
-                    onChangeText={(text) => {
-                      setTempAddress((prev) => ({ ...prev, city: text }));
-                      if (addressError) setAddressError("");
-                    }}
-                    style={styles.addressInput}
-                    placeholder=""
-                  />
+                  <TextInput value={tempAddress.city} onChangeText={(text) => { setTempAddress((prev) => ({ ...prev, city: text })); if (addressError) setAddressError(""); }} style={styles.addressInput} />
                 </View>
-
                 <View style={styles.addressHalf}>
                   <Text style={styles.addressLabel}>State / Province</Text>
-                  <TextInput
-                    value={tempAddress.state}
-                    onChangeText={(text) => {
-                      setTempAddress((prev) => ({ ...prev, state: text }));
-                      if (addressError) setAddressError("");
-                    }}
-                    style={styles.addressInput}
-                    placeholder=""
-                  />
+                  <TextInput value={tempAddress.state} onChangeText={(text) => { setTempAddress((prev) => ({ ...prev, state: text })); if (addressError) setAddressError(""); }} style={styles.addressInput} />
                 </View>
               </View>
 
               <View style={styles.addressGridRow}>
                 <View style={styles.addressHalf}>
                   <Text style={styles.addressLabel}>Postal Code</Text>
-                  <TextInput
-                    value={tempAddress.postalCode}
-                    onChangeText={(text) => {
-                      setTempAddress((prev) => ({
-                        ...prev,
-                        postalCode: text,
-                      }));
-                      if (addressError) setAddressError("");
-                    }}
-                    style={styles.addressInput}
-                    placeholder=""
-                  />
+                  <TextInput value={tempAddress.postalCode} onChangeText={(text) => { setTempAddress((prev) => ({ ...prev, postalCode: text })); if (addressError) setAddressError(""); }} style={styles.addressInput} keyboardType="number-pad" />
                 </View>
-
                 <View style={styles.addressHalf}>
                   <Text style={styles.addressLabel}>Country</Text>
-                  <TextInput
-                    value={tempAddress.country}
-                    onChangeText={(text) => {
-                      setTempAddress((prev) => ({ ...prev, country: text }));
-                      if (addressError) setAddressError("");
-                    }}
-                    style={styles.addressInput}
-                    placeholder=""
-                  />
+                  <TextInput value={tempAddress.country} onChangeText={(text) => { setTempAddress((prev) => ({ ...prev, country: text })); if (addressError) setAddressError(""); }} style={styles.addressInput} />
                 </View>
               </View>
 
-              {addressError ? (
-                <Text style={styles.errorText}>{addressError}</Text>
-              ) : null}
+              {addressError ? <Text style={styles.errorText}>{addressError}</Text> : null}
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={[styles.footerButton, styles.footerDivider]}
-                onPress={closeModal}
-                activeOpacity={0.8}
-              >
+              <TouchableOpacity style={[styles.footerButton, styles.footerDivider]} onPress={closeModal} activeOpacity={0.8} disabled={saving}>
                 <Text style={styles.footerButtonText}>Cancel</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.footerButton}
-                onPress={handleConfirmAddress}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.footerButtonText}>Confirm</Text>
+              <TouchableOpacity style={styles.footerButton} onPress={() => void handleConfirmAddress()} activeOpacity={0.8} disabled={saving}>
+                {saving ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.footerButtonText}>Confirm</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -704,7 +786,6 @@ const styles = StyleSheet.create({
     maxWidth: MAX_WIDTH,
     alignSelf: "center",
   },
-
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.28)",
@@ -712,7 +793,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 14,
   },
-
   smallModal: {
     width: "100%",
     maxWidth: 280,
@@ -727,6 +807,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 18,
     marginBottom: 14,
+  },
+  otpSubtitle: {
+    fontSize: 11,
+    color: "#6F6F6F",
+    textAlign: "center",
+    marginBottom: 12,
+    marginHorizontal: 12,
   },
   inputWrap: {
     marginHorizontal: 12,
@@ -749,7 +836,6 @@ const styles = StyleSheet.create({
     right: 10,
     top: 8,
   },
-
   mediumModal: {
     width: "100%",
     maxWidth: 292,
@@ -791,7 +877,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     backgroundColor: "#FFFFFF",
   },
-  
   dropdownItem: {
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -809,7 +894,6 @@ const styles = StyleSheet.create({
   dropdownItemTextSelected: {
     color: "#D59A00",
   },
-
   addressModal: {
     width: "100%",
     maxWidth: 324,
@@ -859,7 +943,6 @@ const styles = StyleSheet.create({
   addressHalf: {
     flex: 1,
   },
-
   modalFooter: {
     flexDirection: "row",
     marginTop: 14,
@@ -867,19 +950,16 @@ const styles = StyleSheet.create({
     borderTopColor: "#ECECEC",
     backgroundColor: "#FFFFFF",
   },
-  
   footerButton: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     height: 46,
   },
-  
   footerDivider: {
     borderRightWidth: 1,
     borderRightColor: "#ECECEC",
   },
-  
   footerButtonText: {
     fontSize: 13,
     color: "#111111",
