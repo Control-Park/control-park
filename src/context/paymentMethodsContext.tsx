@@ -2,6 +2,11 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { fetchPaymentMethods, deletePaymentMethod, PaymentMethod as APIPaymentMethod } from "../api/payments";
 import { supabase } from "../utils/supabase";
 
+async function hasSession(): Promise<boolean> {
+  const { data } = await supabase.auth.getSession();
+  return !!data.session;
+}
+
 export type PaymentMethod = {
   id: string;
   brand: string;
@@ -41,6 +46,7 @@ export const PaymentMethodsProvider = ({ children }: { children: ReactNode }) =>
   const [loading, setLoading] = useState(false);
 
   const refreshMethods = async () => {
+    if (!await hasSession()) return;
     try {
       setLoading(true);
       const data = await fetchPaymentMethods();
