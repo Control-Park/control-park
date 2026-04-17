@@ -134,9 +134,11 @@ export default function DetailsScreen({ route, navigation }: Props) {
           <Pressable
             className="h-[48px] rounded-full border border-[#111111] items-center justify-center"
             onPress={() =>
-              navigation.navigate("Message", {
+              navigation.navigate("Conversation", {
                 listingId: listing.id,
                 hostName: listing.host_name,
+                listingTitle: listing.title,
+                listingImage: getListingImages(listing)[0],
               })
             }
           >

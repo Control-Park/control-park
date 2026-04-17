@@ -19,9 +19,9 @@ import NotificationScreen from "../screens/NotificationsScreen";
 import NotificationSettingsScreen from "../screens/NotificationSettingsScreen";
 import PaymentScreen from "../screens/PaymentScreen";
 import PersonalInfoScreen from "../screens/PersonalInfoScreen";
+import ConversationScreen from "../screens/ConversationScreen";
 
 export type RootStackParamList = {
-  // change type based on parameters a screen expects to receive
   Home: undefined;
   Login: undefined;
   Signup: undefined;
@@ -40,6 +40,12 @@ export type RootStackParamList = {
   Test: undefined;
   Reservations: undefined;
   Message: { listingId?: string; hostName?: string } | undefined;
+  Conversation: {
+    listingId: string;
+    hostName?: string;
+    listingTitle?: string;
+    listingImage?: any;
+  };
   Profile: undefined;
   Reserve: { id: string };
   ActiveReservation: { reservationId: string };
@@ -48,7 +54,6 @@ export type RootStackParamList = {
   NotificationSettings: undefined;
   Payment: undefined;
   PersonalInfo: undefined;
-  // TODO: add userId and profile and send those as parameters into necessary screens
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -56,7 +61,6 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function AppNavigator() {
   return (
     <Stack.Navigator initialRouteName="Home">
-      {/* screenOptions={headerShown: false} */}
       <Stack.Screen
         name="Home"
         component={HomeScreen}
@@ -141,6 +145,11 @@ export default function AppNavigator() {
       <Stack.Screen
         name="PersonalInfo"
         component={PersonalInfoScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Conversation"
+        component={ConversationScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
