@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View, Pressable } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Details">;
+
 import ListingImage from "../components/listing/ListingImage";
 import ListingHeader from "../components/listing/ListingHeader";
 import ListingPerks from "../components/listing/ListingPerks";
@@ -24,7 +25,7 @@ import DetailsScreenSkeleton from "../components/skeletons/DetailsScreenSkeleton
 
 const MAX_WIDTH = 480;
 
-export default function DetailsScreen({ route }: Props) {
+export default function DetailsScreen({ route, navigation }: Props) {
   const { width } = useWindowDimensions();
   const { id } = route.params;
   const { favorites, toggleFavorite } = useFavoritesStore();
@@ -39,7 +40,9 @@ export default function DetailsScreen({ route }: Props) {
     queryKey: ["listing", id],
     queryFn: () => fetchListingById(id),
   });
+
   const [showSkeleton, setShowSkeleton] = useState(true);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSkeleton(false);
@@ -52,8 +55,6 @@ export default function DetailsScreen({ route }: Props) {
   if (isError) return <Text>Error: {(error as Error)?.message}</Text>;
   if (!listing) return null;
 
-  console.log(listing.review_count);
-  console.log(fetchListingById);
   const textStyle = { fontFamily: "ABeeZee-Regular" };
 
   return (
@@ -77,24 +78,26 @@ export default function DetailsScreen({ route }: Props) {
 
         <View className="mt-4">
           <ListingHeader
-            title={listing?.title}
-            address={listing?.address}
-            rating={listing?.rating ?? "0.00"}
-            review_count={listing?.review_count ?? 0}
-            isGuestFavorite={listing?.is_guest_favorite} 
-            host_name={listing?.host_name}
-            host_type={listing?.host_type}
+            title={listing.title}
+            address={listing.address}
+            rating={listing.rating ?? "0.00"}
+            review_count={listing.review_count ?? 0}
+            isGuestFavorite={listing.is_guest_favorite}
+            host_name={listing.host_name}
+            host_type={listing.host_type}
           />
         </View>
+
         <View className="flex items-center justify-center px-6">
           <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
         </View>
+
         <View className={`py-4 ${textStyle}`}>
-          {listing?.perks.map((perk, index) => (
+          {listing.perks.map((perk, index) => (
             <ListingPerks
               key={index}
               perk={perk}
-              subHeading={listing?.sub_heading?.[index]}
+              subHeading={listing.sub_heading?.[index]}
             />
           ))}
         </View>
@@ -103,15 +106,15 @@ export default function DetailsScreen({ route }: Props) {
           <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
         </View>
 
-        <ListingDescription description={listing?.description} />
+        <ListingDescription description={listing.description} />
 
         <View className="flex items-center justify-center px-6">
           <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
         </View>
 
         <View className={`py-4 ${textStyle}`}>
-          {listing?.amenities.map((amenities, index) => (
-            <ListingAmenities key={index} amenities={amenities} />
+          {listing.amenities.map((amenity, index) => (
+            <ListingAmenities key={index} amenities={amenity} />
           ))}
         </View>
 
@@ -124,12 +127,29 @@ export default function DetailsScreen({ route }: Props) {
             </Text>
           </View>
         </View>
+
         <View className="h-[2px] w-[100%] bg-[#ECAA00] mb-2" />
 
+        <View className="px-6 pb-3">
+          <Pressable
+            className="h-[48px] rounded-full border border-[#111111] items-center justify-center"
+            onPress={() =>
+              navigation.navigate("Message", {
+                listingId: listing.id,
+                hostName: listing.host_name,
+              })
+            }
+          >
+            <Text className="font-abeezee text-[15px] text-[#111111]">
+              Message Host
+            </Text>
+          </Pressable>
+        </View>
+
         <ListingBooking
-          original_price={listing?.original_price ?? 0}
-          price={listing?.price_per_hour ?? 0}
-          id={listing?.id}
+          original_price={listing.original_price ?? 0}
+          price={listing.price_per_hour ?? 0}
+          id={listing.id}
         />
       </View>
     </ScrollView>

@@ -8,14 +8,20 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
+import { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import NotificationsButton from "../components/NotificationsButton";
 
 const MAX_WIDTH = 428;
 
-export default function MessageScreen({ navigation }: any) {
+type Props = NativeStackScreenProps<RootStackParamList, "Message">;
+
+export default function MessageScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
+  const listingId = route.params?.listingId;
+  const hostName = route.params?.hostName;
 
   return (
     <View style={styles.container}>
@@ -46,15 +52,18 @@ export default function MessageScreen({ navigation }: any) {
             <View style={styles.divider} />
 
             <View style={styles.emptyStateWrapper}>
-              <Text style={styles.emptyTitle}>No new messages</Text>
+              <Text style={styles.emptyTitle}>
+                {hostName ? `Message ${hostName}` : "No new messages"}
+              </Text>
 
               <Text style={styles.emptySubtitle}>
-                You’ve got a blank slate (for now). We will let you know when
-                updates arrive
+                {hostName
+                  ? `Start a conversation about listing ${listingId}`
+                  : "Message a host to ask about availability"}
               </Text>
 
               <Pressable
-                onPress={() => navigation.navigate("Listings")}
+                onPress={() => navigation.navigate("Home")}
                 style={({ pressed }) => [
                   styles.getStartedButton,
                   pressed && styles.pressed,

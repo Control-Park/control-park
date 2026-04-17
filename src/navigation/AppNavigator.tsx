@@ -39,7 +39,7 @@ export type RootStackParamList = {
   Details: { id: string };
   Test: undefined;
   Reservations: undefined;
-  Message: undefined;
+  Message: { listingId?: string; hostName?: string } | undefined;
   Profile: undefined;
   Reserve: { id: string };
   ActiveReservation: { reservationId: string };
