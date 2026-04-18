@@ -1,10 +1,11 @@
 import { FontAwesome } from "@expo/vector-icons";
-import React from "react";
-import { View, Text, Image } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text } from "react-native";
 import CustomButton from "../CustomButton";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../navigation/AppNavigator";
+import { supabase } from "../../utils/supabase";
 
 type Props = {
   original_price?: number;
@@ -17,6 +18,21 @@ type ReserveNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ListingBooking({ original_price, price, id, price_per_hour }: Props) {
   const navigation = useNavigation<ReserveNavigationProp>();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => {
+      setIsAuthenticated(!!data.session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <View className="flex-row w-full items-center justify-between px-8 py-4">
@@ -34,9 +50,14 @@ export default function ListingBooking({ original_price, price, id, price_per_ho
 
       <CustomButton
         title="Reserve"
-        color="#ECAA00"
+        color={isAuthenticated ? "#ECAA00" : "#D1D5DB"}
         className="items-center justify-center w-44 h-16 rounded-full font-abeezee"
-        onPress={() => navigation.navigate("Reserve", { id: id ?? ""})}
+        onPress={
+          isAuthenticated
+            ? () => navigation.navigate("Reserve", { id: id ?? "" })
+            : undefined
+        }
+        disabled={!isAuthenticated}
       />
     </View>
   );
