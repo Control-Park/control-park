@@ -1,8 +1,13 @@
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { showSavedSuccess, showSavedRemove } from "../utils/validation";
+import {
+  showSavedSuccess,
+  showSavedRemove,
+  showSignInRequired,
+} from "../utils/validation";
 import { saveListing, unsaveListing } from "../api/listings";
+import { supabase } from "../utils/supabase";
 
 type Props = {
   listingId: string;
@@ -12,6 +17,13 @@ type Props = {
 
 export default function SaveButton({ listingId, onPress, isFavorited }: Props) {
   const handlePress = async () => {
+    const { data } = await supabase.auth.getSession();
+
+    if (!data.session) {
+      showSignInRequired();
+      return;
+    }
+
     onPress?.();
     try {
       if (isFavorited) {

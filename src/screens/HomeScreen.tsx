@@ -20,11 +20,16 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import { useFavoritesStore } from "../context/favoritesStore";
-import { showSavedRemove, showSavedSuccess } from "../utils/validation";
+import {
+  showSavedRemove,
+  showSavedSuccess,
+  showSignInRequired,
+} from "../utils/validation";
 import { fetchListings } from "../api/listings";
 import { useQuery } from "@tanstack/react-query";
 import { Listing } from "../types/listing";
 import { getListingImages } from "../utils/listingImages";
+import { supabase } from "../utils/supabase";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 type PriceFilter = "any" | "under5" | "5to10" | "10plus";
@@ -171,13 +176,20 @@ export default function HomeScreen({ navigation }: Props) {
           isFavorited: !!favorites[item.id],
         }}
         onToggleFavorite={() => {
-          const isCurrentlyFavorited = !!favorites[item.id];
-          toggleFavorite(item.id);
-          if (!isCurrentlyFavorited) {
-            showSavedSuccess("Added to your saved listings");
-          } else {
-            showSavedRemove("Removed from saved listings");
-          }
+          void supabase.auth.getSession().then(({ data }) => {
+            if (!data.session) {
+              showSignInRequired();
+              return;
+            }
+
+            const isCurrentlyFavorited = !!favorites[item.id];
+            toggleFavorite(item.id);
+            if (!isCurrentlyFavorited) {
+              showSavedSuccess("Added to your saved listings");
+            } else {
+              showSavedRemove("Removed from saved listings");
+            }
+          });
         }}
         onPress={() => navigation.navigate("Details", { id: item.id })}
       />
