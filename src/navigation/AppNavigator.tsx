@@ -43,6 +43,8 @@ export type RootStackParamList = {
   Message: { listingId?: string; hostName?: string } | undefined;
   Conversation: {
     listingId: string;
+    hostId: string;
+    conversationId?: string;
     hostName?: string;
     listingTitle?: string;
     listingImage?: any;

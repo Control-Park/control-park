@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ScrollView, Text, View, Pressable } from "react-native";
+import { supabase } from "../utils/supabase";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 
@@ -42,13 +43,19 @@ export default function DetailsScreen({ route, navigation }: Props) {
   });
 
   const [showSkeleton, setShowSkeleton] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSkeleton(false);
     }, 50);
-
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => {
+      setCurrentUserId(data.session?.user.id ?? null);
+    });
   }, []);
 
   if (isLoading || showSkeleton) return <DetailsScreenSkeleton />;
@@ -132,13 +139,16 @@ export default function DetailsScreen({ route, navigation }: Props) {
 
         <View className="px-6 pb-3">
           <Pressable
+            disabled={currentUserId === listing.host_id}
             className="h-[48px] rounded-full border border-[#111111] items-center justify-center"
+            style={currentUserId === listing.host_id ? { opacity: 0.35 } : undefined}
             onPress={() =>
               navigation.navigate("Conversation", {
-                listingId: listing.id,
+                hostId: listing.host_id,
                 hostName: listing.host_name,
-                listingTitle: listing.title,
+                listingId: listing.id,
                 listingImage: getListingImages(listing)[0],
+                listingTitle: listing.title,
               })
             }
           >

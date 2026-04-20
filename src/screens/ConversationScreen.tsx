@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -9,12 +9,21 @@ import {
   TextInput,
   View,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { RootStackParamList } from "../navigation/AppNavigator";
+import {
+  getOrCreateConversation,
+  fetchMessages,
+  sendMessage,
+  Message,
+} from "../api/messages";
+import { supabase } from "../utils/supabase";
 
 const MAX_WIDTH = 428;
 
@@ -27,31 +36,86 @@ type ChatMessage = {
   timestamp: string;
 };
 
+function formatTimestamp(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `${diffH}h ago`;
+  return date.toLocaleDateString();
+}
+
+function toChat(msg: Message, currentUserId: string): ChatMessage {
+  return {
+    id: msg.id,
+    sender: msg.sender_id === currentUserId ? "user" : "host",
+    text: msg.body,
+    timestamp: formatTimestamp(msg.created_at),
+  };
+}
+
 export default function ConversationScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
-  const { listingId, hostName, listingTitle, listingImage } = route.params;
+  const { listingId, hostId, conversationId: paramConversationId, hostName, listingTitle, listingImage } = route.params;
+  const queryClient = useQueryClient();
 
   const [messageText, setMessageText] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(paramConversationId ?? null);
+  const [initError, setInitError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
-  const screenTitle = useMemo(() => {
-    return hostName || "Host";
-  }, [hostName]);
+  // Get current user id; create conversation only if not already provided
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      setCurrentUserId(data.session.user.id);
+      if (paramConversationId) return; // already have it
+      try {
+        const conv = await getOrCreateConversation(hostId, listingId);
+        setConversationId(conv.id);
+      } catch {
+        setInitError("Failed to load conversation");
+      }
+    })();
+  }, [hostId, listingId, paramConversationId]);
+
+  const { data: messages = [], isLoading } = useQuery<Message[]>({
+    enabled: !!conversationId,
+    queryFn: () => fetchMessages(conversationId!),
+    queryKey: ["messages", conversationId],
+    refetchInterval: false,
+  });
+
+  const sendMutation = useMutation({
+    mutationFn: (body: string) => sendMessage(conversationId!, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
 
   const handleSend = () => {
     const trimmed = messageText.trim();
-    if (!trimmed) return;
-
-    const newMessage: ChatMessage = {
-      id: `${Date.now()}`,
-      text: trimmed,
-      sender: "user",
-      timestamp: "Just now",
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
+    if (!trimmed || !conversationId) return;
     setMessageText("");
+    sendMutation.mutate(trimmed);
   };
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    }
+  }, [messages]);
+
+  const chatMessages: ChatMessage[] = currentUserId
+    ? messages.map((m) => toChat(m, currentUserId))
+    : [];
 
   return (
     <View style={styles.container}>
@@ -76,7 +140,7 @@ export default function ConversationScreen({ navigation, route }: Props) {
                 <Ionicons name="person" size={16} color="#666666" />
               </View>
 
-              <Text style={styles.headerTitle}>{screenTitle}</Text>
+              <Text style={styles.headerTitle}>{hostName || "Host"}</Text>
 
               <Text style={styles.headerSubtitle} numberOfLines={1}>
                 {listingTitle || `Listing ${listingId}`}
@@ -110,11 +174,24 @@ export default function ConversationScreen({ navigation, route }: Props) {
             </View>
 
             <ScrollView
+              ref={scrollRef}
               style={styles.messagesContainer}
               contentContainerStyle={styles.messagesContent}
               showsVerticalScrollIndicator={false}
             >
-              {messages.length === 0 && (
+              {(isLoading || !conversationId) && !initError && (
+                <View style={styles.emptyChat}>
+                  <ActivityIndicator color="#ECAA00" />
+                </View>
+              )}
+
+              {initError && (
+                <View style={styles.emptyChat}>
+                  <Text style={styles.emptyChatText}>{initError}</Text>
+                </View>
+              )}
+
+              {!isLoading && !initError && chatMessages.length === 0 && (
                 <View style={styles.emptyChat}>
                   <Text style={styles.emptyChatText}>
                     Start a conversation with {hostName || "the host"}
@@ -122,7 +199,7 @@ export default function ConversationScreen({ navigation, route }: Props) {
                 </View>
               )}
 
-              {messages.map((message) => {
+              {chatMessages.map((message) => {
                 const isUser = message.sender === "user";
 
                 return (
@@ -142,9 +219,7 @@ export default function ConversationScreen({ navigation, route }: Props) {
                       <Text
                         style={[
                           styles.messageText,
-                          isUser
-                            ? styles.userMessageText
-                            : styles.hostMessageText,
+                          isUser ? styles.userMessageText : styles.hostMessageText,
                         ]}
                       >
                         {message.text}
@@ -185,12 +260,17 @@ export default function ConversationScreen({ navigation, route }: Props) {
 
               <Pressable
                 onPress={handleSend}
+                disabled={!messageText.trim() || sendMutation.isPending}
                 style={({ pressed }) => [
                   styles.sendButton,
-                  pressed && styles.pressed,
+                  (pressed || sendMutation.isPending) && styles.pressed,
                 ]}
               >
-                <Ionicons name="send" size={18} color="#111111" />
+                {sendMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#111111" />
+                ) : (
+                  <Ionicons name="send" size={18} color="#111111" />
+                )}
               </Pressable>
             </View>
           </View>

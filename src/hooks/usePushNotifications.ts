@@ -44,7 +44,9 @@ export function usePushNotifications(queryClient: QueryClient) {
         try {
           const payload = JSON.parse(event.data as string) as {
             body?: string;
+            conversationId?: string;
             title?: string;
+            type?: string;
           };
 
           if (payload.title && payload.body) {
@@ -52,6 +54,13 @@ export function usePushNotifications(queryClient: QueryClient) {
           }
 
           queryClient.invalidateQueries({ queryKey: ["notifications"] });
+
+          if (payload.type === "new_message") {
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            if (payload.conversationId) {
+              queryClient.invalidateQueries({ queryKey: ["messages", payload.conversationId] });
+            }
+          }
         } catch {
           console.warn("Failed to parse WebSocket message:", event.data);
           queryClient.invalidateQueries({ queryKey: ["notifications"] });
