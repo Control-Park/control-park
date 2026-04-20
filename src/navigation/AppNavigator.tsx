@@ -20,6 +20,7 @@ import NotificationSettingsScreen from "../screens/NotificationSettingsScreen";
 import PaymentScreen from "../screens/PaymentScreen";
 import PersonalInfoScreen from "../screens/PersonalInfoScreen";
 import ConversationScreen from "../screens/ConversationScreen";
+import GuestProfileScreen from "../screens/GuestProfileScreen";
 
 export type RootStackParamList = {
   Home: undefined;
@@ -47,6 +48,7 @@ export type RootStackParamList = {
     listingImage?: any;
   };
   Profile: undefined;
+  GuestProfile: undefined;
   Reserve: { id: string };
   ActiveReservation: { reservationId: string };
   VehicleManagement: undefined;
@@ -151,6 +153,11 @@ export default function AppNavigator() {
         name="Conversation"
         component={ConversationScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+      name="GuestProfile"
+      component={GuestProfileScreen}
+      options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
