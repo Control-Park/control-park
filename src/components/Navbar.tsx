@@ -5,9 +5,9 @@ import {
   useNavigation,
   NavigationProp,
 } from "@react-navigation/native";
-import Toast from "react-native-toast-message";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useAuthSession } from "../context/AuthSessionContext";
+import { showSignInRequired } from "../utils/validation";
 
 export type TabKey = "Listings" | "Home" | "Messages" | "Profile";
 
@@ -42,13 +42,8 @@ export default function Navbar({ activeTab, onTabPress }: Props) {
   const { isGuest } = useAuthSession();
 
   const handlePress = (tab: TabKey) => {
-    if (tab === "Profile" && isGuest) {
-      Toast.show({
-        type: "error",
-        text1: "Sign in required",
-        text2: "Sign in to access profile tab",
-        topOffset: 100,
-      });
+    if (isGuest && (tab === "Listings" || tab === "Messages" || tab === "Profile")) {
+      showSignInRequired(`${tab.toLowerCase()} tab`);
       navigation.navigate("Login");
       return;
     }

@@ -44,13 +44,17 @@ export const showSavedRemove = (message: string) => {
   });
 };
 
-export const showSignInRequired = () => {
-  Toast.show({
-    type: "error",
-    text1: "Sign in required",
-    text2: "Sign in to access this feature.",
-    topOffset: 100,
-  });
+export const showSignInRequired = (feature = "this feature") => {
+  Toast.hide();
+
+  setTimeout(() => {
+    Toast.show({
+      type: "error",
+      text1: "Sign in required",
+      text2: `Sign in to access ${feature}.`,
+      topOffset: 100,
+    });
+  }, 120);
 };
 
 export const reserveSuccess = (message: string) => {
