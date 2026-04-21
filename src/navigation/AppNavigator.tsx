@@ -11,6 +11,7 @@ import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/ResetPasswordScreen";
 import ReservationsScreen from "../screens/ReservationsScreen";
 import MessageScreen from "../screens/MessageScreen";
+import HostProfileScreen from "../screens/HostProfileScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import ReserveScreen from "../screens/ReserveScreen";
 import ActiveReservationScreen from "../screens/ActiveReservationScreen";
@@ -51,6 +52,7 @@ export type RootStackParamList = {
     listingImage?: any;
   };
   Profile: undefined;
+  ProfileSettings: undefined;
   GuestProfile: undefined;
   Reserve: { id: string };
   ActiveReservation: { reservationId: string };
@@ -120,6 +122,11 @@ export default function AppNavigator() {
       />
       <Stack.Screen
         name="Profile"
+        component={HostProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ProfileSettings"
         component={ProfileScreen}
         options={{ headerShown: false }}
       />

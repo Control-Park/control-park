@@ -195,7 +195,19 @@ export default function ProfileScreen() {
         <View style={styles.pageMax}>
           <View style={[styles.topArea, { paddingTop: insets.top }]}>
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>Profile</Text>
+              <View style={styles.headerLeft}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.iconButton,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => navigation.navigate("Profile")}
+                >
+                  <Ionicons name="arrow-back" size={20} color="#111111" />
+                </Pressable>
+
+                <Text style={styles.headerTitle}>Profile</Text>
+              </View>
 
               <View style={styles.headerIcons}>
                 <Pressable
@@ -451,6 +463,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   headerTitle: {
     fontSize: 24,

@@ -18,7 +18,7 @@ import { getMyProfile, UserProfile } from "../api/user";
 
 type HostProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
-  "HostProfile"
+  "Profile"
 >;
 
 const MAX_WIDTH = 428;
@@ -109,9 +109,21 @@ export default function HostProfileScreen() {
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Profile</Text>
 
-              <NotificationsButton
-                onPress={() => navigation.navigate("NotificationSettings")}
-              />
+              <View style={styles.headerActions}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.headerIconButton,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => navigation.navigate("ProfileSettings")}
+                >
+                  <Ionicons name="settings-outline" size={20} color="#111111" />
+                </Pressable>
+
+                <NotificationsButton
+                  onPress={() => navigation.navigate("NotificationSettings")}
+                />
+              </View>
             </View>
 
             <View style={styles.hostHeaderRow}>
@@ -309,6 +321,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   headerTitle: {
     fontSize: 24,
