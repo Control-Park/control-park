@@ -69,6 +69,10 @@ type AddressForm = {
   country: string;
 };
 
+type AddressField = keyof AddressForm;
+
+type AddressErrors = Partial<Record<AddressField, string>>;
+
 function InfoRow({ label, value, actionText = "Edit", onPress }: InfoRowProps) {
   return (
     <View style={styles.row}>
@@ -106,37 +110,55 @@ export default function PersonalInfoScreen() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [saving, setSaving] = useState(false);
 
-  // temp state for modals
   const [tempText, setTempText] = useState("");
-  const [tempDisplayNameOption, setTempDisplayNameOption] = useState<DisplayNameOption>("Show my first name only");
+  const [tempDisplayNameOption, setTempDisplayNameOption] =
+    useState<DisplayNameOption>("Show my first name only");
   const [displayDropdownOpen, setDisplayDropdownOpen] = useState(false);
-  const [tempAddress, setTempAddress] = useState<AddressForm>({ line1: "", line2: "", city: "", state: "", postalCode: "", country: "" });
+  const [tempAddress, setTempAddress] = useState<AddressForm>({
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "",
+  });
 
-  // email change flow
   const [pendingEmail, setPendingEmail] = useState("");
   const [otpValue, setOtpValue] = useState("");
 
-  // password change flow
   const [pendingNewPassword, setPendingNewPassword] = useState("");
 
   const [addressError, setAddressError] = useState("");
+  const [addressFieldErrors, setAddressFieldErrors] = useState<AddressErrors>(
+    {},
+  );
+  const [addressSubmitted, setAddressSubmitted] = useState(false);
   const [genericError, setGenericError] = useState("");
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) { setLoadingProfile(false); return; }
-      void getMyProfile().then((p) => {
-        setProfile(p);
+      if (!data.session) {
         setLoadingProfile(false);
-      }).catch(() => setLoadingProfile(false));
+        return;
+      }
+      void getMyProfile()
+        .then((p) => {
+          setProfile(p);
+          setLoadingProfile(false);
+        })
+        .catch(() => setLoadingProfile(false));
     });
   }, []);
 
-  const legalName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : "";
+  const legalName = profile
+    ? `${profile.first_name} ${profile.last_name}`.trim()
+    : "";
   const preferredName = profile?.preferred_name ?? "";
   const phoneNumber = profile?.phone ?? "";
   const email = profile?.email ?? "";
-  const displayNameOption: DisplayNameOption = profile ? profileToDisplayName(profile) : "Show my first name only";
+  const displayNameOption: DisplayNameOption = profile
+    ? profileToDisplayName(profile)
+    : "Show my first name only";
 
   const address: AddressForm = {
     city: profile?.address_city ?? "",
@@ -148,22 +170,86 @@ export default function PersonalInfoScreen() {
   };
 
   const addressDisplay = useMemo(() => {
-    if (!address.line1 && !address.city && !address.state && !address.postalCode && !address.country) {
+    if (
+      !address.line1 &&
+      !address.city &&
+      !address.state &&
+      !address.postalCode &&
+      !address.country
+    ) {
       return "Not provided";
     }
-    const lineTwo = [address.city, address.state, address.postalCode].filter(Boolean).join(", ");
+    const lineTwo = [address.city, address.state, address.postalCode]
+      .filter(Boolean)
+      .join(", ");
     return [address.line1, lineTwo, address.country].filter(Boolean).join("\n");
   }, [address]);
+
+  const validateAddress = useCallback((values: AddressForm): AddressErrors => {
+    const errors: AddressErrors = {};
+
+    if (!values.line1.trim()) {
+      errors.line1 = "Address Line 1 is required";
+    }
+    if (!values.city.trim()) {
+      errors.city = "City / District is required";
+    }
+    if (!values.state.trim()) {
+      errors.state = "State / Province is required";
+    }
+    if (!values.postalCode.trim()) {
+      errors.postalCode = "Postal Code is required";
+    }
+    if (!values.country.trim()) {
+      errors.country = "Country is required";
+    }
+
+    return errors;
+  }, []);
+
+  const updateAddressField = useCallback(
+    (field: AddressField, value: string) => {
+      const next = { ...tempAddress, [field]: value };
+      setTempAddress(next);
+
+      if (addressError) {
+        setAddressError("");
+      }
+
+      if (addressSubmitted) {
+        setAddressFieldErrors(validateAddress(next));
+      }
+    },
+    [tempAddress, addressError, addressSubmitted, validateAddress],
+  );
+
+  const fieldHasError = useCallback(
+    (field: AddressField) =>
+      addressSubmitted && Boolean(addressFieldErrors[field]),
+    [addressSubmitted, addressFieldErrors],
+  );
 
   const closeModal = useCallback(() => {
     setActiveModal(null);
     setGenericError("");
     setAddressError("");
+    setAddressFieldErrors({});
+    setAddressSubmitted(false);
     setDisplayDropdownOpen(false);
     setOtpValue("");
   }, []);
 
-  const openTextModal = (type: Exclude<ModalType, null | "displayName" | "address" | "emailCurrentOtp" | "emailNewOtp" | "passwordOtp">) => {
+  const openTextModal = (
+    type: Exclude<
+      ModalType,
+      | null
+      | "displayName"
+      | "address"
+      | "emailCurrentOtp"
+      | "emailNewOtp"
+      | "passwordOtp"
+    >,
+  ) => {
     setGenericError("");
     if (type === "legalName") setTempText(legalName);
     else if (type === "preferredName") setTempText(preferredName);
@@ -182,12 +268,17 @@ export default function PersonalInfoScreen() {
   const openAddressModal = () => {
     setTempAddress(address);
     setAddressError("");
+    setAddressFieldErrors({});
+    setAddressSubmitted(false);
     setActiveModal("address");
   };
 
   const handleConfirmLegalName = async () => {
     const trimmed = tempText.trim();
-    if (!trimmed) { setGenericError("Legal name is required."); return; }
+    if (!trimmed) {
+      setGenericError("Legal name is required.");
+      return;
+    }
     const parts = trimmed.split(" ");
     const first_name = parts[0];
     const last_name = parts.slice(1).join(" ") || parts[0];
@@ -206,7 +297,9 @@ export default function PersonalInfoScreen() {
   const handleConfirmPreferredName = async () => {
     setSaving(true);
     try {
-      const updated = await updateMyProfile({ preferred_name: tempText.trim() || null });
+      const updated = await updateMyProfile({
+        preferred_name: tempText.trim() || null,
+      });
       setProfile(updated);
       closeModal();
     } catch (err) {
@@ -231,7 +324,10 @@ export default function PersonalInfoScreen() {
 
   const handleRequestEmailChange = async () => {
     const trimmed = tempText.trim();
-    if (!trimmed) { setGenericError("Email is required."); return; }
+    if (!trimmed) {
+      setGenericError("Email is required.");
+      return;
+    }
     setSaving(true);
     try {
       await requestEmailChange(trimmed);
@@ -247,7 +343,10 @@ export default function PersonalInfoScreen() {
   };
 
   const handleVerifyCurrentEmailOtp = async () => {
-    if (otpValue.length !== 6) { setGenericError("Enter the 6-digit code."); return; }
+    if (otpValue.length !== 6) {
+      setGenericError("Enter the 6-digit code.");
+      return;
+    }
     setSaving(true);
     try {
       await verifyCurrentEmail(otpValue);
@@ -255,29 +354,42 @@ export default function PersonalInfoScreen() {
       setGenericError("");
       setActiveModal("emailNewOtp");
     } catch (err) {
-      setGenericError(err instanceof Error ? err.message : "Invalid or expired code");
+      setGenericError(
+        err instanceof Error ? err.message : "Invalid or expired code",
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleVerifyNewEmailOtp = async () => {
-    if (otpValue.length !== 6) { setGenericError("Enter the 6-digit code."); return; }
+    if (otpValue.length !== 6) {
+      setGenericError("Enter the 6-digit code.");
+      return;
+    }
     setSaving(true);
     try {
       await verifyNewEmail(otpValue);
-      setProfile((prev) => prev ? { ...prev, email: pendingEmail } : prev);
+      setProfile((prev) => (prev ? { ...prev, email: pendingEmail } : prev));
       closeModal();
     } catch (err) {
-      setGenericError(err instanceof Error ? err.message : "Invalid or expired code");
+      setGenericError(
+        err instanceof Error ? err.message : "Invalid or expired code",
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleConfirmPassword = async () => {
-    if (!tempText.trim()) { setGenericError("Password is required."); return; }
-    if (!profile?.email) { setGenericError("No email on account."); return; }
+    if (!tempText.trim()) {
+      setGenericError("Password is required.");
+      return;
+    }
+    if (!profile?.email) {
+      setGenericError("No email on account.");
+      return;
+    }
     setSaving(true);
     try {
       await requestPasswordChange(profile.email);
@@ -293,14 +405,19 @@ export default function PersonalInfoScreen() {
   };
 
   const handleConfirmPasswordOtp = async () => {
-    if (otpValue.length !== 6) { setGenericError("Enter the 6-digit code."); return; }
+    if (otpValue.length !== 6) {
+      setGenericError("Enter the 6-digit code.");
+      return;
+    }
     if (!profile?.email) return;
     setSaving(true);
     try {
       await changePassword(profile.email, otpValue, pendingNewPassword);
       closeModal();
     } catch (err) {
-      setGenericError(err instanceof Error ? err.message : "Invalid or expired code");
+      setGenericError(
+        err instanceof Error ? err.message : "Invalid or expired code",
+      );
     } finally {
       setSaving(false);
     }
@@ -309,7 +426,9 @@ export default function PersonalInfoScreen() {
   const handleConfirmDisplayName = async () => {
     setSaving(true);
     try {
-      const updated = await updateMyProfile({ host_display_name: displayNameToKey(tempDisplayNameOption) });
+      const updated = await updateMyProfile({
+        host_display_name: displayNameToKey(tempDisplayNameOption),
+      });
       setProfile(updated);
       closeModal();
     } catch (err) {
@@ -320,15 +439,13 @@ export default function PersonalInfoScreen() {
   };
 
   const handleConfirmAddress = async () => {
-    const missingFields: string[] = [];
-    if (!tempAddress.line1.trim()) missingFields.push("Address Line 1");
-    if (!tempAddress.city.trim()) missingFields.push("City / District");
-    if (!tempAddress.state.trim()) missingFields.push("State / Province");
-    if (!tempAddress.postalCode.trim()) missingFields.push("Postal Code");
-    if (!tempAddress.country.trim()) missingFields.push("Country");
+    setAddressSubmitted(true);
 
-    if (missingFields.length > 0) {
-      setAddressError(`Please fill in: ${missingFields.join(", ")}`);
+    const errors = validateAddress(tempAddress);
+    setAddressFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setAddressError("Please fill in all required fields.");
       return;
     }
 
@@ -345,7 +462,9 @@ export default function PersonalInfoScreen() {
       setProfile(updated);
       closeModal();
     } catch (err) {
-      setAddressError(err instanceof Error ? err.message : "Failed to save address");
+      setAddressError(
+        err instanceof Error ? err.message : "Failed to save address",
+      );
     } finally {
       setSaving(false);
     }
@@ -361,23 +480,35 @@ export default function PersonalInfoScreen() {
 
   const renderTextModalTitle = () => {
     switch (activeModal) {
-      case "legalName": return "Edit legal name";
-      case "preferredName": return "Edit preferred name";
-      case "phone": return "Edit phone number";
-      case "email": return "Edit email";
-      case "password": return "Change password";
-      default: return "";
+      case "legalName":
+        return "Edit legal name";
+      case "preferredName":
+        return "Edit preferred name";
+      case "phone":
+        return "Edit phone number";
+      case "email":
+        return "Edit email";
+      case "password":
+        return "Change password";
+      default:
+        return "";
     }
   };
 
   const renderTextModalPlaceholder = () => {
     switch (activeModal) {
-      case "legalName": return "Enter your full name";
-      case "preferredName": return "Enter your preferred name";
-      case "phone": return "Enter phone number";
-      case "email": return "Enter new email address";
-      case "password": return "Enter new password";
-      default: return "";
+      case "legalName":
+        return "Enter your full name";
+      case "preferredName":
+        return "Enter your preferred name";
+      case "phone":
+        return "Enter phone number";
+      case "email":
+        return "Enter new email address";
+      case "password":
+        return "Enter new password";
+      default:
+        return "";
     }
   };
 
@@ -385,7 +516,9 @@ export default function PersonalInfoScreen() {
 
   if (loadingProfile) {
     return (
-      <View style={[styles.safe, { justifyContent: "center", alignItems: "center" }]}>
+      <View
+        style={[styles.safe, { justifyContent: "center", alignItems: "center" }]}
+      >
         <ActivityIndicator size="large" color="#D4A017" />
       </View>
     );
@@ -393,7 +526,10 @@ export default function PersonalInfoScreen() {
 
   return (
     <View style={styles.safe}>
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.pageMax}>
           <View style={[styles.topArea, { paddingTop: insets.top + 6 }]}>
             <Pressable
@@ -461,7 +597,6 @@ export default function PersonalInfoScreen() {
         </View>
       </View>
 
-      {/* Text / password / email modals */}
       <Modal
         visible={
           activeModal === "legalName" ||
@@ -481,16 +616,33 @@ export default function PersonalInfoScreen() {
             <View style={styles.inputWrap}>
               <TextInput
                 value={tempText}
-                onChangeText={(text) => { setTempText(text); if (genericError) setGenericError(""); }}
+                onChangeText={(text) => {
+                  setTempText(text);
+                  if (genericError) setGenericError("");
+                }}
                 placeholder={renderTextModalPlaceholder()}
                 placeholderTextColor="#9A9A9A"
                 style={styles.singleInput}
                 secureTextEntry={activeModal === "password"}
-                autoCapitalize={activeModal === "email" || activeModal === "password" ? "none" : "words"}
-                keyboardType={activeModal === "email" ? "email-address" : activeModal === "phone" ? "phone-pad" : "default"}
+                autoCapitalize={
+                  activeModal === "email" || activeModal === "password"
+                    ? "none"
+                    : "words"
+                }
+                keyboardType={
+                  activeModal === "email"
+                    ? "email-address"
+                    : activeModal === "phone"
+                      ? "phone-pad"
+                      : "default"
+                }
               />
               {tempText.length > 0 ? (
-                <TouchableOpacity onPress={() => setTempText("")} style={styles.clearButton} activeOpacity={0.7}>
+                <TouchableOpacity
+                  onPress={() => setTempText("")}
+                  style={styles.clearButton}
+                  activeOpacity={0.7}
+                >
                   <Ionicons name="close-circle" size={16} color="#8B8B8B" />
                 </TouchableOpacity>
               ) : null}
@@ -499,27 +651,51 @@ export default function PersonalInfoScreen() {
             {genericError ? <Text style={styles.errorText}>{genericError}</Text> : null}
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity style={[styles.footerButton, styles.footerDivider]} onPress={closeModal} activeOpacity={0.8} disabled={saving}>
+              <TouchableOpacity
+                style={[styles.footerButton, styles.footerDivider]}
+                onPress={closeModal}
+                activeOpacity={0.8}
+                disabled={saving}
+              >
                 <Text style={styles.footerButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.footerButton} onPress={handleConfirmTextModal} activeOpacity={0.8} disabled={saving}>
-                {saving ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.footerButtonText}>Confirm</Text>}
+              <TouchableOpacity
+                style={styles.footerButton}
+                onPress={handleConfirmTextModal}
+                activeOpacity={0.8}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#111" />
+                ) : (
+                  <Text style={styles.footerButtonText}>Confirm</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Step 2: verify current email OTP */}
-      <Modal visible={activeModal === "emailCurrentOtp"} transparent animationType="fade" onRequestClose={closeModal}>
+      <Modal
+        visible={activeModal === "emailCurrentOtp"}
+        transparent
+        animationType="fade"
+        onRequestClose={closeModal}
+      >
         <View style={styles.overlay}>
           <View style={styles.smallModal}>
             <Text style={styles.smallModalTitle}>Confirm your identity</Text>
-            <Text style={styles.otpSubtitle}>Enter the 6-digit code sent to your current email{"\n"}{profile?.email}</Text>
+            <Text style={styles.otpSubtitle}>
+              Enter the 6-digit code sent to your current email{"\n"}
+              {profile?.email}
+            </Text>
             <View style={styles.inputWrap}>
               <TextInput
                 value={otpValue}
-                onChangeText={(text) => { setOtpValue(text.replace(/\D/g, "").slice(0, 6)); if (genericError) setGenericError(""); }}
+                onChangeText={(text) => {
+                  setOtpValue(text.replace(/\D/g, "").slice(0, 6));
+                  if (genericError) setGenericError("");
+                }}
                 placeholder="000000"
                 placeholderTextColor="#9A9A9A"
                 style={[styles.singleInput, { letterSpacing: 4, textAlign: "center" }]}
@@ -528,27 +704,51 @@ export default function PersonalInfoScreen() {
             </View>
             {genericError ? <Text style={styles.errorText}>{genericError}</Text> : null}
             <View style={styles.modalFooter}>
-              <TouchableOpacity style={[styles.footerButton, styles.footerDivider]} onPress={closeModal} activeOpacity={0.8} disabled={saving}>
+              <TouchableOpacity
+                style={[styles.footerButton, styles.footerDivider]}
+                onPress={closeModal}
+                activeOpacity={0.8}
+                disabled={saving}
+              >
                 <Text style={styles.footerButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.footerButton} onPress={() => void handleVerifyCurrentEmailOtp()} activeOpacity={0.8} disabled={saving}>
-                {saving ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.footerButtonText}>Verify</Text>}
+              <TouchableOpacity
+                style={styles.footerButton}
+                onPress={() => void handleVerifyCurrentEmailOtp()}
+                activeOpacity={0.8}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#111" />
+                ) : (
+                  <Text style={styles.footerButtonText}>Verify</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Step 3: verify new email OTP */}
-      <Modal visible={activeModal === "emailNewOtp"} transparent animationType="fade" onRequestClose={closeModal}>
+      <Modal
+        visible={activeModal === "emailNewOtp"}
+        transparent
+        animationType="fade"
+        onRequestClose={closeModal}
+      >
         <View style={styles.overlay}>
           <View style={styles.smallModal}>
             <Text style={styles.smallModalTitle}>Verify new email</Text>
-            <Text style={styles.otpSubtitle}>Enter the 6-digit code sent to{"\n"}{pendingEmail}</Text>
+            <Text style={styles.otpSubtitle}>
+              Enter the 6-digit code sent to{"\n"}
+              {pendingEmail}
+            </Text>
             <View style={styles.inputWrap}>
               <TextInput
                 value={otpValue}
-                onChangeText={(text) => { setOtpValue(text.replace(/\D/g, "").slice(0, 6)); if (genericError) setGenericError(""); }}
+                onChangeText={(text) => {
+                  setOtpValue(text.replace(/\D/g, "").slice(0, 6));
+                  if (genericError) setGenericError("");
+                }}
                 placeholder="000000"
                 placeholderTextColor="#9A9A9A"
                 style={[styles.singleInput, { letterSpacing: 4, textAlign: "center" }]}
@@ -557,18 +757,31 @@ export default function PersonalInfoScreen() {
             </View>
             {genericError ? <Text style={styles.errorText}>{genericError}</Text> : null}
             <View style={styles.modalFooter}>
-              <TouchableOpacity style={[styles.footerButton, styles.footerDivider]} onPress={closeModal} activeOpacity={0.8} disabled={saving}>
+              <TouchableOpacity
+                style={[styles.footerButton, styles.footerDivider]}
+                onPress={closeModal}
+                activeOpacity={0.8}
+                disabled={saving}
+              >
                 <Text style={styles.footerButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.footerButton} onPress={() => void handleVerifyNewEmailOtp()} activeOpacity={0.8} disabled={saving}>
-                {saving ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.footerButtonText}>Verify</Text>}
+              <TouchableOpacity
+                style={styles.footerButton}
+                onPress={() => void handleVerifyNewEmailOtp()}
+                activeOpacity={0.8}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#111" />
+                ) : (
+                  <Text style={styles.footerButtonText}>Verify</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Password OTP verification modal */}
       <Modal
         visible={activeModal === "passwordOtp"}
         transparent
@@ -578,12 +791,18 @@ export default function PersonalInfoScreen() {
         <View style={styles.overlay}>
           <View style={styles.smallModal}>
             <Text style={styles.smallModalTitle}>Verify password change</Text>
-            <Text style={styles.otpSubtitle}>Enter the 6-digit code sent to{"\n"}{profile?.email}</Text>
+            <Text style={styles.otpSubtitle}>
+              Enter the 6-digit code sent to{"\n"}
+              {profile?.email}
+            </Text>
 
             <View style={styles.inputWrap}>
               <TextInput
                 value={otpValue}
-                onChangeText={(text) => { setOtpValue(text.replace(/\D/g, "").slice(0, 6)); if (genericError) setGenericError(""); }}
+                onChangeText={(text) => {
+                  setOtpValue(text.replace(/\D/g, "").slice(0, 6));
+                  if (genericError) setGenericError("");
+                }}
                 placeholder="000000"
                 placeholderTextColor="#9A9A9A"
                 style={[styles.singleInput, { letterSpacing: 4, textAlign: "center" }]}
@@ -594,31 +813,69 @@ export default function PersonalInfoScreen() {
             {genericError ? <Text style={styles.errorText}>{genericError}</Text> : null}
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity style={[styles.footerButton, styles.footerDivider]} onPress={closeModal} activeOpacity={0.8} disabled={saving}>
+              <TouchableOpacity
+                style={[styles.footerButton, styles.footerDivider]}
+                onPress={closeModal}
+                activeOpacity={0.8}
+                disabled={saving}
+              >
                 <Text style={styles.footerButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.footerButton} onPress={() => void handleConfirmPasswordOtp()} activeOpacity={0.8} disabled={saving}>
-                {saving ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.footerButtonText}>Verify</Text>}
+              <TouchableOpacity
+                style={styles.footerButton}
+                onPress={() => void handleConfirmPasswordOtp()}
+                activeOpacity={0.8}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#111" />
+                ) : (
+                  <Text style={styles.footerButtonText}>Verify</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Display name modal */}
-      <Modal visible={activeModal === "displayName"} transparent animationType="fade" onRequestClose={closeModal}>
+      <Modal
+        visible={activeModal === "displayName"}
+        transparent
+        animationType="fade"
+        onRequestClose={closeModal}
+      >
         <View style={styles.overlay}>
           <View style={styles.mediumModal}>
-            <Text style={styles.displayModalTitle}>Host display name for experiences and services</Text>
+            <Text style={styles.displayModalTitle}>
+              Host display name for experiences and services
+            </Text>
 
-            <TouchableOpacity style={styles.dropdownTrigger} activeOpacity={0.8} onPress={() => setDisplayDropdownOpen((prev) => !prev)}>
-              <Text style={styles.dropdownTriggerText}>{displayDropdownOpen ? "Display name preference" : tempDisplayNameOption}</Text>
-              <Ionicons name={displayDropdownOpen ? "chevron-up" : "chevron-down"} size={18} color="#7A7A7A" />
+            <TouchableOpacity
+              style={styles.dropdownTrigger}
+              activeOpacity={0.8}
+              onPress={() => setDisplayDropdownOpen((prev) => !prev)}
+            >
+              <Text style={styles.dropdownTriggerText}>
+                {displayDropdownOpen
+                  ? "Display name preference"
+                  : tempDisplayNameOption}
+              </Text>
+              <Ionicons
+                name={displayDropdownOpen ? "chevron-up" : "chevron-down"}
+                size={18}
+                color="#7A7A7A"
+              />
             </TouchableOpacity>
 
             {displayDropdownOpen ? (
               <View style={styles.dropdownList}>
-                {(["Show my first name only", "Show my last name only", "Show legal name"] as DisplayNameOption[]).map((option, index, arr) => {
+                {(
+                  [
+                    "Show my first name only",
+                    "Show my last name only",
+                    "Show legal name",
+                  ] as DisplayNameOption[]
+                ).map((option, index, arr) => {
                   const isSelected = tempDisplayNameOption === option;
                   const isLast = index === arr.length - 1;
                   return (
@@ -628,7 +885,14 @@ export default function PersonalInfoScreen() {
                       activeOpacity={0.8}
                       onPress={() => setTempDisplayNameOption(option)}
                     >
-                      <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextSelected]}>{option}</Text>
+                      <Text
+                        style={[
+                          styles.dropdownItemText,
+                          isSelected && styles.dropdownItemTextSelected,
+                        ]}
+                      >
+                        {option}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -636,51 +900,178 @@ export default function PersonalInfoScreen() {
             ) : null}
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity style={[styles.footerButton, styles.footerDivider]} onPress={closeModal} activeOpacity={0.8} disabled={saving}>
+              <TouchableOpacity
+                style={[styles.footerButton, styles.footerDivider]}
+                onPress={closeModal}
+                activeOpacity={0.8}
+                disabled={saving}
+              >
                 <Text style={styles.footerButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.footerButton} onPress={() => void handleConfirmDisplayName()} activeOpacity={0.8} disabled={saving}>
-                {saving ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.footerButtonText}>Confirm</Text>}
+              <TouchableOpacity
+                style={styles.footerButton}
+                onPress={() => void handleConfirmDisplayName()}
+                activeOpacity={0.8}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#111" />
+                ) : (
+                  <Text style={styles.footerButtonText}>Confirm</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Address modal */}
-      <Modal visible={activeModal === "address"} transparent animationType="fade" onRequestClose={closeModal}>
+      <Modal
+        visible={activeModal === "address"}
+        transparent
+        animationType="fade"
+        onRequestClose={closeModal}
+      >
         <View style={styles.overlay}>
           <View style={styles.addressModal}>
-            <TouchableOpacity style={styles.addressCloseButton} onPress={closeModal} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={styles.addressCloseButton}
+              onPress={closeModal}
+              activeOpacity={0.8}
+            >
               <Ionicons name="close" size={18} color="#555555" />
             </TouchableOpacity>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.addressScrollContent}>
-              <Text style={styles.addressLabel}>Address Line 1</Text>
-              <TextInput value={tempAddress.line1} onChangeText={(text) => { setTempAddress((prev) => ({ ...prev, line1: text })); if (addressError) setAddressError(""); }} style={styles.addressInput} />
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.addressScrollContent}
+            >
+              <Text
+                style={[
+                  styles.addressLabel,
+                  fieldHasError("line1") && styles.addressLabelError,
+                ]}
+              >
+                Address Line 1 *
+              </Text>
+              <TextInput
+                value={tempAddress.line1}
+                onChangeText={(text) => updateAddressField("line1", text)}
+                style={[
+                  styles.addressInput,
+                  fieldHasError("line1") && styles.addressInputError,
+                ]}
+              />
+              {fieldHasError("line1") ? (
+                <Text style={styles.addressFieldErrorText}>
+                  {addressFieldErrors.line1}
+                </Text>
+              ) : null}
 
               <Text style={styles.addressLabel}>Address Line 2</Text>
-              <TextInput value={tempAddress.line2} onChangeText={(text) => setTempAddress((prev) => ({ ...prev, line2: text }))} style={styles.addressInput} />
+              <TextInput
+                value={tempAddress.line2}
+                onChangeText={(text) => updateAddressField("line2", text)}
+                style={styles.addressInput}
+              />
 
               <View style={styles.addressGridRow}>
                 <View style={styles.addressHalf}>
-                  <Text style={styles.addressLabel}>City / District</Text>
-                  <TextInput value={tempAddress.city} onChangeText={(text) => { setTempAddress((prev) => ({ ...prev, city: text })); if (addressError) setAddressError(""); }} style={styles.addressInput} />
+                  <Text
+                    style={[
+                      styles.addressLabel,
+                      fieldHasError("city") && styles.addressLabelError,
+                    ]}
+                  >
+                    City / District *
+                  </Text>
+                  <TextInput
+                    value={tempAddress.city}
+                    onChangeText={(text) => updateAddressField("city", text)}
+                    style={[
+                      styles.addressInput,
+                      fieldHasError("city") && styles.addressInputError,
+                    ]}
+                  />
+                  {fieldHasError("city") ? (
+                    <Text style={styles.addressFieldErrorText}>
+                      {addressFieldErrors.city}
+                    </Text>
+                  ) : null}
                 </View>
+
                 <View style={styles.addressHalf}>
-                  <Text style={styles.addressLabel}>State / Province</Text>
-                  <TextInput value={tempAddress.state} onChangeText={(text) => { setTempAddress((prev) => ({ ...prev, state: text })); if (addressError) setAddressError(""); }} style={styles.addressInput} />
+                  <Text
+                    style={[
+                      styles.addressLabel,
+                      fieldHasError("state") && styles.addressLabelError,
+                    ]}
+                  >
+                    State / Province *
+                  </Text>
+                  <TextInput
+                    value={tempAddress.state}
+                    onChangeText={(text) => updateAddressField("state", text)}
+                    style={[
+                      styles.addressInput,
+                      fieldHasError("state") && styles.addressInputError,
+                    ]}
+                  />
+                  {fieldHasError("state") ? (
+                    <Text style={styles.addressFieldErrorText}>
+                      {addressFieldErrors.state}
+                    </Text>
+                  ) : null}
                 </View>
               </View>
 
               <View style={styles.addressGridRow}>
                 <View style={styles.addressHalf}>
-                  <Text style={styles.addressLabel}>Postal Code</Text>
-                  <TextInput value={tempAddress.postalCode} onChangeText={(text) => { setTempAddress((prev) => ({ ...prev, postalCode: text })); if (addressError) setAddressError(""); }} style={styles.addressInput} keyboardType="number-pad" />
+                  <Text
+                    style={[
+                      styles.addressLabel,
+                      fieldHasError("postalCode") && styles.addressLabelError,
+                    ]}
+                  >
+                    Postal Code *
+                  </Text>
+                  <TextInput
+                    value={tempAddress.postalCode}
+                    onChangeText={(text) => updateAddressField("postalCode", text)}
+                    style={[
+                      styles.addressInput,
+                      fieldHasError("postalCode") && styles.addressInputError,
+                    ]}
+                    keyboardType="number-pad"
+                  />
+                  {fieldHasError("postalCode") ? (
+                    <Text style={styles.addressFieldErrorText}>
+                      {addressFieldErrors.postalCode}
+                    </Text>
+                  ) : null}
                 </View>
+
                 <View style={styles.addressHalf}>
-                  <Text style={styles.addressLabel}>Country</Text>
-                  <TextInput value={tempAddress.country} onChangeText={(text) => { setTempAddress((prev) => ({ ...prev, country: text })); if (addressError) setAddressError(""); }} style={styles.addressInput} />
+                  <Text
+                    style={[
+                      styles.addressLabel,
+                      fieldHasError("country") && styles.addressLabelError,
+                    ]}
+                  >
+                    Country *
+                  </Text>
+                  <TextInput
+                    value={tempAddress.country}
+                    onChangeText={(text) => updateAddressField("country", text)}
+                    style={[
+                      styles.addressInput,
+                      fieldHasError("country") && styles.addressInputError,
+                    ]}
+                  />
+                  {fieldHasError("country") ? (
+                    <Text style={styles.addressFieldErrorText}>
+                      {addressFieldErrors.country}
+                    </Text>
+                  ) : null}
                 </View>
               </View>
 
@@ -688,11 +1079,25 @@ export default function PersonalInfoScreen() {
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity style={[styles.footerButton, styles.footerDivider]} onPress={closeModal} activeOpacity={0.8} disabled={saving}>
+              <TouchableOpacity
+                style={[styles.footerButton, styles.footerDivider]}
+                onPress={closeModal}
+                activeOpacity={0.8}
+                disabled={saving}
+              >
                 <Text style={styles.footerButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.footerButton} onPress={() => void handleConfirmAddress()} activeOpacity={0.8} disabled={saving}>
-                {saving ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.footerButtonText}>Confirm</Text>}
+              <TouchableOpacity
+                style={styles.footerButton}
+                onPress={() => void handleConfirmAddress()}
+                activeOpacity={0.8}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#111" />
+                ) : (
+                  <Text style={styles.footerButtonText}>Confirm</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -926,6 +1331,10 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     marginTop: 10,
   },
+  addressLabelError: {
+    color: "#C62828",
+    fontWeight: "600",
+  },
   addressInput: {
     height: 38,
     backgroundColor: "#F7F7F7",
@@ -935,6 +1344,15 @@ const styles = StyleSheet.create({
     color: "#111111",
     borderWidth: 1,
     borderColor: "#EFEFEF",
+  },
+  addressInputError: {
+    borderColor: "#C62828",
+    backgroundColor: "#FFF5F5",
+  },
+  addressFieldErrorText: {
+    fontSize: 11,
+    color: "#C62828",
+    marginTop: 4,
   },
   addressGridRow: {
     flexDirection: "row",
