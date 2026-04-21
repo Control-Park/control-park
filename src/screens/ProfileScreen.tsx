@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
+import SearchBar from "../components/SearchBar";
 import { supabase } from "../utils/supabase";
 import { getMyProfile, UserProfile } from "../api/user";
+import { useAuthSession } from "../context/AuthSessionContext";
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -24,19 +26,151 @@ type ProfileScreenNavigationProp = NativeStackNavigationProp<
 
 const MAX_WIDTH = 428;
 
+function formatProfileRole(profile: UserProfile | null, isAuthenticated: boolean) {
+  if (!isAuthenticated) {
+    return "Guest";
+  }
+
+  if (profile?.host) {
+    return "Host";
+  }
+
+  if (!profile?.role) {
+    return "Guest";
+  }
+
+  const normalizedRole = profile.role.toUpperCase();
+
+  if (normalizedRole === "ANON" || normalizedRole === "GUEST") {
+    return "Guest";
+  }
+
+  return profile.role;
+}
+
 export default function ProfileScreen() {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const insets = useSafeAreaInsets();
+  const { displayName, isAuthenticated, session } = useAuthSession();
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) return;
-      void getMyProfile().then(setProfile).catch(() => null);
-    });
-  }, []);
+  const loadProfile = useCallback(async () => {
+    if (!session?.user) {
+      setProfile(null);
+      return;
+    }
+
+    try {
+      const nextProfile = await getMyProfile();
+      setProfile(nextProfile);
+    } catch {
+      setProfile(null);
+    }
+  }, [session?.user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadProfile();
+    }, [loadProfile]),
+  );
+
+  const profileName = profile
+    ? `${profile.first_name} ${profile.last_name}`.trim()
+    : displayName;
+  const profileRole = formatProfileRole(profile, isAuthenticated);
+  const avatarInitial = (
+    profile?.first_name?.[0] ??
+    profileName?.[0] ??
+    "?"
+  ).toUpperCase();
+
+  const menuItems = useMemo(
+    () => [
+      {
+        icon: (
+          <MaterialCommunityIcons
+            name="account-cog-outline"
+            size={24}
+            color="#111111"
+          />
+        ),
+        key: "account-settings",
+        keywords: "account settings personal info name phone email address password profile",
+        label: "Account settings",
+        onPress: () => navigation.navigate("PersonalInfo"),
+      },
+      {
+        icon: (
+          <MaterialCommunityIcons name="car-outline" size={24} color="#111111" />
+        ),
+        key: "vehicles",
+        keywords: "vehicles car plate vehicle management guest reservation",
+        label: "Vehicles",
+        onPress: () => navigation.navigate("VehicleManagement"),
+      },
+      {
+        icon: (
+          <MaterialCommunityIcons
+            name="account-outline"
+            size={24}
+            color="#111111"
+          />
+        ),
+        key: "view-profile",
+        keywords: "view public profile guest host profile page",
+        label: "View profile",
+        onPress: () => console.log("View profile pressed"),
+      },
+      {
+        icon: (
+          <Ionicons name="notifications-outline" size={24} color="#111111" />
+        ),
+        key: "notification-settings",
+        keywords: "notification notifications alerts push settings",
+        label: "Notification settings",
+        onPress: () => navigation.navigate("NotificationSettings"),
+      },
+      {
+        icon: (
+          <MaterialCommunityIcons
+            name="credit-card-outline"
+            size={24}
+            color="#111111"
+          />
+        ),
+        key: "payment-methods",
+        keywords: "payment methods card cards stripe billing checkout",
+        label: "Payment methods",
+        onPress: () => navigation.navigate("Payment"),
+      },
+      {
+        icon: (
+          <MaterialCommunityIcons name="logout" size={24} color="#111111" />
+        ),
+        key: "logout",
+        keywords: "logout sign out leave account",
+        label: "Log out",
+        onPress: () => setIsLogoutModalVisible(true),
+      },
+    ],
+    [navigation],
+  );
+
+  const filteredMenuItems = useMemo(() => {
+    const trimmed = searchQuery.trim().toLowerCase();
+
+    if (!trimmed) {
+      return menuItems;
+    }
+
+    return menuItems.filter((item) =>
+      `${item.label} ${item.keywords}`.toLowerCase().includes(trimmed),
+    );
+  }, [menuItems, searchQuery]);
 
   const handleConfirmLogout = async () => {
     try {
@@ -69,7 +203,10 @@ export default function ProfileScreen() {
                     styles.iconButton,
                     pressed && styles.pressed,
                   ]}
-                  onPress={() => console.log("Search pressed")}
+                  onPress={() => {
+                    setSearchVisible((prev) => !prev);
+                    setSearchQuery("");
+                  }}
                 >
                   <Feather name="search" size={20} color="#111111" />
                 </Pressable>
@@ -86,17 +223,24 @@ export default function ProfileScreen() {
               </View>
             </View>
 
+            {searchVisible ? (
+              <View style={styles.searchWrap}>
+                <SearchBar
+                  placeholder="Search settings"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  onClear={() => setSearchQuery("")}
+                />
+              </View>
+            ) : null}
+
             <View style={styles.profileCard}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {profile ? profile.first_name.charAt(0).toUpperCase() : "?"}
-                </Text>
+                <Text style={styles.avatarText}>{avatarInitial}</Text>
               </View>
 
-              <Text style={styles.name}>
-                {profile ? `${profile.first_name} ${profile.last_name}` : ""}
-              </Text>
-              <Text style={styles.role}>{profile?.role ?? "Guest"}</Text>
+              <Text style={styles.name}>{profileName}</Text>
+              <Text style={styles.role}>{profileRole}</Text>
             </View>
 
             <TouchableOpacity
@@ -119,89 +263,27 @@ export default function ProfileScreen() {
             </TouchableOpacity>
 
             <View style={styles.menuList}>
-              <TouchableOpacity
-                style={styles.menuRow}
-                onPress={() => navigation.navigate("PersonalInfo")}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons
-                  name="account-cog-outline"
-                  size={24}
-                  color="#111111"
-                />
-                <Text style={styles.menuText}>Account settings</Text>
-                <Ionicons name="chevron-forward" size={22} color="#111111" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuRow}
-                onPress={() => navigation.navigate("VehicleManagement")}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons
-                  name="car-outline"
-                  size={24}
-                  color="#111111"
-                />
-                <Text style={styles.menuText}>Vehicles</Text>
-                <Ionicons name="chevron-forward" size={22} color="#111111" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuRow}
-                onPress={() => console.log("View profile pressed")}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons
-                  name="account-outline"
-                  size={24}
-                  color="#111111"
-                />
-                <Text style={styles.menuText}>View profile</Text>
-                <Ionicons name="chevron-forward" size={22} color="#111111" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuRow}
-                onPress={() => navigation.navigate("NotificationSettings")}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="notifications-outline"
-                  size={24}
-                  color="#111111"
-                />
-                <Text style={styles.menuText}>Notification settings</Text>
-                <Ionicons name="chevron-forward" size={22} color="#111111" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuRow}
-                onPress={() => navigation.navigate("Payment")}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons
-                  name="credit-card-outline"
-                  size={24}
-                  color="#111111"
-                />
-                <Text style={styles.menuText}>Payment methods</Text>
-                <Ionicons name="chevron-forward" size={22} color="#111111" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuRow}
-                onPress={() => setIsLogoutModalVisible(true)}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons
-                  name="logout"
-                  size={24}
-                  color="#111111"
-                />
-                <Text style={styles.menuText}>Log out</Text>
-                <Ionicons name="chevron-forward" size={22} color="#111111" />
-              </TouchableOpacity>
+              {filteredMenuItems.length > 0 ? (
+                filteredMenuItems.map((item) => (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={styles.menuRow}
+                    onPress={item.onPress}
+                    activeOpacity={0.8}
+                  >
+                    {item.icon}
+                    <Text style={styles.menuText}>{item.label}</Text>
+                    <Ionicons name="chevron-forward" size={22} color="#111111" />
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptySearchState}>
+                  <Text style={styles.emptySearchTitle}>No matching settings</Text>
+                  <Text style={styles.emptySearchText}>
+                    Try searching for account, notifications, payment, or vehicles.
+                  </Text>
+                </View>
+              )}
             </View>
 
             <View style={{ height: 100 }} />
@@ -315,6 +397,9 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.75,
   },
+  searchWrap: {
+    marginBottom: 16,
+  },
   profileCard: {
     backgroundColor: "#F7F7F7",
     borderRadius: 24,
@@ -411,6 +496,20 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     color: "#1F1F1F",
     marginLeft: 14,
+  },
+  emptySearchState: {
+    paddingVertical: 18,
+  },
+  emptySearchTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111111",
+    marginBottom: 6,
+  },
+  emptySearchText: {
+    fontSize: 14,
+    color: "#6B7280",
+    lineHeight: 20,
   },
   navbarWrapper: {
     backgroundColor: "#FFFFFF",

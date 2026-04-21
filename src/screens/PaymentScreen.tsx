@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
-  Alert,
+  Modal,
   SafeAreaView,
   ScrollView,
   View,
@@ -57,9 +57,10 @@ const CARD_BRANDS = [
 export default function PaymentScreen() {
   const navigation = useNavigation<PaymentNavigationProp>();
   const insets = useSafeAreaInsets();
-  const { methods, loading, addMethod, removeMethod, refreshMethods } = usePaymentMethods();
+  const { methods, removeMethod, refreshMethods } = usePaymentMethods();
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -67,7 +68,6 @@ export default function PaymentScreen() {
   const [postal, setPostal] = useState("");
 
   const sanitizedCard = useMemo(() => sanitizeCardNumber(cardNumber), [cardNumber]);
-  const last4 = useMemo(() => sanitizedCard.slice(-4), [sanitizedCard]);
   const getBrand = (digits: string) => {
     if (!digits) return "Card";
     const found = CARD_BRANDS.find(({ regex }) => regex.test(digits));
@@ -76,6 +76,7 @@ export default function PaymentScreen() {
   const detectedBrand = useMemo(() => getBrand(sanitizedCard), [sanitizedCard]);
   const getLogoForBrand = (brandName: string) =>
     CARD_BRANDS.find(({ name }) => name === brandName)?.logo;
+  const pendingRemovalMethod = methods.find(method => method.id === pendingRemovalId) ?? null;
 
   const handleAdd = async () => {
     const digits = sanitizeCardNumber(cardNumber);
@@ -131,6 +132,23 @@ export default function PaymentScreen() {
     }
   };
 
+  const openRemoveModal = (methodId: string) => {
+    setPendingRemovalId(methodId);
+  };
+
+  const closeRemoveModal = () => {
+    setPendingRemovalId(null);
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!pendingRemovalMethod) {
+      return;
+    }
+
+    await removeMethod(pendingRemovalMethod.id);
+    closeRemoveModal();
+  };
+
   const renderEmptyState = () => (
     <View style={styles.emptyStateWrapper}>
       <Text style={styles.emptyTitle}>No Payment Found</Text>
@@ -162,23 +180,9 @@ export default function PaymentScreen() {
         {!showForm && methods.length > 0 && (
           <View style={styles.listSection}>
             {methods.map(method => (
-              <Pressable
+              <View
                 key={method.id}
                 style={styles.methodRow}
-                onPress={() => {
-                  Alert.alert(
-                    "Remove Payment Method?",
-                    `${method.brand} ending in **** ${method.last4} will be removed from your account.`,
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Remove",
-                        style: "destructive",
-                        onPress: () => removeMethod(method.id),
-                      },
-                    ],
-                  );
-                }}
               >
                 <View style={styles.rowContent}>
                   <View style={styles.rowLogo}>
@@ -194,24 +198,12 @@ export default function PaymentScreen() {
                   </View>
                 </View>
                 <Pressable
-                  onPress={() =>
-                    Alert.alert(
-                      "Remove Payment Method?",
-                      `${method.brand} ending in **** ${method.last4} will be removed from your account.`,
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                          text: "Remove",
-                          style: "destructive",
-                          onPress: () => removeMethod(method.id),
-                        },
-                      ],
-                    )
-                  }
+                  onPress={() => openRemoveModal(method.id)}
+                  hitSlop={10}
                 >
                   <Ionicons name="chevron-forward" size={20} color="#111" />
                 </Pressable>
-              </Pressable>
+              </View>
             ))}
             <Pressable style={styles.addRow} onPress={() => setShowForm(true)}>
               <Text style={styles.addRowText}>Add Payment Method</Text>
@@ -316,6 +308,48 @@ export default function PaymentScreen() {
           <Navbar activeTab="Home" />
         </View>
       </View>
+
+      <Modal
+        visible={pendingRemovalMethod !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={closeRemoveModal}
+      >
+        <View style={styles.confirmOverlay}>
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Remove Payment Method?</Text>
+            <Text style={styles.confirmMessage}>
+              {pendingRemovalMethod
+                ? `${pendingRemovalMethod.brand} ending in **** ${pendingRemovalMethod.last4} will be removed from your account.`
+                : ""}
+            </Text>
+
+            <View style={styles.confirmActions}>
+              <Pressable
+                onPress={closeRemoveModal}
+                style={({ pressed }) => [
+                  styles.confirmButton,
+                  styles.confirmButtonBorder,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  void handleConfirmRemove();
+                }}
+                style={({ pressed }) => [
+                  styles.confirmButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.removeText}>Remove</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -553,5 +587,69 @@ const styles = StyleSheet.create({
   },
   navbarWrapper: {
     backgroundColor: "#FFFFFF",
+  },
+  confirmOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.18)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  confirmCard: {
+    width: "100%",
+    maxWidth: 300,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  confirmTitle: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#111111",
+    textAlign: "center",
+  },
+  confirmMessage: {
+    paddingTop: 10,
+    paddingBottom: 18,
+    paddingHorizontal: 24,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#4B5563",
+    textAlign: "center",
+  },
+  confirmActions: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  confirmButton: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmButtonBorder: {
+    borderRightWidth: 1,
+    borderRightColor: "#E5E7EB",
+  },
+  cancelText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#D4A017",
+  },
+  removeText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#D97706",
+  },
+  pressed: {
+    opacity: 0.75,
   },
 });

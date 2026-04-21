@@ -1,4 +1,5 @@
 import client from "./client";
+import { supabase } from "../utils/supabase";
 
 export interface UserProfile {
   address_city: null | string;
@@ -22,7 +23,14 @@ export interface UserProfile {
 }
 
 export const getMyProfile = async (): Promise<UserProfile> => {
-  const { data } = await client.get("/auth/me");
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user?.id;
+
+  if (!userId) {
+    throw new Error("No authenticated user");
+  }
+
+  const { data } = await client.get(`/auth/user/${userId}`);
   return data as UserProfile;
 };
 
