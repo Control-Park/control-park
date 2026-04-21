@@ -22,11 +22,11 @@ import SaveButton from "../components/SaveButton";
 import { useFavoritesStore } from "../context/favoritesStore";
 import CustomButton from "../components/CustomButton";
 import { useVehicleStore } from "../context/vehicleStore";
-import { useReservationStore } from "../context/reservationStore";
-
+import { usePaymentMethods } from "../context/paymentMethodsContext";
 import { fetchListingById } from "../api/listings";
+import { createReservation, fetchBookedRanges } from "../api/reservations";
 import { Listing } from "../types/listing";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getListingImage } from "../utils/listingImages";
 import { reserveCancel, reserveSuccess } from "../utils/validation";
 
@@ -92,6 +92,19 @@ const isDateInRangeExclusive = (date: Date, start: Date, end: Date) => {
 
 const isPastDate = (date: Date) =>
   getStartOfDay(date) < getStartOfDay(new Date());
+
+const isDateBooked = (
+  date: Date,
+  ranges: { end_time: string; start_time: string }[],
+) => {
+  const dayStart = getStartOfDay(date);
+  const dayEnd = dayStart + 24 * 60 * 60 * 1000 - 1;
+  return ranges.some((r) => {
+    const rStart = new Date(r.start_time).getTime();
+    const rEnd = new Date(r.end_time).getTime();
+    return rStart <= dayEnd && rEnd >= dayStart;
+  });
+};
 
 const formatMonthLabel = (date: Date) =>
   date.toLocaleDateString("en-US", { month: "long" });
@@ -161,9 +174,10 @@ const getTimeParts = (date: Date) => {
 
 export default function ReserveScreen({ route, navigation }: Props) {
   const { favorites, toggleFavorite } = useFavoritesStore();
-  const addReservation = useReservationStore((state) => state.addReservation);
   const { id } = route.params;
   const isFavorited = favorites[id];
+  const queryClient = useQueryClient();
+  const { methods: paymentMethods } = usePaymentMethods();
 
   const { width } = useWindowDimensions();
   const { selectedVehicle } = useVehicleStore();
@@ -184,6 +198,9 @@ export default function ReserveScreen({ route, navigation }: Props) {
   const [isReserveSuccessVisible, setIsReserveSuccessVisible] = useState(false);
   const [hasSelectedEndDate, setHasSelectedEndDate] = useState(false);
   const [vehicleError, setVehicleError] = useState("");
+  const [paymentError, setPaymentError] = useState("");
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const hourListRef = useRef<FlatList<string>>(null);
   const minuteListRef = useRef<FlatList<string>>(null);
   const periodListRef = useRef<FlatList<string>>(null);
@@ -196,6 +213,11 @@ export default function ReserveScreen({ route, navigation }: Props) {
   } = useQuery<Listing>({
     queryKey: ["listing", id],
     queryFn: () => fetchListingById(id),
+  });
+
+  const { data: bookedRanges = [] } = useQuery({
+    queryKey: ["booked-ranges", id],
+    queryFn: () => fetchBookedRanges(id),
   });
 
   const fallbackListing = allListings.find((item) => item.id === id);
@@ -266,10 +288,14 @@ export default function ReserveScreen({ route, navigation }: Props) {
   ]);
 
   useEffect(() => {
-    if (selectedVehicle) {
-      setVehicleError("");
-    }
+    if (selectedVehicle) setVehicleError("");
   }, [selectedVehicle]);
+
+  useEffect(() => {
+    if (paymentMethods.length > 0 && !selectedPaymentMethodId) {
+      setSelectedPaymentMethodId(paymentMethods[0].id);
+    }
+  }, [paymentMethods, selectedPaymentMethodId]);
 
   useEffect(() => {
     if (!isReserveSuccessVisible) {
@@ -403,24 +429,44 @@ export default function ReserveScreen({ route, navigation }: Props) {
   };
 
   const handleReservePress = () => {
+    let hasError = false;
     if (!selectedVehicle) {
       setVehicleError("Please select a vehicle before reserving.");
-      return;
+      hasError = true;
+    } else {
+      setVehicleError("");
     }
-
-    setVehicleError("");
-    setIsReserveConfirmVisible(true);
+    if (!selectedPaymentMethodId) {
+      setPaymentError("Please select a payment method.");
+      hasError = true;
+    } else {
+      setPaymentError("");
+    }
+    if (!hasError) setIsReserveConfirmVisible(true);
   };
 
-  const handleReserveConfirm = () => {
-    addReservation({
-      listingId: id,
-      reservedFrom: reservationStart.toISOString(),
-      reservedUntil: reservationEnd.toISOString(),
-    });
-    setIsReserveConfirmVisible(false);
-    setIsReserveSuccessVisible(true);
-    reserveSuccess("Reservation has been made");
+  const handleReserveConfirm = async () => {
+    if (!selectedVehicle || !selectedPaymentMethodId) return;
+    setIsSubmitting(true);
+    try {
+      await createReservation({
+        listing_id: id,
+        vehicle_id: selectedVehicle.id,
+        payment_method_id: selectedPaymentMethodId,
+        start_time: reservationStart.toISOString(),
+        end_time: reservationEnd.toISOString(),
+      });
+      void queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      setIsReserveConfirmVisible(false);
+      setIsReserveSuccessVisible(true);
+      reserveSuccess("Reservation submitted for host approval");
+    } catch (err: unknown) {
+      setIsReserveConfirmVisible(false);
+      const msg = err instanceof Error ? err.message : "Failed to create reservation";
+      reserveCancel(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const closeReserveSuccess = () => {
@@ -586,28 +632,53 @@ export default function ReserveScreen({ route, navigation }: Props) {
 
         <View className="px-4 pt-4">
           <View className="flex-row items-center justify-between">
-            <Text className="text-[12px] text-[#555555]">Default</Text>
-
-            <View className="flex-row items-center gap-5">
-              <View className="flex-row items-center">
-                <Ionicons name="create-outline" size={16} color="#111111" />
-                <Text className="ml-1 text-[12px] text-[#111111]">
-                  Add payment
-                </Text>
-              </View>
-              <Ionicons name="add" size={18} color="#111111" />
-            </View>
+            <Text className="text-[18px] font-bold text-[#111111]">Payment method</Text>
+            <Pressable onPress={() => navigation.navigate("Payment")} hitSlop={10}>
+              <Ionicons name="create-outline" size={18} color="#111111" />
+            </Pressable>
           </View>
 
-          <View className="mt-3 flex-row items-center justify-between">
-            <View className="flex-row items-center">
-              <View className="rounded-sm bg-[#1A1F71] px-2 py-1">
-                <Text className="text-[10px] font-bold text-white">VISA</Text>
-              </View>
-              <Text className="ml-3 text-[13px] text-[#555555]">
-                Visa...1234
-              </Text>
+          {paymentError ? (
+            <Text className="mt-2 text-[13px] text-red-500">{paymentError}</Text>
+          ) : null}
+
+          {paymentMethods.length === 0 ? (
+            <Pressable
+              className="mt-3 flex-row items-center"
+              onPress={() => navigation.navigate("Payment")}
+            >
+              <Ionicons name="add-circle-outline" size={20} color="#ECAA00" />
+              <Text className="ml-2 text-[14px] text-[#ECAA00]">Add a payment method</Text>
+            </Pressable>
+          ) : (
+            <View className="mt-3 gap-2">
+              {paymentMethods.map((method) => {
+                const isSelected = method.id === selectedPaymentMethodId;
+                return (
+                  <Pressable
+                    key={method.id}
+                    onPress={() => {
+                      setSelectedPaymentMethodId(method.id);
+                      setPaymentError("");
+                    }}
+                    className="flex-row items-center rounded-xl px-3 py-3"
+                    style={{ backgroundColor: isSelected ? "#FFF8E1" : "#F3F4F6", borderWidth: isSelected ? 1.5 : 0, borderColor: "#ECAA00" }}
+                  >
+                    <View className="rounded-sm bg-[#1A1F71] px-2 py-1 mr-3">
+                      <Text className="text-[10px] font-bold text-white uppercase">{method.brand}</Text>
+                    </View>
+                    <Text className="flex-1 text-[13px] text-[#555555]">
+                      {method.brand} ···· {method.last4}
+                    </Text>
+                    {isSelected && <Ionicons name="checkmark-circle" size={18} color="#ECAA00" />}
+                  </Pressable>
+                );
+              })}
             </View>
+          )}
+
+          <View className="mt-5 items-center justify-center">
+            <View className="h-[1px] w-full bg-[#c5c5c5]" />
           </View>
         </View>
 
@@ -803,6 +874,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
             >
               {calendarDays.map(({ date, isCurrentMonth }) => {
                 const isPast = isPastDate(date);
+                const isBooked = !isPast && isDateBooked(date, bookedRanges);
                 const isStartDate = isSameDay(date, draftStart);
                 const isEndDate =
                   hasSelectedEndDate && isSameDay(date, draftEnd);
@@ -815,6 +887,10 @@ export default function ReserveScreen({ route, navigation }: Props) {
                 let borderRadius = 999;
 
                 if (isPast) {
+                  textColor = "#D1D5DB";
+                }
+
+                if (isBooked) {
                   textColor = "#D1D5DB";
                 }
 
@@ -840,15 +916,15 @@ export default function ReserveScreen({ route, navigation }: Props) {
                   <Pressable
                     key={date.toISOString()}
                     onPress={() => {
-                      if (!isPast) {
+                      if (!isPast && !isBooked) {
                         updateDraftDate(date);
                       }
                     }}
-                    disabled={isPast}
+                    disabled={isPast || isBooked}
                     className="mb-1 items-center justify-center"
                     style={{
                       width: 36,
-                      opacity: isPast ? 0.45 : 1,
+                      opacity: isPast || isBooked ? 0.45 : 1,
                     }}
                   >
                     <View

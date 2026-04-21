@@ -263,27 +263,103 @@ export default function ProfileScreen() {
             </TouchableOpacity>
 
             <View style={styles.menuList}>
-              {filteredMenuItems.length > 0 ? (
-                filteredMenuItems.map((item) => (
-                  <TouchableOpacity
-                    key={item.key}
-                    style={styles.menuRow}
-                    onPress={item.onPress}
-                    activeOpacity={0.8}
-                  >
-                    {item.icon}
-                    <Text style={styles.menuText}>{item.label}</Text>
-                    <Ionicons name="chevron-forward" size={22} color="#111111" />
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <View style={styles.emptySearchState}>
-                  <Text style={styles.emptySearchTitle}>No matching settings</Text>
-                  <Text style={styles.emptySearchText}>
-                    Try searching for account, notifications, payment, or vehicles.
-                  </Text>
-                </View>
-              )}
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => navigation.navigate("PersonalInfo")}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="account-cog-outline"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>Account settings</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => navigation.navigate("VehicleManagement")}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="car-outline"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>Vehicles</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => navigation.navigate("HostReservations")}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="calendar-check-outline"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>Manage reservations</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => console.log("View profile pressed")}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="account-outline"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>View profile</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => navigation.navigate("NotificationSettings")}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name="notifications-outline"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>Notification settings</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => navigation.navigate("Payment")}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="credit-card-outline"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>Payment methods</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => setIsLogoutModalVisible(true)}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="logout"
+                  size={24}
+                  color="#111111"
+                />
+                <Text style={styles.menuText}>Log out</Text>
+                <Ionicons name="chevron-forward" size={22} color="#111111" />
+              </TouchableOpacity>
             </View>
 
             <View style={{ height: 100 }} />

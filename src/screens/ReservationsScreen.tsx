@@ -6,148 +6,93 @@ import {
   Text,
   Pressable,
   Image,
-  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useFavoritesStore } from "../context/favoritesStore";
 import {
-  ReservationRecord,
+  fetchReservations,
+  cancelReservation,
+  Reservation,
   ReservationStatus,
-  useReservationStore,
-} from "../context/reservationStore";
-
+} from "../api/reservations";
 import { fetchListings } from "../api/listings";
 import { Listing } from "../types/listing";
-import { useQuery } from "@tanstack/react-query";
 import { getListingImage } from "../utils/listingImages";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Reservations">;
 
-// TODO: MAKE RESERVED SCREENS UNIQUE.
-
 const MAX_WIDTH = 428;
 
-const getReservationStatus = (
-  reservation: Pick<ReservationRecord, "reservedFrom" | "reservedUntil">,
-): ReservationStatus => {
-  const now = Date.now();
-  const start = new Date(reservation.reservedFrom).getTime();
-  const end = new Date(reservation.reservedUntil).getTime();
+const formatDate = (d: Date) =>
+  d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-  if (now < start) return "Upcoming";
-  if (now > end) return "Expired";
-  return "Active";
+const formatTime = (d: Date) =>
+  d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+const formatDuration = (start: Date, end: Date) => {
+  const mins = Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h && m) return `${h}.${Math.floor((m / 60) * 10)} hrs`;
+  if (h) return `${h} hr${h > 1 ? "s" : ""}`;
+  return `${m} min`;
 };
 
-const formatReservationDate = (date: Date) =>
-  date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-
-const formatReservationTime = (date: Date) =>
-  date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
-const formatReservationDuration = (start: Date, end: Date) => {
-  const totalMinutes = Math.max(
-    15,
-    Math.round((end.getTime() - start.getTime()) / (1000 * 60)),
-  );
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours && minutes) {
-    return `${hours}.${Math.floor((minutes / 60) * 10)} hrs`;
-  }
-
-  if (hours) {
-    return `${hours} hr${hours > 1 ? "s" : ""}`;
-  }
-
-  return `${minutes} min`;
+const STATUS_COLORS: Record<ReservationStatus, string> = {
+  active: "#22C55E",
+  upcoming: "#F59E0B",
+  expired: "#9CA3AF",
+  pending: "#3B82F6",
+  approved: "#22C55E",
+  rejected: "#EF4444",
+  cancelled: "#9CA3AF",
 };
 
-const getStatusColor = (status: ReservationStatus) => {
-  switch (status) {
-    case "Active":
-      return "#22C55E";
-    case "Upcoming":
-      return "#F59E0B";
-    case "Expired":
-      return "#EF4444";
-    default:
-      return "#111111";
-  }
+const STATUS_LABELS: Record<ReservationStatus, string> = {
+  active: "Active",
+  upcoming: "Upcoming",
+  expired: "Expired",
+  pending: "Pending",
+  approved: "Approved",
+  rejected: "Rejected",
+  cancelled: "Cancelled",
 };
-
-const resolveListingForReservation = (
-  reservation: ReservationRecord,
-  listings: Listing[],
-) => listings.find((listing) => listing.id === reservation.listingId) ?? null;
 
 export default function ReservationsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { favorites } = useFavoritesStore();
-  const reservations = useReservationStore((state) => state.reservations);
+  const queryClient = useQueryClient();
 
-  const {
-    data: listings,
-    isLoading,
-    isError,
-    error,
-  } = useQuery<Listing[]>({
+  const { data: reservations, isLoading, isError } = useQuery<Reservation[]>({
+    queryKey: ["reservations"],
+    queryFn: fetchReservations,
+  });
+
+  const { data: listings } = useQuery<Listing[]>({
     queryKey: ["listings"],
     queryFn: fetchListings,
   });
 
-  if (isLoading) return <Text>Loading reservations...</Text>;
-  if (isError) return <Text>Error: {(error as Error)?.message}</Text>;
-  if (!listings) return null;
+  const cancelMutation = useMutation({
+    mutationFn: cancelReservation,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["reservations"] });
+    },
+  });
 
-  const savedListings = listings.filter((listing) => favorites[listing.id]);
-
-  const reservationCards = reservations
-    .map((reservation) => {
-      const listing = resolveListingForReservation(reservation, listings);
-
-      if (!listing) {
-        return null;
-      }
-
-      const start = new Date(reservation.reservedFrom);
-      const end = new Date(reservation.reservedUntil);
-
-      return {
-        reservation,
-        listing,
-        title: listing.title || listing.structure_name,
-        date: formatReservationDate(start),
-        time: formatReservationTime(start),
-        duration: formatReservationDuration(start, end),
-        status: getReservationStatus(reservation),
-      };
-    })
-    .filter((card): card is NonNullable<typeof card> => card !== null);
-
-  const handleRenewReservation = (reservation: ReservationRecord) => {
-    navigation.navigate("Reserve", { id: reservation.listingId });
-  };
+  const savedListings = listings?.filter((l) => favorites[l.id]) ?? [];
 
   return (
     <View style={styles.safe}>
-      <ScrollView
-        style={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.pageMax}>
           <View style={[styles.topArea, { paddingTop: insets.top }]}>
             <View style={styles.topRow}>
@@ -158,98 +103,111 @@ export default function ReservationsScreen({ navigation }: Props) {
               >
                 <Ionicons name="arrow-back" size={20} color="#111827" />
               </Pressable>
-
-              <NotificationsButton
-                onPress={() => navigation.navigate("Notification")}
-              />
+              <NotificationsButton onPress={() => navigation.navigate("Notification")} />
             </View>
 
             <Text style={styles.title}>Reservations</Text>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.cardsRow}
-            >
-              {reservationCards.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyTitle}>No reservations yet</Text>
-                  <Text style={styles.emptyText}>
-                    Reserve a listing and it will show up here with its live
-                    status.
-                  </Text>
-                </View>
-              ) : (
-                reservationCards.map((card) => (
-                  <Pressable
-                    key={card.reservation.id}
-                    style={({ pressed }) => [
-                      styles.card,
-                      card.status === "Expired" && styles.expiredCard,
-                      pressed && { opacity: 0.75 },
-                    ]}
-                    onPress={() => {
-                      if (card.status === "Expired") {
-                        Alert.alert(
-                          "Your reservation has ended",
-                          "Would you like to renew this reservation?",
-                          [
-                            { text: "No", style: "cancel" },
-                            {
-                              text: "Renew",
-                              onPress: () =>
-                                handleRenewReservation(card.reservation),
-                            },
-                          ],
-                        );
-                        return;
-                      }
-
-                      navigation.navigate("ActiveReservation", {
-                        reservationId: card.reservation.id,
-                      });
-                    }}
-                  >
-                    <View style={styles.cardImageWrapper}>
-                      <Image
-                        source={getListingImage(card.listing)}
-                        style={styles.cardImage}
-                      />
-
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          { backgroundColor: getStatusColor(card.status) },
-                        ]}
-                      >
-                        <Text style={styles.statusBadgeText}>{card.status}</Text>
-                      </View>
-                    </View>
-
-                    <Text style={styles.cardTitle}>{card.title}</Text>
-                    <Text style={styles.cardMeta}>
-                      {card.date} | {card.time}
+            {isLoading ? (
+              <ActivityIndicator style={{ marginVertical: 24 }} color="#ECAA00" />
+            ) : isError ? (
+              <Text style={styles.errorText}>Failed to load reservations.</Text>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.cardsRow}
+              >
+                {!reservations || reservations.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyTitle}>No reservations yet</Text>
+                    <Text style={styles.emptyText}>
+                      Reserve a listing and it will show up here.
                     </Text>
-                    <Text style={styles.cardDuration}>{card.duration}</Text>
+                  </View>
+                ) : (
+                  reservations.map((r) => {
+                    const start = new Date(r.start_time);
+                    const end = new Date(r.end_time);
+                    const status = r.status;
+                    const isDimmed = status === "expired" || status === "rejected" || status === "cancelled";
+                    const canCancel = status === "pending";
 
-                    {card.status === "Expired" && (
-                      <>
-                        <Text style={styles.expiredText}>
-                          This reservation has expired.
+                    return (
+                      <Pressable
+                        key={r.id}
+                        style={({ pressed }) => [
+                          styles.card,
+                          isDimmed && styles.dimmedCard,
+                          pressed && { opacity: 0.75 },
+                        ]}
+                        onPress={() => {
+                          if (status === "active" || status === "upcoming" || status === "approved") {
+                            navigation.navigate("ActiveReservation", { reservationId: r.id });
+                          }
+                        }}
+                      >
+                        <View style={styles.cardImageWrapper}>
+                          {r.listing ? (
+                            <Image
+                              source={getListingImage(r.listing as unknown as Listing)}
+                              style={styles.cardImage}
+                            />
+                          ) : (
+                            <View style={[styles.cardImage, styles.imagePlaceholder]} />
+                          )}
+                          <View
+                            style={[
+                              styles.statusBadge,
+                              { backgroundColor: STATUS_COLORS[status] },
+                            ]}
+                          >
+                            <Text style={styles.statusBadgeText}>
+                              {STATUS_LABELS[status]}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <Text style={styles.cardTitle} numberOfLines={1}>
+                          {r.listing?.title ?? "Listing"}
+                        </Text>
+                        <Text style={styles.cardMeta}>
+                          {formatDate(start)} | {formatTime(start)}
+                        </Text>
+                        <Text style={styles.cardDuration}>
+                          {formatDuration(start, end)}
                         </Text>
 
-                        <Pressable
-                          style={styles.renewButton}
-                          onPress={() => handleRenewReservation(card.reservation)}
-                        >
-                          <Text style={styles.renewButtonText}>Renew</Text>
-                        </Pressable>
-                      </>
-                    )}
-                  </Pressable>
-                ))
-              )}
-            </ScrollView>
+                        {canCancel && (
+                          <Pressable
+                            style={[
+                              styles.actionButton,
+                              styles.cancelButton,
+                              cancelMutation.isPending && { opacity: 0.6 },
+                            ]}
+                            onPress={() => cancelMutation.mutate(r.id)}
+                            disabled={cancelMutation.isPending}
+                          >
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                          </Pressable>
+                        )}
+
+                        {(status === "expired") && (
+                          <Pressable
+                            style={[styles.actionButton, styles.renewButton]}
+                            onPress={() =>
+                              navigation.navigate("Reserve", { id: r.listing_id })
+                            }
+                          >
+                            <Text style={styles.renewButtonText}>Renew</Text>
+                          </Pressable>
+                        )}
+                      </Pressable>
+                    );
+                  })
+                )}
+              </ScrollView>
+            )}
 
             <View style={styles.section}>
               <View style={styles.sectionDivider} />
@@ -264,22 +222,13 @@ export default function ReservationsScreen({ navigation }: Props) {
                   ]}
                   onPress={() => navigation.navigate("Details", { id: item.id })}
                 >
-                  <Image
-                    source={getListingImage(item)}
-                    style={styles.avatarImage}
-                  />
-
+                  <Image source={getListingImage(item)} style={styles.avatarImage} />
                   <View style={styles.listTextBlock}>
                     <Text style={styles.listTitle}>{item.title}</Text>
                     <View style={styles.ratingRow}>
                       <Text style={styles.ratingText}>{item.rating ?? "New"}</Text>
                       {item.rating ? (
-                        <Ionicons
-                          name="star"
-                          size={14}
-                          color="#F59E0B"
-                          style={{ marginLeft: 4 }}
-                        />
+                        <Ionicons name="star" size={14} color="#F59E0B" style={{ marginLeft: 4 }} />
                       ) : null}
                     </View>
                     <Text style={styles.savedAddress}>{item.address}</Text>
@@ -303,22 +252,15 @@ export default function ReservationsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  scrollContainer: {
-    flex: 1,
-  },
+  safe: { flex: 1, backgroundColor: "#FFFFFF" },
+  scrollContainer: { flex: 1 },
   pageMax: {
     paddingHorizontal: 16,
     width: "100%",
     maxWidth: MAX_WIDTH,
     alignSelf: "center",
   },
-  topArea: {
-    backgroundColor: "#FFFFFF",
-  },
+  topArea: { backgroundColor: "#FFFFFF" },
   topRow: {
     height: 44,
     justifyContent: "space-between",
@@ -340,43 +282,21 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 18,
   },
-  cardsRow: {
-    paddingBottom: 26,
-  },
+  errorText: { color: "#EF4444", marginBottom: 16 },
+  cardsRow: { paddingBottom: 26 },
   emptyState: {
     width: 220,
     padding: 18,
     borderRadius: 18,
     backgroundColor: "#F7F7F7",
   },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111111",
-  },
-  emptyText: {
-    marginTop: 6,
-    fontSize: 13,
-    color: "#555555",
-    lineHeight: 18,
-  },
-  card: {
-    width: 124,
-    marginRight: 18,
-    alignItems: "center",
-  },
-  expiredCard: {
-    opacity: 0.8,
-  },
-  cardImageWrapper: {
-    position: "relative",
-  },
-  cardImage: {
-    width: 118,
-    height: 118,
-    borderRadius: 18,
-    marginBottom: 6,
-  },
+  emptyTitle: { fontSize: 16, fontWeight: "600", color: "#111111" },
+  emptyText: { marginTop: 6, fontSize: 13, color: "#555555", lineHeight: 18 },
+  card: { width: 134, marginRight: 18, alignItems: "center" },
+  dimmedCard: { opacity: 0.75 },
+  cardImageWrapper: { position: "relative" },
+  cardImage: { width: 118, height: 118, borderRadius: 18, marginBottom: 6 },
+  imagePlaceholder: { backgroundColor: "#E5E5E5" },
   statusBadge: {
     position: "absolute",
     bottom: 12,
@@ -385,64 +305,40 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 10,
   },
-  statusBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "600",
-  },
+  statusBadgeText: { color: "#FFFFFF", fontSize: 11, fontWeight: "600" },
   cardTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "500",
     color: "#111111",
     textAlign: "center",
   },
-  cardMeta: {
-    fontSize: 13,
-    color: "#555555",
-    textAlign: "center",
-    marginTop: 2,
-  },
+  cardMeta: { fontSize: 12, color: "#555555", textAlign: "center", marginTop: 2 },
   cardDuration: {
-    fontSize: 13,
+    fontSize: 12,
     color: "#111111",
     textAlign: "center",
     marginTop: 2,
     fontWeight: "500",
   },
-  expiredText: {
-    fontSize: 12,
-    color: "#EF4444",
-    textAlign: "center",
-    marginTop: 4,
-    fontWeight: "500",
-  },
-  renewButton: {
+  actionButton: {
     marginTop: 8,
-    backgroundColor: "#ECAA00",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
     borderRadius: 20,
+    alignItems: "center",
   },
-  renewButtonText: {
-    color: "#111111",
-    fontSize: 13,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  section: {
-    marginBottom: 18,
-  },
+  cancelButton: { backgroundColor: "#F3F4F6", borderWidth: 1, borderColor: "#D1D5DB" },
+  cancelButtonText: { color: "#374151", fontSize: 12, fontWeight: "600" },
+  renewButton: { backgroundColor: "#ECAA00" },
+  renewButtonText: { color: "#111111", fontSize: 12, fontWeight: "600" },
+  section: { marginBottom: 18 },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "500",
     color: "#111111",
     marginBottom: 14,
   },
-  listItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 18,
-  },
+  listItem: { flexDirection: "row", alignItems: "center", marginBottom: 18 },
   avatarImage: {
     width: 54,
     height: 54,
@@ -451,40 +347,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E5E5",
   },
-  listTextBlock: {
-    flex: 1,
-  },
+  listTextBlock: { flex: 1 },
   listTitle: {
     fontSize: 16,
     fontWeight: "500",
     color: "#111111",
     marginBottom: 2,
   },
-  savedAddress: {
-    fontSize: 14,
-    color: "#111111",
-    marginTop: 2,
-  },
-  navbarWrapper: {
-    backgroundColor: "#FFFFFF",
-  },
-  navbarContent: {
-    width: "100%",
-    maxWidth: MAX_WIDTH,
-    alignSelf: "center",
-  },
-  ratingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 2,
-  },
-  ratingText: {
-    fontSize: 14,
-    color: "#111111",
-  },
-  sectionDivider: {
-    height: 1,
-    backgroundColor: "#E5E5E5",
-    marginBottom: 18,
-  },
+  savedAddress: { fontSize: 14, color: "#111111", marginTop: 2 },
+  navbarWrapper: { backgroundColor: "#FFFFFF" },
+  navbarContent: { width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center" },
+  ratingRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
+  ratingText: { fontSize: 14, color: "#111111" },
+  sectionDivider: { height: 1, backgroundColor: "#E5E5E5", marginBottom: 18 },
 });

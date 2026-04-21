@@ -14,6 +14,7 @@ export type Vehicle = {
 type VehicleStore = {
   vehicles: Vehicle[];
   selectedVehicle: Vehicle | null;
+  setVehicles: (vehicles: Vehicle[]) => void;
   setSelectedVehicle: (vehicle: Vehicle | null) => void;
   addVehicle: (vehicle: Vehicle) => void;
   updateVehicle: (vehicle: Vehicle) => void;
@@ -23,6 +24,8 @@ type VehicleStore = {
 export const useVehicleStore = create<VehicleStore>((set) => ({
   vehicles: [],
   selectedVehicle: null,
+
+  setVehicles: (vehicles) => set({ vehicles }),
 
   setSelectedVehicle: (vehicle) => set({ selectedVehicle: vehicle }),
 

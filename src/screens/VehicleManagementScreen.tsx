@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Modal,
@@ -20,6 +21,13 @@ import { RootStackParamList } from "../navigation/AppNavigator";
 import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
 import { useVehicleStore, type Vehicle } from "../context/vehicleStore";
+import {
+  fetchVehicles,
+  createVehicle,
+  updateVehicle as apiUpdateVehicle,
+  deleteVehicle as apiDeleteVehicle,
+} from "../api/vehicles";
+import { supabase } from "../utils/supabase";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VehicleManagement">;
 
@@ -30,6 +38,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
   const {
     vehicles,
     selectedVehicle,
+    setVehicles,
     setSelectedVehicle,
     addVehicle,
     updateVehicle,
@@ -56,10 +65,36 @@ export default function VehicleManagementScreen({ navigation }: Props) {
   const [vehicleModelError, setVehicleModelError] = useState("");
   const [vehicleYearError, setVehicleYearError] = useState("");
   const [vehicleColorError, setVehicleColorError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const hasVehicles = vehicles.length > 0;
   const currentYear = new Date().getFullYear();
   const isEditing = editingVehicleId !== null;
+
+  // Load vehicles from backend on mount (only if authenticated)
+  useEffect(() => {
+    void supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return;
+      try {
+        const apiVehicles = await fetchVehicles();
+        // Sync store: replace all vehicles with server state
+        const storeVehicles: Vehicle[] = apiVehicles.map((v) => ({
+          id: v.id,
+          name: v.nickname ?? `${v.year} ${v.make} ${v.model}`,
+          plate: v.plate,
+          make: v.make,
+          model: v.model,
+          year: v.year,
+          color: v.color,
+        }));
+        // Reset store to server state
+        setVehicles(storeVehicles);
+      } catch {
+        // Silently fail — store keeps whatever was there
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const validatePlateNumber = (value: string) => {
     const trimmed = value.trim();
@@ -227,72 +262,90 @@ export default function VehicleManagementScreen({ navigation }: Props) {
     }
   };
 
-  const handleConfirmAddVehicle = () => {
+  const handleConfirmAddVehicle = async () => {
     const isValid = validateForm();
+    if (!isValid) return;
 
-    if (!isValid) {
-      return;
+    setIsSaving(true);
+    try {
+      const payload = {
+        color: vehicleColor.trim(),
+        make: vehicleMake.trim(),
+        model: vehicleModel.trim(),
+        plate: plateNumber.trim().toUpperCase(),
+        year: vehicleYear.trim(),
+      };
+
+      if (isEditing && editingVehicleId) {
+        const updated = await apiUpdateVehicle(editingVehicleId, payload);
+        const storeVehicle: Vehicle = {
+          id: updated.id,
+          name: `${updated.year} ${updated.make} ${updated.model}`,
+          plate: updated.plate,
+          make: updated.make,
+          model: updated.model,
+          year: updated.year,
+          color: updated.color,
+          image: vehicleImageUri ?? undefined,
+        };
+        updateVehicle(storeVehicle);
+        setSelectedVehicle(storeVehicle);
+      } else {
+        const created = await createVehicle(payload);
+        const storeVehicle: Vehicle = {
+          id: created.id,
+          name: `${created.year} ${created.make} ${created.model}`,
+          plate: created.plate,
+          make: created.make,
+          model: created.model,
+          year: created.year,
+          color: created.color,
+          image: vehicleImageUri ?? undefined,
+        };
+        addVehicle(storeVehicle);
+        setSelectedVehicle(storeVehicle);
+      }
+      closeAddVehicleModal();
+    } catch (err: unknown) {
+      Alert.alert("Error", err instanceof Error ? err.message : "Failed to save vehicle");
+    } finally {
+      setIsSaving(false);
     }
-
-    const normalizedVehicle: Vehicle = {
-      id: editingVehicleId ?? Date.now().toString(),
-      name: `${vehicleYear.trim()} ${vehicleMake.trim()} ${vehicleModel.trim()}`,
-      plate: plateNumber.trim().toUpperCase(),
-      image: vehicleImageUri ?? undefined,
-      make: vehicleMake.trim(),
-      model: vehicleModel.trim(),
-      year: vehicleYear.trim(),
-      color: vehicleColor.trim(),
-    };
-
-    if (isEditing) {
-      updateVehicle(normalizedVehicle);
-      setSelectedVehicle(normalizedVehicle);
-    } else {
-      addVehicle(normalizedVehicle);
-      setSelectedVehicle(normalizedVehicle);
-    }
-
-    closeAddVehicleModal();
   };
 
   const handleRemoveVehicle = () => {
-    if (!editingVehicleId) {
-      return;
-    }
+    if (!editingVehicleId) return;
 
-    const confirmRemoval = () => {
-      removeVehicle(editingVehicleId);
-
-      if (selectedVehicle?.id === editingVehicleId) {
-        setSelectedVehicle(null);
+    const confirmRemoval = async () => {
+      setIsSaving(true);
+      try {
+        await apiDeleteVehicle(editingVehicleId);
+        removeVehicle(editingVehicleId);
+        if (selectedVehicle?.id === editingVehicleId) {
+          setSelectedVehicle(null);
+        }
+        closeAddVehicleModal();
+      } catch (err: unknown) {
+        Alert.alert("Error", err instanceof Error ? err.message : "Failed to remove vehicle");
+      } finally {
+        setIsSaving(false);
       }
-
-      closeAddVehicleModal();
     };
 
+
     if (Platform.OS === "web") {
-      const confirmed = window.confirm(
-        "Are you sure you want to remove this vehicle?",
-      );
-
-      if (confirmed) {
-        confirmRemoval();
-      }
-
+      const confirmed = window.confirm("Are you sure you want to remove this vehicle?");
+      if (confirmed) void confirmRemoval();
       return;
     }
+
 
     Alert.alert(
       "Remove vehicle",
       "Are you sure you want to remove this vehicle?",
       [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: confirmRemoval,
-        },
+        { text: "Remove", style: "destructive", onPress: () => void confirmRemoval() },
       ],
     );
   };
@@ -615,15 +668,16 @@ export default function VehicleManagementScreen({ navigation }: Props) {
               </Pressable>
 
               <Pressable
-                onPress={handleConfirmAddVehicle}
+                onPress={() => void handleConfirmAddVehicle()}
+                disabled={isSaving}
                 style={({ pressed }) => [
                   styles.footerButton,
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={styles.footerButtonText}>
-                  {isEditing ? "Save" : "Confirm"}
-                </Text>
+                {isSaving
+                  ? <ActivityIndicator size="small" color="#111111" />
+                  : <Text style={styles.footerButtonText}>{isEditing ? "Save" : "Confirm"}</Text>}
               </Pressable>
             </View>
 

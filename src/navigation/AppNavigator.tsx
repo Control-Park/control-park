@@ -21,7 +21,7 @@ import PaymentScreen from "../screens/PaymentScreen";
 import PersonalInfoScreen from "../screens/PersonalInfoScreen";
 import ConversationScreen from "../screens/ConversationScreen";
 import GuestProfileScreen from "../screens/GuestProfileScreen";
-import HostProfileScreen from "../screens/HostProfileScreen";
+import HostReservationsScreen from "../screens/HostReservationsScreen";
 
 export type RootStackParamList = {
   Home: undefined;
@@ -59,7 +59,7 @@ export type RootStackParamList = {
   NotificationSettings: undefined;
   Payment: undefined;
   PersonalInfo: undefined;
-  HostProfile: undefined;
+  HostReservations: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -164,8 +164,8 @@ export default function AppNavigator() {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="HostProfile"
-        component={HostProfileScreen}
+        name="HostReservations"
+        component={HostReservationsScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
