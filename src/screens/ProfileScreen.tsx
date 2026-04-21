@@ -253,7 +253,7 @@ export default function ProfileScreen() {
 
             <TouchableOpacity
               style={styles.hostCard}
-              onPress={() => console.log("Become a host pressed")}
+              onPress={() => navigation.navigate("HostProfile")}
               activeOpacity={0.8}
             >
               <Text style={styles.hostTitle}>Become a host</Text>
