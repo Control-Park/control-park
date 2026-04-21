@@ -39,6 +39,10 @@ export default function VehicleManagementScreen({ navigation }: Props) {
   const [isAddVehicleModalVisible, setIsAddVehicleModalVisible] =
     useState(false);
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
+  const [isSelectPrimaryModalVisible, setIsSelectPrimaryModalVisible] =
+    useState(false);
+  const [pendingSelectedVehicle, setPendingSelectedVehicle] =
+    useState<Vehicle | null>(null);
 
   const [plateNumber, setPlateNumber] = useState("");
   const [vehicleMake, setVehicleMake] = useState("");
@@ -172,6 +176,11 @@ export default function VehicleManagementScreen({ navigation }: Props) {
     resetForm();
   };
 
+  const closePrimaryVehicleModal = () => {
+    setIsSelectPrimaryModalVisible(false);
+    setPendingSelectedVehicle(null);
+  };
+
   const handleTakePicture = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
 
@@ -251,29 +260,29 @@ export default function VehicleManagementScreen({ navigation }: Props) {
     if (!editingVehicleId) {
       return;
     }
-  
+
     const confirmRemoval = () => {
       removeVehicle(editingVehicleId);
-    
+
       if (selectedVehicle?.id === editingVehicleId) {
         setSelectedVehicle(null);
       }
-    
+
       closeAddVehicleModal();
     };
-  
+
     if (Platform.OS === "web") {
       const confirmed = window.confirm(
         "Are you sure you want to remove this vehicle?",
       );
-    
+
       if (confirmed) {
         confirmRemoval();
       }
-    
+
       return;
     }
-  
+
     Alert.alert(
       "Remove vehicle",
       "Are you sure you want to remove this vehicle?",
@@ -336,7 +345,12 @@ export default function VehicleManagementScreen({ navigation }: Props) {
                   return (
                     <Pressable
                       key={vehicle.id}
-                      onPress={() => openEditVehicleModal(vehicle)}
+                      onPress={() => {
+                        if (selectedVehicle?.id !== vehicle.id) {
+                          setPendingSelectedVehicle(vehicle);
+                          setIsSelectPrimaryModalVisible(true);
+                        }
+                      }}
                       style={({ pressed }) => [
                         styles.vehicleCard,
                         isSelected && styles.selectedCard,
@@ -344,8 +358,21 @@ export default function VehicleManagementScreen({ navigation }: Props) {
                       ]}
                     >
                       <View style={styles.vehicleInfo}>
-                        <Text style={styles.vehicleName}>{vehicle.name}</Text>
-                        <Text style={styles.vehiclePlate}>{vehicle.plate}</Text>
+                        <View style={styles.vehicleTextBlock}>
+                          <Text style={styles.vehicleName}>{vehicle.name}</Text>
+                          <Text style={styles.vehiclePlate}>{vehicle.plate}</Text>
+                        </View>
+
+                        <Pressable
+                          onPress={() => openEditVehicleModal(vehicle)}
+                          style={({ pressed }) => [
+                            styles.cardEditButton,
+                            pressed && styles.pressed,
+                          ]}
+                          hitSlop={8}
+                        >
+                          <Text style={styles.cardEditButtonText}>Edit</Text>
+                        </Pressable>
                       </View>
 
                       <View style={styles.imageWrapper}>
@@ -614,6 +641,55 @@ export default function VehicleManagementScreen({ navigation }: Props) {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={isSelectPrimaryModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closePrimaryVehicleModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModalCard}>
+            <Text style={styles.confirmTitle}>Set as primary vehicle?</Text>
+
+            <Text style={styles.confirmSubtitle}>
+              Do you want to set{" "}
+              <Text style={styles.confirmVehicleName}>
+                {pendingSelectedVehicle?.name}
+              </Text>{" "}
+              as your primary vehicle?
+            </Text>
+
+            <View style={styles.modalFooter}>
+              <Pressable
+                onPress={closePrimaryVehicleModal}
+                style={({ pressed }) => [
+                  styles.footerButton,
+                  styles.footerButtonBorder,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.footerButtonText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  if (pendingSelectedVehicle) {
+                    setSelectedVehicle(pendingSelectedVehicle);
+                  }
+                  closePrimaryVehicleModal();
+                }}
+                style={({ pressed }) => [
+                  styles.footerButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.footerButtonText}>Confirm</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -690,6 +766,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     borderColor: "transparent",
+    minHeight: 110,
   },
   selectedCard: {
     borderWidth: 2,
@@ -698,6 +775,14 @@ const styles = StyleSheet.create({
   vehicleInfo: {
     flex: 1,
     paddingRight: 12,
+    minHeight: 72,
+    justifyContent: "center",
+    position: "relative",
+    paddingBottom: 2,
+  },
+  vehicleTextBlock: {
+    justifyContent: "center",
+    paddingRight: 52,
   },
   vehicleName: {
     fontSize: 16,
@@ -709,6 +794,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666666",
   },
+  cardEditButton: {
+    position: "absolute",
+    right: 12,
+    bottom: 0,
+    paddingLeft: 8,
+    paddingTop: 8,
+  },
+  cardEditButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#111111",
+    textDecorationLine: "underline",
+  },
   imageWrapper: {
     width: 72,
     height: 72,
@@ -717,6 +815,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+    flexShrink: 0,
   },
   vehicleImage: {
     width: "100%",
@@ -797,6 +896,32 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
     position: "relative",
+  },
+  confirmModalCard: {
+    width: "100%",
+    maxWidth: 300,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  confirmTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111111",
+    marginTop: 20,
+    marginHorizontal: 20,
+    marginBottom: 8,
+  },
+  confirmSubtitle: {
+    fontSize: 14,
+    color: "#555555",
+    lineHeight: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  confirmVehicleName: {
+    fontWeight: "600",
+    color: "#111111",
   },
   closeButton: {
     position: "absolute",
