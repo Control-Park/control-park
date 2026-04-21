@@ -177,7 +177,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
   const { id } = route.params;
   const isFavorited = favorites[id];
   const queryClient = useQueryClient();
-  const { methods: paymentMethods } = usePaymentMethods();
+  const { defaultPaymentMethodId, methods: paymentMethods } = usePaymentMethods();
 
   const { width } = useWindowDimensions();
   const { selectedVehicle } = useVehicleStore();
@@ -244,6 +244,12 @@ export default function ReserveScreen({ route, navigation }: Props) {
   const calendarDays = buildCalendarDays(calendarMonth);
   const activeDate = activeEditor === "start" ? draftStart : draftEnd;
   const activeTime = getTimeParts(activeDate);
+  const orderedPaymentMethods = defaultPaymentMethodId
+    ? [
+        ...paymentMethods.filter((method) => method.id === defaultPaymentMethodId),
+        ...paymentMethods.filter((method) => method.id !== defaultPaymentMethodId),
+      ]
+    : paymentMethods;
 
   useEffect(() => {
     if (!isTimePickerVisible) {
@@ -292,10 +298,20 @@ export default function ReserveScreen({ route, navigation }: Props) {
   }, [selectedVehicle]);
 
   useEffect(() => {
-    if (paymentMethods.length > 0 && !selectedPaymentMethodId) {
-      setSelectedPaymentMethodId(paymentMethods[0].id);
+    if (paymentMethods.length === 0) {
+      setSelectedPaymentMethodId(null);
+      return;
     }
-  }, [paymentMethods, selectedPaymentMethodId]);
+
+    if (
+      selectedPaymentMethodId &&
+      paymentMethods.some((method) => method.id === selectedPaymentMethodId)
+    ) {
+      return;
+    }
+
+    setSelectedPaymentMethodId(defaultPaymentMethodId ?? paymentMethods[0].id);
+  }, [defaultPaymentMethodId, paymentMethods, selectedPaymentMethodId]);
 
   useEffect(() => {
     if (!isReserveSuccessVisible) {
@@ -653,8 +669,9 @@ export default function ReserveScreen({ route, navigation }: Props) {
             </Pressable>
           ) : (
             <View className="mt-3 gap-2">
-              {paymentMethods.map((method) => {
+              {orderedPaymentMethods.map((method) => {
                 const isSelected = method.id === selectedPaymentMethodId;
+                const isDefault = method.id === defaultPaymentMethodId;
                 return (
                   <Pressable
                     key={method.id}
@@ -670,6 +687,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
                     </View>
                     <Text className="flex-1 text-[13px] text-[#555555]">
                       {method.brand} ···· {method.last4}
+                      {isDefault ? "  Default" : ""}
                     </Text>
                     {isSelected && <Ionicons name="checkmark-circle" size={18} color="#ECAA00" />}
                   </Pressable>

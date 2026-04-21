@@ -57,7 +57,13 @@ const CARD_BRANDS = [
 export default function PaymentScreen() {
   const navigation = useNavigation<PaymentNavigationProp>();
   const insets = useSafeAreaInsets();
-  const { methods, removeMethod, refreshMethods } = usePaymentMethods();
+  const {
+    defaultPaymentMethodId,
+    methods,
+    removeMethod,
+    refreshMethods,
+    setDefaultPaymentMethod,
+  } = usePaymentMethods();
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
@@ -182,9 +188,17 @@ export default function PaymentScreen() {
             {methods.map(method => (
               <View
                 key={method.id}
-                style={styles.methodRow}
+                style={[
+                  styles.methodRow,
+                  method.id === defaultPaymentMethodId && styles.defaultMethodRow,
+                ]}
               >
-                <View style={styles.rowContent}>
+                <Pressable
+                  style={styles.rowContent}
+                  onPress={() => {
+                    void setDefaultPaymentMethod(method.id);
+                  }}
+                >
                   <View style={styles.rowLogo}>
                     <Image
                       source={getLogoForBrand(method.brand) ?? CARD_BRANDS[0].logo}
@@ -195,8 +209,11 @@ export default function PaymentScreen() {
                   <View>
                     <Text style={styles.methodBrand}>{method.brand}</Text>
                     <Text style={styles.methodNumber}>**** {method.last4}</Text>
+                    {method.id === defaultPaymentMethodId ? (
+                      <Text style={styles.defaultMethodText}>Default payment method</Text>
+                    ) : null}
                   </View>
-                </View>
+                </Pressable>
                 <Pressable
                   onPress={() => openRemoveModal(method.id)}
                   hitSlop={10}
@@ -443,9 +460,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#FAFAFA",
   },
+  defaultMethodRow: {
+    borderColor: "#ECAA00",
+    borderWidth: 1.5,
+    backgroundColor: "#FFF8E1",
+  },
   rowContent: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
   },
   methodBrand: {
     fontSize: 16,
@@ -454,6 +477,12 @@ const styles = StyleSheet.create({
   methodNumber: {
     fontSize: 14,
     color: "#D4A017",
+  },
+  defaultMethodText: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6B7280",
   },
   rowLogo: {
     width: 48,

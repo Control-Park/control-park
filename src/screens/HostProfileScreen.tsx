@@ -15,6 +15,7 @@ import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import NotificationsButton from "../components/NotificationsButton";
 import { getMyProfile, UserProfile } from "../api/user";
+import { usePaymentMethods } from "../context/paymentMethodsContext";
 
 type HostProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -56,6 +57,7 @@ function getStatusColor(status: ListingStatus) {
 export default function HostProfileScreen() {
   const navigation = useNavigation<HostProfileScreenNavigationProp>();
   const insets = useSafeAreaInsets();
+  const { defaultMethod } = usePaymentMethods();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
@@ -89,9 +91,7 @@ export default function HostProfileScreen() {
   const balance = 0;
   const completedBookings = 0;
 
-  const paymentBrand: string | null = null;
-  const paymentLast4: string | null = null;
-  const hasPaymentMethod = Boolean(paymentLast4);
+  const hasPaymentMethod = !!defaultMethod;
 
   const listings: HostListing[] = [];
   const hasListings = listings.length > 0;
@@ -150,19 +150,25 @@ export default function HostProfileScreen() {
                 </Text>
               </View>
 
-              <View style={styles.paymentCard}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.paymentCard,
+                  pressed && styles.pressed,
+                ]}
+                onPress={() => navigation.navigate("Payment")}
+              >
                 <Text style={styles.paymentTopLabel}>Payment Method</Text>
 
                 {hasPaymentMethod ? (
                   <View style={styles.paymentFilledContent}>
                     <Text style={styles.paymentBrandText}>
-                      {paymentBrand ?? "Card"}
+                      {defaultMethod?.brand ?? "Card"}
                     </Text>
                     <Text style={styles.paymentMaskedText}>
-                      xxxx-xxxx
+                      •••• {defaultMethod?.last4}
                     </Text>
                     <Text style={styles.paymentCardholderText}>
-                      {hostName}
+                      {defaultMethod?.holder || hostName}
                     </Text>
                   </View>
                 ) : (
@@ -179,10 +185,10 @@ export default function HostProfileScreen() {
                     ]}
                   >
                     <Ionicons name="add" size={18} color="#111111" />
-                  </Pressable>
+                    </Pressable>
                 </View>
                 )}
-              </View>
+              </Pressable>
             </View>
 
             {!hasBalance ? (
