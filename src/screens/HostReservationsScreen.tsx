@@ -6,7 +6,6 @@ import {
   Text,
   Pressable,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -106,14 +105,7 @@ export default function HostReservationsScreen({ navigation }: Props) {
   };
 
   const handleReject = (r: Reservation) => {
-    Alert.alert(
-      "Reject Reservation",
-      `Reject ${r.guest?.first_name ?? "guest"}'s reservation?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Reject", style: "destructive", onPress: () => rejectMutation.mutate(r.id) },
-      ],
-    );
+    rejectMutation.mutate(r.id);
   };
 
   const pending = reservations?.filter((r) => r.status === "pending") ?? [];

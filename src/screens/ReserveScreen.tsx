@@ -487,6 +487,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
           />
           <ReportButton listingId={listingData.id} />
           <SaveButton
+            listingId={id}
             onPress={() => toggleFavorite(id)}
             isFavorited={isFavorited}
           />
@@ -613,9 +614,9 @@ export default function ReserveScreen({ route, navigation }: Props) {
             </View>
             
             <View className="h-[72px] w-[110px] items-center justify-center overflow-hidden rounded-md bg-[#F3F4F6]">
-              {selectedVehicle ? (
+              {selectedVehicle?.image ? (
                 <Image
-                  source={selectedVehicle.image}
+                  source={{ uri: selectedVehicle.image }}
                   style={{ width: 120, height: 90 }}
                   resizeMode="contain"
                 />
@@ -690,10 +691,11 @@ export default function ReserveScreen({ route, navigation }: Props) {
           ) : null}
 
           <CustomButton
-            title="Reserve"
-            color="#ECAA00"
+            title={isSubmitting ? "Submitting..." : "Reserve"}
+            color={isSubmitting ? "#D1A000" : "#ECAA00"}
             className="flex items-center justify-center rounded-full font-abeezee"
             onPress={handleReservePress}
+            disabled={isSubmitting}
           />
         </View>
       </View>
