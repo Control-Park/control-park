@@ -48,6 +48,7 @@ export type RootStackParamList = {
   Conversation: {
     listingId: string;
     hostId: string;
+    guestId?: string;
     conversationId?: string;
     hostName?: string;
     listingTitle?: string;
@@ -55,7 +56,7 @@ export type RootStackParamList = {
   };
   Profile: undefined;
   ProfileSettings: undefined;
-  GuestProfile: undefined;
+  GuestProfile: { guestId: string; reservationId: string };
   Reserve: { id: string };
   ActiveReservation: { reservationId: string };
   VehicleManagement: undefined;

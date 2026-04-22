@@ -59,7 +59,7 @@ function toChat(msg: Message, currentUserId: string): ChatMessage {
 
 export default function ConversationScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
-  const { listingId, hostId, conversationId: paramConversationId, hostName, listingTitle, listingImage } = route.params;
+  const { listingId, hostId, guestId, conversationId: paramConversationId, hostName, listingTitle, listingImage } = route.params;
   const queryClient = useQueryClient();
 
   const [messageText, setMessageText] = useState("");
@@ -76,7 +76,7 @@ export default function ConversationScreen({ navigation, route }: Props) {
       setCurrentUserId(data.session.user.id);
       if (paramConversationId) return; // already have it
       try {
-        const conv = await getOrCreateConversation(hostId, listingId);
+        const conv = await getOrCreateConversation(hostId, listingId, guestId);
         setConversationId(conv.id);
       } catch {
         setInitError("Failed to load conversation");

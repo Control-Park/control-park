@@ -22,6 +22,11 @@ export interface UserProfile {
   updated_at: string;
 }
 
+export const fetchUserById = async (id: string): Promise<UserProfile> => {
+  const { data } = await client.get(`/auth/user/${id}`);
+  return data as UserProfile;
+};
+
 export const getMyProfile = async (): Promise<UserProfile> => {
   const { data: sessionData } = await supabase.auth.getSession();
   const userId = sessionData.session?.user?.id;

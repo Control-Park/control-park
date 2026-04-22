@@ -87,3 +87,8 @@ export const fetchBookedRanges = async (listingId: string): Promise<BookedRange[
   const res = await client.get<BookedRange[]>(`/reservations/listing/${listingId}/booked`);
   return res.data;
 };
+
+export const fetchReservationForHost = async (id: string): Promise<Reservation> => {
+  const res = await client.get<Reservation>(`/reservations/${id}/for-host`);
+  return res.data;
+};

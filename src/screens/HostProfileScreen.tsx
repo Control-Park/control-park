@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,7 +20,8 @@ import NotificationsButton from "../components/NotificationsButton";
 import { getMyProfile, UserProfile } from "../api/user";
 import { usePaymentMethods } from "../context/paymentMethodsContext";
 import { deleteListing, fetchListings } from "../api/listings";
-import { fetchHostingReservations, fetchHostStats, HostStats } from "../api/reservations";
+import { approveReservation, fetchHostingReservations, fetchHostStats, HostStats, rejectReservation, Reservation } from "../api/reservations";
+import { CompletedReservation, createReview, fetchPendingReviews } from "../api/reviews";
 import type { Listing } from "../types/listing";
 import { supabase } from "../utils/supabase";
 import { getProfileDisplayName, getProfileInitial } from "../utils/profile";
@@ -57,6 +59,14 @@ export default function HostProfileScreen() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [stats, setStats] = useState<HostStats>({ completed_bookings: 0, wallet_balance: 0 });
   const [occupiedListingIds, setOccupiedListingIds] = useState<Set<string>>(new Set());
+  const [pendingReservations, setPendingReservations] = useState<Reservation[]>([]);
+  const [completedReservations, setCompletedReservations] = useState<CompletedReservation[]>([]);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<CompletedReservation | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [isListingActionsVisible, setIsListingActionsVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -91,6 +101,9 @@ export default function HostProfileScreen() {
           .map((r) => r.listing_id),
       );
       setOccupiedListingIds(activeIds);
+      setPendingReservations(hostingReservations.filter((r) => r.status === "pending"));
+      const completed = await fetchPendingReviews();
+      setCompletedReservations(completed);
     } catch (error) {
       console.error("Failed to load host data:", error);
       setListings([]);
@@ -114,6 +127,66 @@ export default function HostProfileScreen() {
   const hasListings = listings.length > 0;
   const hasBalance = balance > 0;
   const hasCompletedBookings = completedBookings > 0;
+
+  const handleApprove = async (id: string) => {
+    setApprovingId(id);
+    try {
+      await approveReservation(id);
+      setPendingReservations((prev) => prev.filter((r) => r.id !== id));
+      void loadHostListings();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to approve";
+      setTimeout(() => Alert.alert("Error", msg), 300);
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    setRejectingId(id);
+    try {
+      await rejectReservation(id);
+      setPendingReservations((prev) => prev.filter((r) => r.id !== id));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to reject";
+      setTimeout(() => Alert.alert("Error", msg), 300);
+    } finally {
+      setRejectingId(null);
+    }
+  };
+
+  const openReviewModal = (r: CompletedReservation) => {
+    setReviewTarget(r);
+    setReviewRating(0);
+    setReviewComment("");
+  };
+
+  const closeReviewModal = () => {
+    setReviewTarget(null);
+    setReviewRating(0);
+    setReviewComment("");
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewTarget || reviewRating === 0) return;
+    setIsSubmittingReview(true);
+    try {
+      await createReview({
+        reservation_id: reviewTarget.id,
+        rating: reviewRating,
+        comment: reviewComment.trim() || undefined,
+        target_user_id: reviewTarget.role === "host" ? reviewTarget.guest?.id : undefined,
+        target_listing_id: reviewTarget.role === "guest" ? reviewTarget.listing_id : undefined,
+      });
+      setCompletedReservations((prev) => prev.filter((r) => r.id !== reviewTarget.id));
+      closeReviewModal();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to submit review";
+      setTimeout(() => Alert.alert("Error", msg), 300);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   const handleOpenListing = (listing: Listing) => {
     navigation.navigate("Details", { id: listing.id });
@@ -366,6 +439,99 @@ export default function HostProfileScreen() {
               </View>
             )}
 
+            {pendingReservations.length > 0 && (
+              <View style={styles.pendingSection}>
+                <Text style={styles.pendingSectionTitle}>Pending Approval</Text>
+                {pendingReservations.map((r) => {
+                  const start = new Date(r.start_time);
+                  const end = new Date(r.end_time);
+                  const isApproving = approvingId === r.id;
+                  const isRejecting = rejectingId === r.id;
+                  const busy = isApproving || isRejecting;
+                  return (
+                    <View key={r.id} style={styles.pendingCard}>
+                      <View style={styles.pendingCardInfo}>
+                        <Text style={styles.pendingCardTitle} numberOfLines={1}>
+                          {r.listing?.title ?? "Listing"}
+                        </Text>
+                        <Text style={styles.pendingCardMeta}>
+                          {r.guest ? `${r.guest.first_name} ${r.guest.last_name}` : "Guest"}
+                        </Text>
+                        <Text style={styles.pendingCardTime}>
+                          {start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          {" · "}
+                          {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                          {" – "}
+                          {end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                        </Text>
+                        <Text style={styles.pendingCardPrice}>${r.total_price.toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.pendingCardActions}>
+                        <Pressable
+                          style={styles.viewProfileButton}
+                          onPress={() =>
+                            navigation.navigate("GuestProfile", {
+                              guestId: r.user_id,
+                              reservationId: r.id,
+                            })
+                          }
+                        >
+                          <Text style={styles.viewProfileButtonText}>View Profile</Text>
+                        </Pressable>
+                        <Pressable
+                          style={[styles.approveButton, busy && { opacity: 0.5 }]}
+                          onPress={() => handleApprove(r.id)}
+                          disabled={busy}
+                        >
+                          <Text style={styles.approveButtonText}>
+                            {isApproving ? "..." : "Approve"}
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          style={[styles.rejectButton, busy && { opacity: 0.5 }]}
+                          onPress={() => handleReject(r.id)}
+                          disabled={busy}
+                        >
+                          <Text style={styles.rejectButtonText}>
+                            {isRejecting ? "..." : "Reject"}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            {completedReservations.length > 0 && (
+              <View style={styles.completedSection}>
+                <Text style={styles.completedSectionTitle}>Completed Listings</Text>
+                {completedReservations.map((r) => {
+                  const start = new Date(r.start_time);
+                  const targetName = r.role === "host"
+                    ? (r.guest ? `${r.guest.first_name} ${r.guest.last_name}` : "Guest")
+                    : (r.listing?.title ?? "Listing");
+                  const subLabel = r.role === "host" ? "Review guest" : "Review listing";
+                  return (
+                    <Pressable
+                      key={r.id}
+                      style={({ pressed }) => [styles.completedCard, pressed && { opacity: 0.75 }]}
+                      onPress={() => openReviewModal(r)}
+                    >
+                      <View style={styles.completedCardInfo}>
+                        <Text style={styles.completedCardTitle} numberOfLines={1}>{targetName}</Text>
+                        <Text style={styles.completedCardSub}>{subLabel}</Text>
+                        <Text style={styles.completedCardDate}>
+                          {start.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color="#AAAAAA" />
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+
             <View style={{ height: 100 }} />
           </View>
         </View>
@@ -376,6 +542,58 @@ export default function HostProfileScreen() {
           <Navbar activeTab="Profile" />
         </View>
       </View>
+
+      <Modal
+        transparent
+        animationType="slide"
+        visible={!!reviewTarget}
+        onRequestClose={closeReviewModal}
+      >
+        <Pressable style={styles.actionsBackdrop} onPress={closeReviewModal}>
+          <Pressable style={styles.reviewModalCard} onPress={() => {}}>
+            <Text style={styles.reviewModalTitle}>
+              {reviewTarget?.role === "host" ? "Rate Guest" : "Rate Listing"}
+            </Text>
+            <Text style={styles.reviewModalSub} numberOfLines={1}>
+              {reviewTarget?.role === "host"
+                ? (reviewTarget.guest ? `${reviewTarget.guest.first_name} ${reviewTarget.guest.last_name}` : "Guest")
+                : (reviewTarget?.listing?.title ?? "Listing")}
+            </Text>
+
+            <View style={styles.starRow}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Pressable key={i} onPress={() => setReviewRating(i)} hitSlop={8}>
+                  <Ionicons
+                    name={i <= reviewRating ? "star" : "star-outline"}
+                    size={32}
+                    color="#F59E0B"
+                  />
+                </Pressable>
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.reviewInput}
+              placeholder="Add a comment (optional)"
+              placeholderTextColor="#AAAAAA"
+              value={reviewComment}
+              onChangeText={setReviewComment}
+              multiline
+              textAlignVertical="top"
+            />
+
+            <Pressable
+              style={[styles.reviewSubmitBtn, (reviewRating === 0 || isSubmittingReview) && { opacity: 0.5 }]}
+              onPress={handleSubmitReview}
+              disabled={reviewRating === 0 || isSubmittingReview}
+            >
+              <Text style={styles.reviewSubmitBtnText}>
+                {isSubmittingReview ? "Submitting..." : "Submit Review"}
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal
         transparent
@@ -804,4 +1022,153 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#22C55E",
   },
+  pendingSection: {
+    marginTop: 24,
+  },
+  pendingSectionTitle: {
+    fontSize: 20,
+    fontWeight: "500",
+    color: "#111111",
+    marginBottom: 12,
+  },
+  pendingCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    gap: 12,
+  },
+  pendingCardInfo: {
+    flex: 1,
+  },
+  pendingCardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111111",
+    marginBottom: 2,
+  },
+  pendingCardMeta: {
+    fontSize: 13,
+    color: "#555555",
+    marginBottom: 2,
+  },
+  pendingCardTime: {
+    fontSize: 12,
+    color: "#777777",
+    marginBottom: 4,
+  },
+  pendingCardPrice: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111111",
+  },
+  pendingCardActions: {
+    gap: 8,
+  },
+  approveButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: "#22C55E",
+    alignItems: "center",
+  },
+  approveButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  rejectButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    alignItems: "center",
+  },
+  rejectButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  viewProfileButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    alignItems: "center",
+  },
+  viewProfileButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#111111",
+  },
+  completedSection: { marginTop: 24 },
+  completedSectionTitle: {
+    fontSize: 20,
+    fontWeight: "500",
+    color: "#111111",
+    marginBottom: 12,
+  },
+  completedCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+  },
+  completedCardInfo: { flex: 1 },
+  completedCardTitle: { fontSize: 15, fontWeight: "600", color: "#111111", marginBottom: 2 },
+  completedCardSub: { fontSize: 12, color: "#ECAA00", fontWeight: "600", marginBottom: 2 },
+  completedCardDate: { fontSize: 12, color: "#777777" },
+  reviewModalCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxWidth: 360,
+  },
+  reviewModalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111111",
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  reviewModalSub: {
+    fontSize: 14,
+    color: "#777777",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  starRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    marginBottom: 20,
+  },
+  reviewInput: {
+    minHeight: 90,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#D0D0D0",
+    backgroundColor: "#F8F8F8",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: "#111111",
+    marginBottom: 16,
+  },
+  reviewSubmitBtn: {
+    backgroundColor: "#ECAA00",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  reviewSubmitBtnText: { fontSize: 16, fontWeight: "700", color: "#111111" },
 });

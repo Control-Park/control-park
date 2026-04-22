@@ -23,8 +23,10 @@ export interface Message {
 export const getOrCreateConversation = async (
   hostId: string,
   listingId: string,
+  guestId?: string,
 ): Promise<ConversationSummary> => {
   const res = await client.post<ConversationSummary>("/conversations", {
+    guest_id: guestId,
     host_id: hostId,
     listing_id: listingId,
   });
