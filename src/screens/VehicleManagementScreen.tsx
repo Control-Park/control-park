@@ -48,10 +48,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
   const [isAddVehicleModalVisible, setIsAddVehicleModalVisible] =
     useState(false);
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
-  const [isSelectPrimaryModalVisible, setIsSelectPrimaryModalVisible] =
-    useState(false);
-  const [pendingSelectedVehicle, setPendingSelectedVehicle] =
-    useState<Vehicle | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
 
   const [plateNumber, setPlateNumber] = useState("");
   const [vehicleMake, setVehicleMake] = useState("");
@@ -70,6 +67,8 @@ export default function VehicleManagementScreen({ navigation }: Props) {
   const hasVehicles = vehicles.length > 0;
   const currentYear = new Date().getFullYear();
   const isEditing = editingVehicleId !== null;
+  const detailedVehicle =
+    vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? null;
 
   // Load vehicles from backend on mount (only if authenticated)
   useEffect(() => {
@@ -211,9 +210,12 @@ export default function VehicleManagementScreen({ navigation }: Props) {
     resetForm();
   };
 
-  const closePrimaryVehicleModal = () => {
-    setIsSelectPrimaryModalVisible(false);
-    setPendingSelectedVehicle(null);
+  const closeVehicleDetailsModal = () => {
+    setSelectedVehicleId(null);
+  };
+
+  const openVehicleDetailsModal = (vehicleId: string) => {
+    setSelectedVehicleId(vehicleId);
   };
 
   const handleTakePicture = async () => {
@@ -399,10 +401,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
                     <Pressable
                       key={vehicle.id}
                       onPress={() => {
-                        if (selectedVehicle?.id !== vehicle.id) {
-                          setPendingSelectedVehicle(vehicle);
-                          setIsSelectPrimaryModalVisible(true);
-                        }
+                        openVehicleDetailsModal(vehicle.id);
                       }}
                       style={({ pressed }) => [
                         styles.vehicleCard,
@@ -697,50 +696,120 @@ export default function VehicleManagementScreen({ navigation }: Props) {
       </Modal>
 
       <Modal
-        visible={isSelectPrimaryModalVisible}
+        visible={detailedVehicle !== null}
         transparent
         animationType="fade"
-        onRequestClose={closePrimaryVehicleModal}
+        onRequestClose={closeVehicleDetailsModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.confirmModalCard}>
-            <Text style={styles.confirmTitle}>Set as primary vehicle?</Text>
-
-            <Text style={styles.confirmSubtitle}>
-              Do you want to set{" "}
-              <Text style={styles.confirmVehicleName}>
-                {pendingSelectedVehicle?.name}
-              </Text>{" "}
-              as your primary vehicle?
-            </Text>
-
-            <View style={styles.modalFooter}>
-              <Pressable
-                onPress={closePrimaryVehicleModal}
-                style={({ pressed }) => [
-                  styles.footerButton,
-                  styles.footerButtonBorder,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={styles.footerButtonText}>Cancel</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => {
-                  if (pendingSelectedVehicle) {
-                    setSelectedVehicle(pendingSelectedVehicle);
-                  }
-                  closePrimaryVehicleModal();
-                }}
-                style={({ pressed }) => [
-                  styles.footerButton,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={styles.footerButtonText}>Confirm</Text>
+          <View style={styles.vehicleDetailsCard}>
+            <View style={styles.vehicleDetailsHeader}>
+              <Text style={styles.vehicleDetailsTitle}>Vehicle Details</Text>
+              <Pressable onPress={closeVehicleDetailsModal} hitSlop={10}>
+                <Ionicons name="close" size={18} color="#6B7280" />
               </Pressable>
             </View>
+
+            {detailedVehicle ? (
+              <>
+                <View style={styles.vehicleDetailsTopRow}>
+                  <View style={styles.vehicleDetailsImageWrapper}>
+                    {detailedVehicle.image ? (
+                      <Image
+                        source={{ uri: detailedVehicle.image }}
+                        style={styles.vehicleDetailsImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Ionicons
+                        name="car-outline"
+                        size={28}
+                        color="#666666"
+                      />
+                    )}
+                  </View>
+
+                  <View style={styles.vehicleDetailsTitleBlock}>
+                    <Text style={styles.vehicleDetailsName}>
+                      {detailedVehicle.name}
+                    </Text>
+                    <Text style={styles.vehicleDetailsPlate}>
+                      {detailedVehicle.plate}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.vehicleDetailsList}>
+                  <View style={styles.vehicleDetailsRow}>
+                    <Text style={styles.vehicleDetailsLabel}>Make</Text>
+                    <Text style={styles.vehicleDetailsValue}>
+                      {detailedVehicle.make}
+                    </Text>
+                  </View>
+
+                  <View style={styles.vehicleDetailsRow}>
+                    <Text style={styles.vehicleDetailsLabel}>Model</Text>
+                    <Text style={styles.vehicleDetailsValue}>
+                      {detailedVehicle.model}
+                    </Text>
+                  </View>
+
+                  <View style={styles.vehicleDetailsRow}>
+                    <Text style={styles.vehicleDetailsLabel}>Year</Text>
+                    <Text style={styles.vehicleDetailsValue}>
+                      {detailedVehicle.year}
+                    </Text>
+                  </View>
+
+                  <View style={styles.vehicleDetailsRow}>
+                    <Text style={styles.vehicleDetailsLabel}>Color</Text>
+                    <Text style={styles.vehicleDetailsValue}>
+                      {detailedVehicle.color}
+                    </Text>
+                  </View>
+
+                  <View style={styles.vehicleDetailsRow}>
+                    <Text style={styles.vehicleDetailsLabel}>Status</Text>
+                    <Text style={styles.vehicleDetailsValue}>
+                      {selectedVehicle?.id === detailedVehicle.id
+                        ? "Primary vehicle"
+                        : "Saved vehicle"}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.vehicleDetailsActions}>
+                  {selectedVehicle?.id !== detailedVehicle.id ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.vehicleDetailsPrimaryButton,
+                        pressed && styles.pressed,
+                      ]}
+                      onPress={() => {
+                        setSelectedVehicle(detailedVehicle);
+                        closeVehicleDetailsModal();
+                      }}
+                    >
+                      <Text style={styles.vehicleDetailsPrimaryButtonText}>
+                        Set as primary
+                      </Text>
+                    </Pressable>
+                  ) : null}
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.vehicleDetailsSecondaryButton,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={closeVehicleDetailsModal}
+                  >
+                    <Text style={styles.vehicleDetailsSecondaryButtonText}>
+                      Close
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
           </View>
         </View>
       </Modal>
@@ -951,29 +1020,106 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     position: "relative",
   },
-  confirmModalCard: {
+  vehicleDetailsCard: {
     width: "100%",
-    maxWidth: 300,
+    maxWidth: 340,
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    overflow: "hidden",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
   },
-  confirmTitle: {
-    fontSize: 16,
+  vehicleDetailsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+  },
+  vehicleDetailsTitle: {
+    fontSize: 20,
     fontWeight: "600",
     color: "#111111",
-    marginTop: 20,
-    marginHorizontal: 20,
-    marginBottom: 8,
   },
-  confirmSubtitle: {
-    fontSize: 14,
-    color: "#555555",
-    lineHeight: 20,
-    marginHorizontal: 20,
+  vehicleDetailsTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 20,
   },
-  confirmVehicleName: {
+  vehicleDetailsImageWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 14,
+    backgroundColor: "#ECECEC",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    marginRight: 14,
+  },
+  vehicleDetailsImage: {
+    width: "100%",
+    height: "100%",
+  },
+  vehicleDetailsTitleBlock: {
+    flex: 1,
+  },
+  vehicleDetailsName: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111111",
+  },
+  vehicleDetailsPlate: {
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#ECAA00",
+  },
+  vehicleDetailsList: {
+    gap: 12,
+  },
+  vehicleDetailsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 16,
+  },
+  vehicleDetailsLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  vehicleDetailsValue: {
+    flex: 1,
+    fontSize: 14,
+    color: "#111111",
+    textAlign: "right",
+  },
+  vehicleDetailsActions: {
+    marginTop: 24,
+    gap: 12,
+  },
+  vehicleDetailsPrimaryButton: {
+    backgroundColor: "#ECAA00",
+    borderRadius: 999,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  vehicleDetailsPrimaryButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111111",
+  },
+  vehicleDetailsSecondaryButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  vehicleDetailsSecondaryButtonText: {
+    fontSize: 15,
     fontWeight: "600",
     color: "#111111",
   },
