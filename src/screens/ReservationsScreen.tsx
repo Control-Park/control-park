@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -17,6 +17,7 @@ import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useFavoritesStore } from "../context/favoritesStore";
+import { useReservationStore } from "../context/reservationStore";
 import {
   fetchReservations,
   cancelReservation,
@@ -70,6 +71,12 @@ export default function ReservationsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { favorites } = useFavoritesStore();
   const queryClient = useQueryClient();
+  const dismissedCancelledIds = useReservationStore(
+    (state) => state.dismissedCancelledIds,
+  );
+  const dismissCancelledReservation = useReservationStore(
+    (state) => state.dismissCancelledReservation,
+  );
 
   const { data: reservations, isLoading, isError } = useQuery<Reservation[]>({
     queryKey: ["reservations"],
@@ -89,6 +96,17 @@ export default function ReservationsScreen({ navigation }: Props) {
   });
 
   const savedListings = listings?.filter((l) => favorites[l.id]) ?? [];
+  const visibleReservations = useMemo(
+    () =>
+      reservations?.filter(
+        (reservation) =>
+          !(
+            reservation.status === "cancelled" &&
+            dismissedCancelledIds.includes(reservation.id)
+          ),
+      ) ?? [],
+    [dismissedCancelledIds, reservations],
+  );
 
   return (
     <View style={styles.safe}>
@@ -115,7 +133,7 @@ export default function ReservationsScreen({ navigation }: Props) {
             ) : (
               <>
                 {/* Currently Active */}
-                {reservations?.filter((r) => r.status === "active").map((r) => {
+                {visibleReservations.filter((r) => r.status === "active").map((r) => {
                   const start = new Date(r.start_time);
                   const end = new Date(r.end_time);
                   return (
@@ -152,7 +170,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.cardsRow}
               >
-                {!reservations || reservations.length === 0 ? (
+                {!visibleReservations || visibleReservations.length === 0 ? (
                   <View style={styles.emptyState}>
                     <Text style={styles.emptyTitle}>No reservations yet</Text>
                     <Text style={styles.emptyText}>
@@ -160,7 +178,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                     </Text>
                   </View>
                 ) : (
-                  reservations.map((r) => {
+                  visibleReservations.map((r) => {
                     const start = new Date(r.start_time);
                     const end = new Date(r.end_time);
                     const status = r.status;
@@ -200,6 +218,22 @@ export default function ReservationsScreen({ navigation }: Props) {
                               {STATUS_LABELS[status]}
                             </Text>
                           </View>
+
+                          {status === "cancelled" ? (
+                            <Pressable
+                              style={({ pressed }) => [
+                                styles.dismissButton,
+                                pressed && styles.dismissButtonPressed,
+                              ]}
+                              onPress={(event) => {
+                                event.stopPropagation();
+                                dismissCancelledReservation(r.id);
+                              }}
+                              hitSlop={8}
+                            >
+                              <Ionicons name="close" size={14} color="#111111" />
+                            </Pressable>
+                          ) : null}
                         </View>
 
                         <Text style={styles.cardTitle} numberOfLines={1}>
@@ -374,6 +408,20 @@ const styles = StyleSheet.create({
   cardImageWrapper: { position: "relative" },
   cardImage: { width: 118, height: 118, borderRadius: 18, marginBottom: 6 },
   imagePlaceholder: { backgroundColor: "#E5E5E5" },
+  dismissButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dismissButtonPressed: {
+    opacity: 0.72,
+  },
   statusBadge: {
     position: "absolute",
     bottom: 12,

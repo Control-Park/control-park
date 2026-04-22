@@ -11,14 +11,17 @@ export type ReservationRecord = {
 };
 
 type ReservationStore = {
+  dismissedCancelledIds: string[];
   reservations: ReservationRecord[];
   addReservation: (
     reservation: Omit<ReservationRecord, "id" | "createdAt">,
   ) => void;
+  dismissCancelledReservation: (reservationId: string) => void;
   removeReservation: (reservationId: string) => void;
 };
 
 export const useReservationStore = create<ReservationStore>((set) => ({
+  dismissedCancelledIds: [],
   reservations: [],
   addReservation: (reservation) =>
     set((state) => ({
@@ -30,6 +33,12 @@ export const useReservationStore = create<ReservationStore>((set) => ({
         },
         ...state.reservations,
       ],
+    })),
+  dismissCancelledReservation: (reservationId) =>
+    set((state) => ({
+      dismissedCancelledIds: state.dismissedCancelledIds.includes(reservationId)
+        ? state.dismissedCancelledIds
+        : [...state.dismissedCancelledIds, reservationId],
     })),
   removeReservation: (reservationId) =>
     set((state) => ({

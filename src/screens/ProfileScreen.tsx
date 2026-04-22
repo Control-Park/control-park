@@ -222,16 +222,6 @@ export default function ProfileScreen() {
                 >
                   <Feather name="search" size={20} color="#111111" />
                 </Pressable>
-
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.iconButton,
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={() => navigation.navigate("NotificationSettings")}
-                >
-                  <Ionicons name="settings-outline" size={20} color="#111111" />
-                </Pressable>
               </View>
             </View>
 
