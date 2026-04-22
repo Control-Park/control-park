@@ -68,6 +68,16 @@ export const cancelReservation = async (id: string): Promise<Reservation> => {
   return res.data;
 };
 
+export interface HostStats {
+  completed_bookings: number;
+  wallet_balance: number;
+}
+
+export const fetchHostStats = async (): Promise<HostStats> => {
+  const res = await client.get<HostStats>("/reservations/host/stats");
+  return res.data;
+};
+
 export interface BookedRange {
   end_time: string;
   start_time: string;

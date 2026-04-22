@@ -113,6 +113,40 @@ export default function ReservationsScreen({ navigation }: Props) {
             ) : isError ? (
               <Text style={styles.errorText}>Failed to load reservations.</Text>
             ) : (
+              <>
+                {/* Currently Active */}
+                {reservations?.filter((r) => r.status === "active").map((r) => {
+                  const start = new Date(r.start_time);
+                  const end = new Date(r.end_time);
+                  return (
+                    <Pressable
+                      key={r.id}
+                      style={({ pressed }) => [
+                        styles.activeCard,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                      onPress={() =>
+                        navigation.navigate("ActiveReservation", { reservationId: r.id })
+                      }
+                    >
+                      <View style={styles.activeCardHeader}>
+                        <View style={styles.activeDot} />
+                        <Text style={styles.activeCardLabel}>Currently Parked</Text>
+                        <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
+                      </View>
+                      <Text style={styles.activeCardTitle} numberOfLines={1}>
+                        {r.listing?.title ?? "Listing"}
+                      </Text>
+                      <Text style={styles.activeCardAddress} numberOfLines={1}>
+                        {r.listing?.address ?? ""}
+                      </Text>
+                      <Text style={styles.activeCardTime}>
+                        {formatTime(start)} – {formatTime(end)} · {formatDate(start)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -207,6 +241,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                   })
                 )}
               </ScrollView>
+              </>
             )}
 
             <View style={styles.section}>
@@ -253,6 +288,48 @@ export default function ReservationsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#FFFFFF" },
+  activeCard: {
+    backgroundColor: "#22C55E",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14,
+  },
+  activeCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    gap: 6,
+  },
+  activeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#FFFFFF",
+  },
+  activeCardLabel: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  activeCardTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    marginBottom: 2,
+  },
+  activeCardAddress: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.85)",
+    marginBottom: 6,
+  },
+  activeCardTime: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.9)",
+  },
   scrollContainer: { flex: 1 },
   pageMax: {
     paddingHorizontal: 16,

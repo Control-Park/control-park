@@ -78,4 +78,13 @@ export const unsaveListing = async (id: string): Promise<void> => {
   return data;
 };
 
+export const updateListing = async (id: string, payload: Partial<Listing>): Promise<Listing> => {
+  const { data } = await client.patch<Listing>(`/listings/${id}`, payload);
+  return data;
+};
+
+export const deleteListing = async (id: string): Promise<void> => {
+  await client.delete(`/listings/${id}`);
+};
+
 // RESERVATIONS:

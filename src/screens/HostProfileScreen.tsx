@@ -18,7 +18,8 @@ import Navbar from "../components/Navbar";
 import NotificationsButton from "../components/NotificationsButton";
 import { getMyProfile, UserProfile } from "../api/user";
 import { usePaymentMethods } from "../context/paymentMethodsContext";
-import { fetchListings } from "../api/listings";
+import { deleteListing, fetchListings } from "../api/listings";
+import { fetchHostingReservations, fetchHostStats, HostStats } from "../api/reservations";
 import type { Listing } from "../types/listing";
 import { supabase } from "../utils/supabase";
 
@@ -52,9 +53,11 @@ export default function HostProfileScreen() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
+  const [stats, setStats] = useState<HostStats>({ completed_bookings: 0, wallet_balance: 0 });
+  const [occupiedListingIds, setOccupiedListingIds] = useState<Set<string>>(new Set());
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
-  const [isListingActionsVisible, setIsListingActionsVisible] =
-    useState(false);
+  const [isListingActionsVisible, setIsListingActionsVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -67,25 +70,25 @@ export default function HostProfileScreen() {
 
   const loadHostListings = useCallback(async () => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
+      const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id ?? null;
+      if (!userId) { setListings([]); return; }
 
-      if (!userId) {
-        setListings([]);
-        return;
-      }
-
-      const allListings = await fetchListings();
-      const myListings = allListings.filter(
-        (listing) => listing.host_id === userId,
+      const [allListings, hostStats, hostingReservations] = await Promise.all([
+        fetchListings(),
+        fetchHostStats(),
+        fetchHostingReservations(),
+      ]);
+      setListings(allListings.filter((l) => l.host_id === userId));
+      setStats(hostStats);
+      const activeIds = new Set(
+        hostingReservations
+          .filter((r) => r.status === "active")
+          .map((r) => r.listing_id),
       );
-
-      setListings(myListings);
+      setOccupiedListingIds(activeIds);
     } catch (error) {
-      console.error("Failed to load host listings:", error);
+      console.error("Failed to load host data:", error);
       setListings([]);
     }
   }, []);
@@ -109,8 +112,8 @@ export default function HostProfileScreen() {
     "H"
   ).toUpperCase();
 
-  const balance = 0;
-  const completedBookings = 0;
+  const balance = stats.wallet_balance;
+  const completedBookings = stats.completed_bookings;
   const hasPaymentMethod = !!defaultMethod;
   const hasListings = listings.length > 0;
   const hasBalance = balance > 0;
@@ -133,28 +136,37 @@ export default function HostProfileScreen() {
   const handleEditListing = () => {
     const listing = selectedListing;
     closeListingActions();
-
-    if (!listing) {
-      return;
-    }
-
-    Alert.alert(
-      "Edit listing",
-      `Edit flow is not connected yet for "${listing.title}". Your backend currently does not expose an update listing route.`,
-    );
+    if (!listing) return;
+    navigation.navigate("EditListing", { listing });
   };
 
   const handleDeleteListing = () => {
     const listing = selectedListing;
-    closeListingActions();
-
-    if (!listing) {
-      return;
-    }
+    if (!listing) return;
 
     Alert.alert(
       "Delete listing",
-      `Delete is not connected yet for "${listing.title}". Your backend currently does not expose a delete listing route.`,
+      `Remove "${listing.title}"? Cannot delete listings with active reservations.`,
+      [
+        { text: "Cancel", style: "cancel", onPress: closeListingActions },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            closeListingActions();
+            setIsDeleting(true);
+            try {
+              await deleteListing(listing.id);
+              setListings((prev) => prev.filter((l) => l.id !== listing.id));
+            } catch (err: unknown) {
+              const msg = err instanceof Error ? err.message : "Failed to delete listing";
+              setTimeout(() => Alert.alert("Error", msg), 300);
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ],
     );
   };
 
@@ -293,52 +305,49 @@ export default function HostProfileScreen() {
                   <Text style={styles.addListingText}>Add Listing</Text>
                 </Pressable>
 
-                {listings.map((listing) => (
-                  <Pressable
-                    key={listing.id}
-                    style={({ pressed }) => [
-                      styles.listingCard,
-                      pressed && styles.pressed,
-                    ]}
-                    onPress={() => handleOpenListing(listing)}
-                  >
+                {listings.map((listing) => {
+                  const isOccupied = occupiedListingIds.has(listing.id);
+                  return (
                     <Pressable
-                      onPress={() => openListingActions(listing)}
+                      key={listing.id}
                       style={({ pressed }) => [
-                        styles.listingMenuButton,
+                        styles.listingCard,
                         pressed && styles.pressed,
                       ]}
-                      hitSlop={10}
+                      onPress={() => handleOpenListing(listing)}
                     >
-                      <Ionicons
-                        name="ellipsis-horizontal"
-                        size={15}
-                        color="#555555"
-                      />
+                      <Pressable
+                        onPress={() => openListingActions(listing)}
+                        style={({ pressed }) => [
+                          styles.listingMenuButton,
+                          pressed && styles.pressed,
+                        ]}
+                        hitSlop={10}
+                      >
+                        <Ionicons name="ellipsis-horizontal" size={15} color="#555555" />
+                      </Pressable>
+
+                      <View style={styles.listingThumbnailPlaceholder}>
+                        <Ionicons name="image-outline" size={24} color="#B8B8B8" />
+                      </View>
+
+                      <Text style={styles.listingCardTitle} numberOfLines={2}>
+                        {listing.title}
+                      </Text>
+
+                      {isOccupied ? (
+                        <View style={styles.occupiedBadge}>
+                          <View style={styles.occupiedDot} />
+                          <Text style={styles.occupiedText}>Occupied</Text>
+                        </View>
+                      ) : (
+                        <Text style={[styles.listingStatus, { color: getStatusColor(listing) }]}>
+                          {getListingStatusLabel(listing)}
+                        </Text>
+                      )}
                     </Pressable>
-
-                    <View style={styles.listingThumbnailPlaceholder}>
-                      <Ionicons
-                        name="image-outline"
-                        size={24}
-                        color="#B8B8B8"
-                      />
-                    </View>
-
-                    <Text style={styles.listingCardTitle} numberOfLines={2}>
-                      {listing.title}
-                    </Text>
-
-                    <Text
-                      style={[
-                        styles.listingStatus,
-                        { color: getStatusColor(listing) },
-                      ]}
-                    >
-                      {getListingStatusLabel(listing)}
-                    </Text>
-                  </Pressable>
-                ))}
+                  );
+                })}
               </ScrollView>
             ) : (
               <View style={styles.emptyListingsState}>
@@ -382,7 +391,7 @@ export default function HostProfileScreen() {
           style={styles.actionsBackdrop}
           onPress={closeListingActions}
         >
-          <Pressable style={styles.actionsCard} onPress={() => {}}>
+          <View style={styles.actionsCard}>
             <Pressable
               style={({ pressed }) => [
                 styles.actionButton,
@@ -402,7 +411,7 @@ export default function HostProfileScreen() {
             >
               <Text style={styles.deleteActionText}>Delete listing</Text>
             </Pressable>
-          </Pressable>
+          </View>
         </Pressable>
       </Modal>
     </View>
@@ -782,5 +791,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#DC2626",
+  },
+  occupiedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  occupiedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#22C55E",
+  },
+  occupiedText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#22C55E",
   },
 });
