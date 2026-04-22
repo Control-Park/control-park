@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,24 +18,9 @@ import Navbar from "../components/Navbar";
 import NotificationsButton from "../components/NotificationsButton";
 import { getMyProfile, UserProfile } from "../api/user";
 import { usePaymentMethods } from "../context/paymentMethodsContext";
-
-type ListingStatus = "active" | "inactive" | "draft";
-
-type HostListing = {
-  id: string;
-  title: string;
-  description: string;
-  image?: string | null;
-  perks?: string;
-  incentives?: string;
-  address: string;
-  campusLot: string;
-  access: string;
-  pricePerDay: number;
-  reviewsCount: number;
-  favoritesCount: number;
-  status: ListingStatus;
-};
+import { fetchListings } from "../api/listings";
+import type { Listing } from "../types/listing";
+import { supabase } from "../utils/supabase";
 
 type HostProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -51,17 +37,12 @@ function formatCurrency(amount?: number | null) {
   }).format(amount ?? 0);
 }
 
-function getStatusColor(status: ListingStatus) {
-  switch (status) {
-    case "active":
-      return "#2E8B57";
-    case "inactive":
-      return "#7A7A7A";
-    case "draft":
-      return "#D99000";
-    default:
-      return "#7A7A7A";
-  }
+function getStatusColor(listing: Listing) {
+  return listing.is_active ? "#2E8B57" : "#7A7A7A";
+}
+
+function getListingStatusLabel(listing: Listing) {
+  return listing.is_active ? "Active" : "Inactive";
 }
 
 export default function HostProfileScreen() {
@@ -70,6 +51,10 @@ export default function HostProfileScreen() {
   const { defaultMethod } = usePaymentMethods();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [isListingActionsVisible, setIsListingActionsVisible] =
+    useState(false);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -80,10 +65,36 @@ export default function HostProfileScreen() {
     }
   }, []);
 
+  const loadHostListings = useCallback(async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const userId = session?.user?.id ?? null;
+
+      if (!userId) {
+        setListings([]);
+        return;
+      }
+
+      const allListings = await fetchListings();
+      const myListings = allListings.filter(
+        (listing) => listing.host_id === userId,
+      );
+
+      setListings(myListings);
+    } catch (error) {
+      console.error("Failed to load host listings:", error);
+      setListings([]);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       void loadProfile();
-    }, [loadProfile]),
+      void loadHostListings();
+    }, [loadProfile, loadHostListings]),
   );
 
   const hostName = useMemo(() => {
@@ -101,16 +112,49 @@ export default function HostProfileScreen() {
   const balance = 0;
   const completedBookings = 0;
   const hasPaymentMethod = !!defaultMethod;
-
-  const listings: HostListing[] = [];
   const hasListings = listings.length > 0;
   const hasBalance = balance > 0;
   const hasCompletedBookings = completedBookings > 0;
 
-  const handleOpenListing = (_listing: HostListing) => {
+  const handleOpenListing = (listing: Listing) => {
+    navigation.navigate("Details", { id: listing.id });
+  };
+
+  const openListingActions = (listing: Listing) => {
+    setSelectedListing(listing);
+    setIsListingActionsVisible(true);
+  };
+
+  const closeListingActions = () => {
+    setSelectedListing(null);
+    setIsListingActionsVisible(false);
+  };
+
+  const handleEditListing = () => {
+    const listing = selectedListing;
+    closeListingActions();
+
+    if (!listing) {
+      return;
+    }
+
     Alert.alert(
-      "Listing preview unavailable",
-      "This host profile is not yet loading your real listings from the backend. Once host listings are fetched from your API, tapping a listing can open Details.",
+      "Edit listing",
+      `Edit flow is not connected yet for "${listing.title}". Your backend currently does not expose an update listing route.`,
+    );
+  };
+
+  const handleDeleteListing = () => {
+    const listing = selectedListing;
+    closeListingActions();
+
+    if (!listing) {
+      return;
+    }
+
+    Alert.alert(
+      "Delete listing",
+      `Delete is not connected yet for "${listing.title}". Your backend currently does not expose a delete listing route.`,
     );
   };
 
@@ -258,6 +302,21 @@ export default function HostProfileScreen() {
                     ]}
                     onPress={() => handleOpenListing(listing)}
                   >
+                    <Pressable
+                      onPress={() => openListingActions(listing)}
+                      style={({ pressed }) => [
+                        styles.listingMenuButton,
+                        pressed && styles.pressed,
+                      ]}
+                      hitSlop={10}
+                    >
+                      <Ionicons
+                        name="ellipsis-horizontal"
+                        size={15}
+                        color="#555555"
+                      />
+                    </Pressable>
+
                     <View style={styles.listingThumbnailPlaceholder}>
                       <Ionicons
                         name="image-outline"
@@ -273,11 +332,10 @@ export default function HostProfileScreen() {
                     <Text
                       style={[
                         styles.listingStatus,
-                        { color: getStatusColor(listing.status) },
+                        { color: getStatusColor(listing) },
                       ]}
                     >
-                      {listing.status.charAt(0).toUpperCase() +
-                        listing.status.slice(1)}
+                      {getListingStatusLabel(listing)}
                     </Text>
                   </Pressable>
                 ))}
@@ -313,6 +371,40 @@ export default function HostProfileScreen() {
           <Navbar activeTab="Profile" />
         </View>
       </View>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={isListingActionsVisible}
+        onRequestClose={closeListingActions}
+      >
+        <Pressable
+          style={styles.actionsBackdrop}
+          onPress={closeListingActions}
+        >
+          <Pressable style={styles.actionsCard} onPress={() => {}}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionButton,
+                pressed && styles.pressed,
+              ]}
+              onPress={handleEditListing}
+            >
+              <Text style={styles.actionButtonText}>Edit listing</Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.deleteActionButton,
+                pressed && styles.pressed,
+              ]}
+              onPress={handleDeleteListing}
+            >
+              <Text style={styles.deleteActionText}>Delete listing</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -492,6 +584,15 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#FFFFFF",
   },
+  paymentAddButton: {
+    marginTop: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   infoBanner: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -565,6 +666,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
+    position: "relative",
+  },
+  listingMenuButton: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
   },
   listingThumbnailPlaceholder: {
     width: 38,
@@ -630,13 +743,44 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.75,
   },
-  paymentAddButton: {
-    marginTop: 14,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "rgba(255,255,255,0.22)",
+  actionsBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.18)",
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  actionsCard: {
+    width: "100%",
+    maxWidth: 280,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  actionButton: {
+    minHeight: 52,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#111111",
+  },
+  deleteActionButton: {
+    minHeight: 52,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#DC2626",
+  },
+  deleteActionText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#DC2626",
   },
 });
