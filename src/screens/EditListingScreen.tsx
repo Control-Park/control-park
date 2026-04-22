@@ -24,6 +24,7 @@ const MAX_WIDTH = 428;
 export default function EditListingScreen({ route, navigation }: Props) {
   const { listing } = route.params;
   const insets = useSafeAreaInsets();
+  const [listingState, setListingState] = useState(listing);
 
   const [imageUri, setImageUri] = useState<string | null>(
     listing.images?.[0] ?? null,
@@ -43,21 +44,28 @@ export default function EditListingScreen({ route, navigation }: Props) {
   const [showPickerModal, setShowPickerModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTogglingActive, setIsTogglingActive] = useState(false);
-  const isCurrentlyActive = listing.is_active ?? true;
+  const isCurrentlyActive = listingState.is_active ?? true;
+  const isDraft = listingState.is_draft ?? false;
 
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
   const [addressError, setAddressError] = useState("");
+  const [campusLotError, setCampusLotError] = useState("");
+  const [accessError, setAccessError] = useState("");
   const [priceError, setPriceError] = useState("");
+  const [imageError, setImageError] = useState("");
 
   const canSubmit = useMemo(
     () =>
+      !!imageUri &&
       !!title.trim() &&
       !!description.trim() &&
       !!address.trim() &&
+      !!campusLot.trim() &&
+      !!access.trim() &&
       !!pricePerDay.trim() &&
       !isSubmitting,
-    [title, description, address, pricePerDay, isSubmitting],
+    [imageUri, title, description, address, campusLot, access, pricePerDay, isSubmitting],
   );
 
   const validateForm = () => {
@@ -66,22 +74,33 @@ export default function EditListingScreen({ route, navigation }: Props) {
       ? ""
       : "Description is required.";
     const nextAddressError = address.trim() ? "" : "Address is required.";
+    const nextCampusLotError = campusLot.trim()
+      ? ""
+      : "Campus lot is required.";
+    const nextAccessError = access.trim() ? "" : "Access details are required.";
     const numericPrice = Number(pricePerDay);
     let nextPriceError = "";
     if (!pricePerDay.trim()) nextPriceError = "Price is required.";
     else if (Number.isNaN(numericPrice) || numericPrice <= 0)
       nextPriceError = "Enter a valid price.";
+    const nextImageError = imageUri ? "" : "At least one image is required.";
 
     setTitleError(nextTitleError);
     setDescriptionError(nextDescriptionError);
     setAddressError(nextAddressError);
+    setCampusLotError(nextCampusLotError);
+    setAccessError(nextAccessError);
     setPriceError(nextPriceError);
+    setImageError(nextImageError);
 
     return !(
       nextTitleError ||
       nextDescriptionError ||
       nextAddressError ||
-      nextPriceError
+      nextCampusLotError ||
+      nextAccessError ||
+      nextPriceError ||
+      nextImageError
     );
   };
 
@@ -98,7 +117,10 @@ export default function EditListingScreen({ route, navigation }: Props) {
       aspect: [4, 3],
       quality: 1,
     });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+      setImageError("");
+    }
   };
 
   const handleTakePhoto = async () => {
@@ -114,7 +136,10 @@ export default function EditListingScreen({ route, navigation }: Props) {
       aspect: [4, 3],
       quality: 1,
     });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+      setImageError("");
+    }
   };
 
   const handleSubmit = async () => {
@@ -130,21 +155,34 @@ export default function EditListingScreen({ route, navigation }: Props) {
         .map((s) => s.trim())
         .filter(Boolean);
 
-      await updateListing(listing.id, {
+      const updatedListing = await updateListing(listing.id, {
         title: title.trim(),
         description: description.trim(),
         address: address.trim(),
         structure_name: campusLot.trim() || undefined,
+        parking_type: listing.parking_type || "Structure",
         price_per_hour: Number(pricePerDay),
         perks: perksArray,
         incentives: incentivesArray,
         images: imageUri ? [imageUri] : listing.images,
+        available_from: listing.available_from || new Date().toISOString(),
+        available_until:
+          listing.available_until ||
+          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         sub_heading: access.trim() ? [access.trim()] : [],
-        // Publishing a draft makes it active
-        ...(listing.is_draft ? { is_draft: false, is_active: true } : {}),
+        original_price: Number(pricePerDay),
+        is_guest_favorite: listing.is_guest_favorite ?? false,
+        is_popular: listing.is_popular ?? false,
+        rating: listing.rating ?? 0,
+        review_count: listing.review_count ?? 0,
+        // Publishing a draft makes it active and removes it from the draft bucket.
+        ...(isDraft ? { is_draft: false, is_active: true } : {}),
       });
 
-      navigation.goBack();
+      setListingState(updatedListing);
+      navigation.navigate("Profile", {
+        refreshKey: updatedListing.updated_at ?? `${Date.now()}`,
+      });
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Failed to update listing";
@@ -179,6 +217,7 @@ export default function EditListingScreen({ route, navigation }: Props) {
               style={({ pressed }) => [
                 styles.imageUploadCard,
                 pressed && styles.pressed,
+                imageError ? styles.inputErrorBorder : null,
               ]}
             >
               <Text style={styles.imageUploadLabel}>Listing image</Text>
@@ -192,6 +231,7 @@ export default function EditListingScreen({ route, navigation }: Props) {
                 <Ionicons name="add-circle-outline" size={46} color="#2F2A2C" />
               )}
             </Pressable>
+            {imageError ? <Text style={styles.errorText}>{imageError}</Text> : null}
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Title*</Text>
@@ -246,18 +286,30 @@ export default function EditListingScreen({ route, navigation }: Props) {
               <Text style={styles.inputLabel}>Campus Lot / Location</Text>
               <TextInput
                 value={campusLot}
-                onChangeText={setCampusLot}
-                style={styles.input}
+                onChangeText={(t) => {
+                  setCampusLot(t);
+                  if (campusLotError) {
+                    setCampusLotError(t.trim() ? "" : "Campus lot is required.");
+                  }
+                }}
+                style={[styles.input, campusLotError ? styles.inputErrorBorder : null]}
               />
+              {campusLotError ? <Text style={styles.errorText}>{campusLotError}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Access / Entry Details</Text>
               <TextInput
                 value={access}
-                onChangeText={setAccess}
-                style={styles.input}
+                onChangeText={(t) => {
+                  setAccess(t);
+                  if (accessError) {
+                    setAccessError(t.trim() ? "" : "Access details are required.");
+                  }
+                }}
+                style={[styles.input, accessError ? styles.inputErrorBorder : null]}
               />
+              {accessError ? <Text style={styles.errorText}>{accessError}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
@@ -307,40 +359,47 @@ export default function EditListingScreen({ route, navigation }: Props) {
               ]}
             >
               <Text style={styles.postButtonText}>
-                {isSubmitting ? (listing.is_draft ? "Publishing..." : "Saving...") : (listing.is_draft ? "Publish Listing" : "Save changes")}
+                {isSubmitting ? (isDraft ? "Publishing..." : "Saving...") : (isDraft ? "Publish Listing" : "Save changes")}
               </Text>
             </Pressable>
 
-            <Pressable
-              onPress={async () => {
-                const nextActive = !isCurrentlyActive;
-                setIsTogglingActive(true);
-                try {
-                  await updateListing(listing.id, { is_active: nextActive });
-                  navigation.goBack();
-                } catch (err: unknown) {
-                  const msg = err instanceof Error ? err.message : "Failed to update listing";
-                  setTimeout(() => Alert.alert("Error", msg), 300);
-                } finally {
-                  setIsTogglingActive(false);
-                }
-              }}
-              disabled={isTogglingActive || isSubmitting}
-              style={({ pressed }) => [
-                styles.toggleActiveButton,
-                isCurrentlyActive ? styles.deactivateButton : styles.activateButton,
-                (isTogglingActive || isSubmitting) && styles.postButtonDisabled,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.toggleActiveButtonText}>
-                {isTogglingActive
-                  ? "Updating..."
-                  : isCurrentlyActive
-                  ? "Deactivate Listing"
-                  : "Activate Listing"}
-              </Text>
-            </Pressable>
+            {!isDraft ? (
+              <Pressable
+                onPress={async () => {
+                  const nextActive = !isCurrentlyActive;
+                  setIsTogglingActive(true);
+                  try {
+                    const updatedListing = await updateListing(listing.id, {
+                      is_active: nextActive,
+                    });
+                    setListingState(updatedListing);
+                    navigation.navigate("Profile", {
+                      refreshKey: updatedListing.updated_at ?? `${Date.now()}`,
+                    });
+                  } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : "Failed to update listing";
+                    setTimeout(() => Alert.alert("Error", msg), 300);
+                  } finally {
+                    setIsTogglingActive(false);
+                  }
+                }}
+                disabled={isTogglingActive || isSubmitting}
+                style={({ pressed }) => [
+                  styles.toggleActiveButton,
+                  isCurrentlyActive ? styles.deactivateButton : styles.activateButton,
+                  (isTogglingActive || isSubmitting) && styles.postButtonDisabled,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.toggleActiveButtonText}>
+                  {isTogglingActive
+                    ? "Updating..."
+                    : isCurrentlyActive
+                    ? "Deactivate Listing"
+                    : "Activate Listing"}
+                </Text>
+              </Pressable>
+            ) : null}
 
             <View style={{ height: 100 }} />
           </View>

@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
+  GestureResponderEvent,
   Modal,
   Pressable,
   ScrollView,
@@ -12,7 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
@@ -30,6 +31,7 @@ type HostProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   "Profile"
 >;
+type Props = NativeStackScreenProps<RootStackParamList, "Profile">;
 
 const MAX_WIDTH = 428;
 let cachedHostProfile: UserProfile | null = null;
@@ -50,7 +52,52 @@ function getListingStatusLabel(listing: Listing) {
   return listing.is_active ? "Active" : "Inactive";
 }
 
-export default function HostProfileScreen() {
+function ListingRowActions({
+  listing,
+  onEdit,
+  onOpenActions,
+  badge,
+}: {
+  listing: Listing;
+  onEdit: () => void;
+  onOpenActions: () => void;
+  badge: React.ReactNode;
+}) {
+  return (
+    <View style={styles.inactiveCard}>
+      <Pressable
+        onPress={onOpenActions}
+        style={({ pressed }) => [
+          styles.inactiveMenuButton,
+          pressed && styles.pressed,
+        ]}
+        hitSlop={10}
+      >
+        <Ionicons name="ellipsis-horizontal" size={16} color="#555555" />
+      </Pressable>
+
+      <Pressable
+        onPress={onEdit}
+        style={({ pressed }) => [
+          styles.inactiveCardContent,
+          pressed && styles.pressed,
+        ]}
+      >
+        <View style={styles.inactiveCardInfo}>
+          <Text style={styles.inactiveCardTitle} numberOfLines={1}>
+            {listing.title}
+          </Text>
+          <Text style={styles.inactiveCardSub}>
+            {listing.is_draft ? "Tap to continue editing" : listing.address}
+          </Text>
+        </View>
+        {badge}
+      </Pressable>
+    </View>
+  );
+}
+
+export default function HostProfileScreen({ route }: Props) {
   const navigation = useNavigation<HostProfileScreenNavigationProp>();
   const insets = useSafeAreaInsets();
   const { defaultMethod } = usePaymentMethods();
@@ -69,6 +116,8 @@ export default function HostProfileScreen() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [isListingActionsVisible, setIsListingActionsVisible] = useState(false);
+  const [pendingDeleteListing, setPendingDeleteListing] = useState<Listing | null>(null);
+  const [deletedListingIds, setDeletedListingIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
 
   const loadProfile = useCallback(async () => {
@@ -93,7 +142,9 @@ export default function HostProfileScreen() {
         fetchHostStats(),
         fetchHostingReservations(),
       ]);
-      setListings(myListings);
+      setListings(
+        myListings.filter((listing) => !deletedListingIds.has(listing.id)),
+      );
       setStats(hostStats);
       const activeIds = new Set<string>(
         hostingReservations
@@ -108,13 +159,24 @@ export default function HostProfileScreen() {
       console.error("Failed to load host data:", error);
       setListings([]);
     }
-  }, []);
+  }, [deletedListingIds]);
 
   useFocusEffect(
     useCallback(() => {
       void loadProfile();
       void loadHostListings();
     }, [loadProfile, loadHostListings]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!route.params?.refreshKey) {
+        return undefined;
+      }
+
+      void loadHostListings();
+      return undefined;
+    }, [loadHostListings, route.params?.refreshKey]),
   );
 
   const hostName = useMemo(() => getProfileDisplayName(profile), [profile]);
@@ -127,7 +189,7 @@ export default function HostProfileScreen() {
   const activeListings = listings.filter((l) => l.is_active && !l.is_draft);
   const inactiveListings = listings.filter((l) => !l.is_active && !l.is_draft);
   const draftListings = listings.filter((l) => l.is_draft);
-  const hasListings = activeListings.length > 0;
+  const hasListings = listings.length > 0;
   const hasBalance = balance > 0;
   const hasCompletedBookings = completedBookings > 0;
 
@@ -195,7 +257,11 @@ export default function HostProfileScreen() {
     navigation.navigate("Details", { id: listing.id });
   };
 
-  const openListingActions = (listing: Listing) => {
+  const openListingActions = (
+    listing: Listing,
+    event?: GestureResponderEvent,
+  ) => {
+    event?.stopPropagation();
     setSelectedListing(listing);
     setIsListingActionsVisible(true);
   };
@@ -203,6 +269,14 @@ export default function HostProfileScreen() {
   const closeListingActions = () => {
     setSelectedListing(null);
     setIsListingActionsVisible(false);
+  };
+
+  const closeDeleteModal = () => {
+    if (isDeleting) {
+      return;
+    }
+
+    setPendingDeleteListing(null);
   };
 
   const handleEditListing = () => {
@@ -216,31 +290,36 @@ export default function HostProfileScreen() {
     const listing = selectedListing;
     if (!listing) return;
     closeListingActions();
-    setTimeout(() => {
-      Alert.alert(
-        "Delete listing",
-        `Remove "${listing.title}"? Cannot delete listings with active reservations.`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: async () => {
-              setIsDeleting(true);
-              try {
-                await deleteListing(listing.id);
-                setListings((prev) => prev.filter((l) => l.id !== listing.id));
-              } catch (err: unknown) {
-                const msg = err instanceof Error ? err.message : "Failed to delete listing";
-                setTimeout(() => Alert.alert("Error", msg), 300);
-              } finally {
-                setIsDeleting(false);
-              }
-            },
-          },
-        ],
-      );
-    }, 350);
+    setPendingDeleteListing(listing);
+  };
+
+  const confirmDeleteListing = async () => {
+    const listing = pendingDeleteListing;
+    if (!listing || isDeleting) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteListing(listing.id);
+      setDeletedListingIds((prev) => {
+        const next = new Set(prev);
+        next.add(listing.id);
+        return next;
+      });
+      setListings((prev) => prev.filter((l) => l.id !== listing.id));
+      setOccupiedListingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(listing.id);
+        return next;
+      });
+      setPendingDeleteListing(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete listing";
+      setTimeout(() => Alert.alert("Error", msg), 300);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -390,7 +469,7 @@ export default function HostProfileScreen() {
                       onPress={() => handleOpenListing(listing)}
                     >
                       <Pressable
-                        onPress={() => openListingActions(listing)}
+                        onPress={(event) => openListingActions(listing, event)}
                         style={({ pressed }) => [
                           styles.listingMenuButton,
                           pressed && styles.pressed,
@@ -540,19 +619,17 @@ export default function HostProfileScreen() {
               <View style={styles.inactiveSection}>
                 <Text style={styles.inactiveSectionTitle}>Draft Listings</Text>
                 {draftListings.map((listing) => (
-                  <Pressable
+                  <ListingRowActions
                     key={listing.id}
-                    style={({ pressed }) => [styles.inactiveCard, pressed && { opacity: 0.75 }]}
-                    onPress={() => navigation.navigate("EditListing", { listing })}
-                  >
-                    <View style={styles.inactiveCardInfo}>
-                      <Text style={styles.inactiveCardTitle} numberOfLines={1}>{listing.title}</Text>
-                      <Text style={styles.inactiveCardSub}>Tap to continue editing</Text>
-                    </View>
-                    <View style={[styles.inactiveBadge, { backgroundColor: "#FEF3C7" }]}>
-                      <Text style={[styles.inactiveBadgeText, { color: "#92400E" }]}>Draft</Text>
-                    </View>
-                  </Pressable>
+                    listing={listing}
+                    onEdit={() => navigation.navigate("EditListing", { listing })}
+                    onOpenActions={() => openListingActions(listing)}
+                    badge={(
+                      <View style={[styles.inactiveBadge, { backgroundColor: "#FEF3C7" }]}>
+                        <Text style={[styles.inactiveBadgeText, { color: "#92400E" }]}>Draft</Text>
+                      </View>
+                    )}
+                  />
                 ))}
               </View>
             )}
@@ -561,19 +638,17 @@ export default function HostProfileScreen() {
               <View style={styles.inactiveSection}>
                 <Text style={styles.inactiveSectionTitle}>Inactive Listings</Text>
                 {inactiveListings.map((listing) => (
-                  <Pressable
+                  <ListingRowActions
                     key={listing.id}
-                    style={({ pressed }) => [styles.inactiveCard, pressed && { opacity: 0.75 }]}
-                    onPress={() => navigation.navigate("EditListing", { listing })}
-                  >
-                    <View style={styles.inactiveCardInfo}>
-                      <Text style={styles.inactiveCardTitle} numberOfLines={1}>{listing.title}</Text>
-                      <Text style={styles.inactiveCardSub}>{listing.address}</Text>
-                    </View>
-                    <View style={styles.inactiveBadge}>
-                      <Text style={styles.inactiveBadgeText}>Inactive</Text>
-                    </View>
-                  </Pressable>
+                    listing={listing}
+                    onEdit={() => navigation.navigate("EditListing", { listing })}
+                    onOpenActions={() => openListingActions(listing)}
+                    badge={(
+                      <View style={styles.inactiveBadge}>
+                        <Text style={styles.inactiveBadgeText}>Inactive</Text>
+                      </View>
+                    )}
+                  />
                 ))}
               </View>
             )}
@@ -651,7 +726,7 @@ export default function HostProfileScreen() {
           style={styles.actionsBackdrop}
           onPress={closeListingActions}
         >
-          <View style={styles.actionsCard}>
+          <Pressable style={styles.actionsCard} onPress={(event) => event.stopPropagation()}>
             <Pressable
               style={({ pressed }) => [
                 styles.actionButton,
@@ -671,7 +746,57 @@ export default function HostProfileScreen() {
             >
               <Text style={styles.deleteActionText}>Delete listing</Text>
             </Pressable>
-          </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={pendingDeleteListing !== null}
+        onRequestClose={closeDeleteModal}
+      >
+        <Pressable
+          style={styles.actionsBackdrop}
+          onPress={closeDeleteModal}
+        >
+          <Pressable
+            style={styles.deleteConfirmCard}
+            onPress={(event) => event.stopPropagation()}
+          >
+            <Text style={styles.deleteConfirmTitle}>Delete listing?</Text>
+            <Text style={styles.deleteConfirmText}>
+              {pendingDeleteListing
+                ? `Remove "${pendingDeleteListing.title}"? Listings with active reservations cannot be deleted.`
+                : "Remove this listing?"}
+            </Text>
+
+            <View style={styles.deleteConfirmActions}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.deleteCancelButton,
+                  (pressed || isDeleting) && styles.pressed,
+                ]}
+                onPress={closeDeleteModal}
+                disabled={isDeleting}
+              >
+                <Text style={styles.deleteCancelText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.deleteConfirmButton,
+                  (pressed || isDeleting) && styles.pressed,
+                ]}
+                onPress={() => void confirmDeleteListing()}
+                disabled={isDeleting}
+              >
+                <Text style={styles.deleteConfirmButtonText}>
+                  {isDeleting ? "Deleting..." : "Delete"}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </View>
@@ -1052,6 +1177,56 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#DC2626",
   },
+  deleteConfirmCard: {
+    width: "100%",
+    maxWidth: 320,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 20,
+  },
+  deleteConfirmTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111111",
+    marginBottom: 8,
+  },
+  deleteConfirmText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#555555",
+  },
+  deleteConfirmActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 20,
+  },
+  deleteCancelButton: {
+    minWidth: 96,
+    borderRadius: 999,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+  },
+  deleteCancelText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111111",
+  },
+  deleteConfirmButton: {
+    minWidth: 96,
+    borderRadius: 999,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    backgroundColor: "#DC2626",
+  },
+  deleteConfirmButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
   occupiedBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -1227,6 +1402,19 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
     opacity: 0.75,
+  },
+  inactiveCardContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  inactiveMenuButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
   },
   inactiveCardInfo: { flex: 1 },
   inactiveCardTitle: { fontSize: 15, fontWeight: "600", color: "#111111", marginBottom: 2 },

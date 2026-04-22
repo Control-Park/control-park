@@ -54,7 +54,7 @@ export type RootStackParamList = {
     listingTitle?: string;
     listingImage?: any;
   };
-  Profile: undefined;
+  Profile: { refreshKey?: string } | undefined;
   ProfileSettings: undefined;
   GuestProfile: { guestId: string; reservationId: string };
   Reserve: { id: string };
