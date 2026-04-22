@@ -254,7 +254,18 @@ export default function CreateListingScreen({ navigation }: Props) {
       >
         <View style={styles.pageMax}>
           <View style={[styles.topArea, { paddingTop: insets.top }]}>
-            <View style={styles.goldBar} />
+            <View style={styles.goldBar}>
+              <Pressable
+                onPress={() => navigation.goBack()}
+                style={({ pressed }) => [
+                  styles.backButton,
+                  pressed && styles.pressed,
+                ]}
+                hitSlop={10}
+              >
+                <Ionicons name="arrow-back" size={20} color="#111111" />
+              </Pressable>
+            </View>
 
             <Text style={styles.title}>Create Listing</Text>
 
@@ -495,6 +506,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#ECAA00",
     marginHorizontal: -26,
     marginBottom: 24,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontSize: 22,

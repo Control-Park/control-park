@@ -30,6 +30,7 @@ type HostProfileScreenNavigationProp = NativeStackNavigationProp<
 >;
 
 const MAX_WIDTH = 428;
+let cachedHostProfile: UserProfile | null = null;
 
 function formatCurrency(amount?: number | null) {
   return new Intl.NumberFormat("en-US", {
@@ -52,7 +53,7 @@ export default function HostProfileScreen() {
   const insets = useSafeAreaInsets();
   const { defaultMethod } = usePaymentMethods();
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(cachedHostProfile);
   const [listings, setListings] = useState<Listing[]>([]);
   const [stats, setStats] = useState<HostStats>({ completed_bookings: 0, wallet_balance: 0 });
   const [occupiedListingIds, setOccupiedListingIds] = useState<Set<string>>(new Set());
@@ -63,8 +64,10 @@ export default function HostProfileScreen() {
   const loadProfile = useCallback(async () => {
     try {
       const nextProfile = await getMyProfile();
+      cachedHostProfile = nextProfile;
       setProfile(nextProfile);
     } catch {
+      cachedHostProfile = null;
       setProfile(null);
     }
   }, []);

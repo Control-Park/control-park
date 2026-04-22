@@ -26,6 +26,7 @@ type ProfileScreenNavigationProp = NativeStackNavigationProp<
 >;
 
 const MAX_WIDTH = 428;
+let cachedProfile: UserProfile | null = null;
 
 function formatProfileRole(profile: UserProfile | null, isAuthenticated: boolean) {
   if (!isAuthenticated) {
@@ -55,20 +56,23 @@ export default function ProfileScreen() {
   const { displayName, isAuthenticated, session } = useAuthSession();
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(cachedProfile);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const loadProfile = useCallback(async () => {
     if (!session?.user) {
+      cachedProfile = null;
       setProfile(null);
       return;
     }
 
     try {
       const nextProfile = await getMyProfile();
+      cachedProfile = nextProfile;
       setProfile(nextProfile);
     } catch {
+      cachedProfile = null;
       setProfile(null);
     }
   }, [session?.user]);
