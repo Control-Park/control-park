@@ -14,36 +14,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as ImagePicker from "expo-image-picker";
+import { createNewListing } from "../api/listings";
+import type { Listing } from "../types/listing";
+import { supabase } from "../utils/supabase";
 
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreateListing">;
 
-export type ListingStatus = "active" | "inactive" | "draft";
-
-export type HostListing = {
-  id: string;
-  title: string;
-  description: string;
-  image?: string | null;
-  perks?: string;
-  incentives?: string;
-  address: string;
-  campusLot: string;
-  access: string;
-  pricePerDay: number;
-  reviewsCount: number;
-  favoritesCount: number;
-  status: ListingStatus;
-};
-
 const MAX_WIDTH = 428;
 
-export default function CreateListingScreen({ navigation, route }: Props) {
+export default function CreateListingScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-
-  const existingListings = route.params?.existingListings ?? [];
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -55,6 +38,7 @@ export default function CreateListingScreen({ navigation, route }: Props) {
   const [access, setAccess] = useState("");
   const [pricePerDay, setPricePerDay] = useState("");
   const [showPickerModal, setShowPickerModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
@@ -72,9 +56,19 @@ export default function CreateListingScreen({ navigation, route }: Props) {
       !!address.trim() &&
       !!campusLot.trim() &&
       !!access.trim() &&
-      !!pricePerDay.trim()
+      !!pricePerDay.trim() &&
+      !isSubmitting
     );
-  }, [imageUri, title, description, address, campusLot, access, pricePerDay]);
+  }, [
+    imageUri,
+    title,
+    description,
+    address,
+    campusLot,
+    access,
+    pricePerDay,
+    isSubmitting,
+  ]);
 
   const validateForm = () => {
     const nextTitleError = title.trim() ? "" : "Title is required.";
@@ -166,31 +160,65 @@ export default function CreateListingScreen({ navigation, route }: Props) {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) {
       return;
     }
 
-    const newListing: HostListing = {
-      id: Date.now().toString(),
-      title: title.trim(),
-      description: description.trim(),
-      image: imageUri,
-      perks: perks.trim(),
-      incentives: incentives.trim(),
-      address: address.trim(),
-      campusLot: campusLot.trim(),
-      access: access.trim(),
-      pricePerDay: Number(pricePerDay),
-      reviewsCount: 0,
-      favoritesCount: 0,
-      status: "active",
-    };
+    try {
+      setIsSubmitting(true);
 
-    navigation.replace("Profile", {
-      createdListing: newListing,
-      existingListings,
-    });
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        Alert.alert("Not signed in", "Please sign in and try again.");
+        return;
+      }
+
+      const perksArray = perks
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      const incentivesArray = incentives
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      const payload: Partial<Listing> = {
+        host_id: session.user.id,
+        title: title.trim(),
+        description: description.trim(),
+        structure_name: campusLot.trim(),
+        address: address.trim(),
+        parking_type: access.trim(),
+        price_per_hour: Number(pricePerDay),
+        amenities: [],
+        images: imageUri ? [imageUri] : [],
+        available_from: new Date().toISOString(),
+        available_until: new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+        is_active: true,
+        perks: perksArray,
+        incentives: incentivesArray,
+        sub_heading: [],
+      };
+
+      const created = await createNewListing(payload);
+
+      navigation.replace("Details", { id: created.id });
+    } catch (error) {
+      console.error("Create listing failed:", error);
+      Alert.alert(
+        "Failed to create listing",
+        "Please check your input and try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -233,7 +261,9 @@ export default function CreateListingScreen({ navigation, route }: Props) {
                 value={title}
                 onChangeText={(text) => {
                   setTitle(text);
-                  if (titleError) setTitleError(text.trim() ? "" : titleError);
+                  if (titleError) {
+                    setTitleError(text.trim() ? "" : "Title is required.");
+                  }
                 }}
                 style={[styles.input, titleError ? styles.inputErrorBorder : null]}
               />
@@ -247,7 +277,9 @@ export default function CreateListingScreen({ navigation, route }: Props) {
                 onChangeText={(text) => {
                   setDescription(text);
                   if (descriptionError) {
-                    setDescriptionError(text.trim() ? "" : descriptionError);
+                    setDescriptionError(
+                      text.trim() ? "" : "Description is required.",
+                    );
                   }
                 }}
                 style={[
@@ -268,7 +300,9 @@ export default function CreateListingScreen({ navigation, route }: Props) {
                 value={address}
                 onChangeText={(text) => {
                   setAddress(text);
-                  if (addressError) setAddressError(text.trim() ? "" : addressError);
+                  if (addressError) {
+                    setAddressError(text.trim() ? "" : "Address is required.");
+                  }
                 }}
                 style={[styles.input, addressError ? styles.inputErrorBorder : null]}
               />
@@ -282,7 +316,7 @@ export default function CreateListingScreen({ navigation, route }: Props) {
                 onChangeText={(text) => {
                   setCampusLot(text);
                   if (campusLotError) {
-                    setCampusLotError(text.trim() ? "" : campusLotError);
+                    setCampusLotError(text.trim() ? "" : "Campus lot is required.");
                   }
                 }}
                 style={[
@@ -301,7 +335,11 @@ export default function CreateListingScreen({ navigation, route }: Props) {
                 value={access}
                 onChangeText={(text) => {
                   setAccess(text);
-                  if (accessError) setAccessError(text.trim() ? "" : accessError);
+                  if (accessError) {
+                    setAccessError(
+                      text.trim() ? "" : "Access details are required.",
+                    );
+                  }
                 }}
                 style={[styles.input, accessError ? styles.inputErrorBorder : null]}
               />
@@ -314,6 +352,8 @@ export default function CreateListingScreen({ navigation, route }: Props) {
                 value={perks}
                 onChangeText={setPerks}
                 style={styles.input}
+                placeholder="Comma separated"
+                placeholderTextColor="#A0A0A0"
               />
             </View>
 
@@ -323,6 +363,8 @@ export default function CreateListingScreen({ navigation, route }: Props) {
                 value={incentives}
                 onChangeText={setIncentives}
                 style={styles.input}
+                placeholder="Comma separated"
+                placeholderTextColor="#A0A0A0"
               />
             </View>
 
@@ -333,7 +375,9 @@ export default function CreateListingScreen({ navigation, route }: Props) {
                 onChangeText={(text) => {
                   const cleaned = text.replace(/[^0-9.]/g, "");
                   setPricePerDay(cleaned);
-                  if (priceError) setPriceError(cleaned ? "" : priceError);
+                  if (priceError) {
+                    setPriceError(cleaned ? "" : "Price is required.");
+                  }
                 }}
                 style={[styles.input, priceError ? styles.inputErrorBorder : null]}
                 keyboardType="decimal-pad"
@@ -343,13 +387,16 @@ export default function CreateListingScreen({ navigation, route }: Props) {
 
             <Pressable
               onPress={handleSubmit}
+              disabled={!canSubmit}
               style={({ pressed }) => [
                 styles.postButton,
                 !canSubmit && styles.postButtonDisabled,
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={styles.postButtonText}>Post</Text>
+              <Text style={styles.postButtonText}>
+                {isSubmitting ? "Posting..." : "Post"}
+              </Text>
             </Pressable>
 
             <View style={{ height: 100 }} />
@@ -411,7 +458,7 @@ const styles = StyleSheet.create({
   },
   pageMax: {
     width: "100%",
-    maxWidth: 428,
+    maxWidth: MAX_WIDTH,
     alignSelf: "center",
   },
   topArea: {

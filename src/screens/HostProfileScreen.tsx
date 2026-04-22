@@ -9,23 +9,37 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RouteProp } from "@react-navigation/native";
 
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import NotificationsButton from "../components/NotificationsButton";
 import { getMyProfile, UserProfile } from "../api/user";
 import { usePaymentMethods } from "../context/paymentMethodsContext";
-import type { HostListing, ListingStatus } from "./CreateListingScreen";
+
+type ListingStatus = "active" | "inactive" | "draft";
+
+type HostListing = {
+  id: string;
+  title: string;
+  description: string;
+  image?: string | null;
+  perks?: string;
+  incentives?: string;
+  address: string;
+  campusLot: string;
+  access: string;
+  pricePerDay: number;
+  reviewsCount: number;
+  favoritesCount: number;
+  status: ListingStatus;
+};
 
 type HostProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   "Profile"
 >;
-
-type HostProfileRouteProp = RouteProp<RootStackParamList, "Profile">;
 
 const MAX_WIDTH = 428;
 
@@ -52,7 +66,6 @@ function getStatusColor(status: ListingStatus) {
 
 export default function HostProfileScreen() {
   const navigation = useNavigation<HostProfileScreenNavigationProp>();
-  const route = useRoute<HostProfileRouteProp>();
   const insets = useSafeAreaInsets();
   const { defaultMethod } = usePaymentMethods();
 
@@ -89,20 +102,15 @@ export default function HostProfileScreen() {
   const completedBookings = 0;
   const hasPaymentMethod = !!defaultMethod;
 
-  const createdListing = route.params?.createdListing;
-  const existingListings = route.params?.existingListings ?? [];
-  const listings: HostListing[] = createdListing
-    ? [createdListing, ...existingListings.filter((item) => item.id !== createdListing.id)]
-    : existingListings;
-
+  const listings: HostListing[] = [];
   const hasListings = listings.length > 0;
   const hasBalance = balance > 0;
   const hasCompletedBookings = completedBookings > 0;
 
-  const handleOpenListing = (listing: HostListing) => {
+  const handleOpenListing = (_listing: HostListing) => {
     Alert.alert(
-      "Listing created locally",
-      "This listing is showing on your host profile, but your current Details screen only opens listings that already exist in your backend. Save it to your listings table first, then navigate to Details with the real database id.",
+      "Listing preview unavailable",
+      "This host profile is not yet loading your real listings from the backend. Once host listings are fetched from your API, tapping a listing can open Details.",
     );
   };
 
@@ -233,11 +241,7 @@ export default function HostProfileScreen() {
                     styles.addListingCard,
                     pressed && styles.pressed,
                   ]}
-                  onPress={() =>
-                    navigation.navigate("CreateListing", {
-                      existingListings: listings,
-                    })
-                  }
+                  onPress={() => navigation.navigate("CreateListing")}
                 >
                   <View style={styles.addListingCircle}>
                     <Ionicons name="add" size={20} color="#111111" />
@@ -290,11 +294,7 @@ export default function HostProfileScreen() {
                     styles.emptyListingsButton,
                     pressed && styles.pressed,
                   ]}
-                  onPress={() =>
-                    navigation.navigate("CreateListing", {
-                      existingListings: listings,
-                    })
-                  }
+                  onPress={() => navigation.navigate("CreateListing")}
                 >
                   <Text style={styles.emptyListingsButtonText}>
                     Create Listing

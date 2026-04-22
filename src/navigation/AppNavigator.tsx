@@ -23,7 +23,7 @@ import PersonalInfoScreen from "../screens/PersonalInfoScreen";
 import ConversationScreen from "../screens/ConversationScreen";
 import GuestProfileScreen from "../screens/GuestProfileScreen";
 import HostReservationsScreen from "../screens/HostReservationsScreen";
-import CreateListingScreen, { HostListing } from "../screens/CreateListingScreen";
+import CreateListingScreen from "../screens/CreateListingScreen";
 
 export type RootStackParamList = {
   Home: undefined;
@@ -52,10 +52,7 @@ export type RootStackParamList = {
     listingTitle?: string;
     listingImage?: any;
   };
-  Profile: {
-    createdListing?: HostListing;
-    existingListings?: HostListing[];
-  } | undefined;
+  Profile: undefined;
   ProfileSettings: undefined;
   GuestProfile: undefined;
   Reserve: { id: string };
@@ -66,9 +63,7 @@ export type RootStackParamList = {
   Payment: undefined;
   PersonalInfo: undefined;
   HostReservations: undefined;
-  CreateListing: {
-    existingListings?: HostListing[];
-  } | undefined;
+  CreateListing: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
