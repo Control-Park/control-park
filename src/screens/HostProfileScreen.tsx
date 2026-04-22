@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,30 +9,25 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RouteProp } from "@react-navigation/native";
 
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import NotificationsButton from "../components/NotificationsButton";
 import { getMyProfile, UserProfile } from "../api/user";
 import { usePaymentMethods } from "../context/paymentMethodsContext";
+import type { HostListing, ListingStatus } from "./CreateListingScreen";
 
 type HostProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   "Profile"
 >;
 
+type HostProfileRouteProp = RouteProp<RootStackParamList, "Profile">;
+
 const MAX_WIDTH = 428;
-
-type ListingStatus = "active" | "inactive" | "draft";
-
-type HostListing = {
-  id: string;
-  title: string;
-  status: ListingStatus;
-  thumbnail?: string | null;
-};
 
 function formatCurrency(amount?: number | null) {
   return new Intl.NumberFormat("en-US", {
@@ -56,6 +52,7 @@ function getStatusColor(status: ListingStatus) {
 
 export default function HostProfileScreen() {
   const navigation = useNavigation<HostProfileScreenNavigationProp>();
+  const route = useRoute<HostProfileRouteProp>();
   const insets = useSafeAreaInsets();
   const { defaultMethod } = usePaymentMethods();
 
@@ -90,13 +87,24 @@ export default function HostProfileScreen() {
 
   const balance = 0;
   const completedBookings = 0;
-
   const hasPaymentMethod = !!defaultMethod;
 
-  const listings: HostListing[] = [];
+  const createdListing = route.params?.createdListing;
+  const existingListings = route.params?.existingListings ?? [];
+  const listings: HostListing[] = createdListing
+    ? [createdListing, ...existingListings.filter((item) => item.id !== createdListing.id)]
+    : existingListings;
+
   const hasListings = listings.length > 0;
   const hasBalance = balance > 0;
   const hasCompletedBookings = completedBookings > 0;
+
+  const handleOpenListing = (listing: HostListing) => {
+    Alert.alert(
+      "Listing created locally",
+      "This listing is showing on your host profile, but your current Details screen only opens listings that already exist in your backend. Save it to your listings table first, then navigate to Details with the real database id.",
+    );
+  };
 
   return (
     <View style={styles.safe}>
@@ -172,21 +180,21 @@ export default function HostProfileScreen() {
                     </Text>
                   </View>
                 ) : (
-                <View style={styles.paymentEmptyContent}>
-                  <Text style={styles.paymentEmptyText}>
-                    No payment method added
-                  </Text>
+                  <View style={styles.paymentEmptyContent}>
+                    <Text style={styles.paymentEmptyText}>
+                      No payment method added
+                    </Text>
 
-                  <Pressable
-                    onPress={() => navigation.navigate("Payment")}
-                    style={({ pressed }) => [
-                      styles.paymentAddButton,
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <Ionicons name="add" size={18} color="#111111" />
+                    <Pressable
+                      onPress={() => navigation.navigate("Payment")}
+                      style={({ pressed }) => [
+                        styles.paymentAddButton,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Ionicons name="add" size={18} color="#FFFFFF" />
                     </Pressable>
-                </View>
+                  </View>
                 )}
               </Pressable>
             </View>
@@ -225,7 +233,11 @@ export default function HostProfileScreen() {
                     styles.addListingCard,
                     pressed && styles.pressed,
                   ]}
-                  onPress={() => console.log("Add listing pressed")}
+                  onPress={() =>
+                    navigation.navigate("CreateListing", {
+                      existingListings: listings,
+                    })
+                  }
                 >
                   <View style={styles.addListingCircle}>
                     <Ionicons name="add" size={20} color="#111111" />
@@ -240,9 +252,7 @@ export default function HostProfileScreen() {
                       styles.listingCard,
                       pressed && styles.pressed,
                     ]}
-                    onPress={() =>
-                      console.log("Open listing details:", listing.id)
-                    }
+                    onPress={() => handleOpenListing(listing)}
                   >
                     <View style={styles.listingThumbnailPlaceholder}>
                       <Ionicons
@@ -280,7 +290,11 @@ export default function HostProfileScreen() {
                     styles.emptyListingsButton,
                     pressed && styles.pressed,
                   ]}
-                  onPress={() => console.log("Create first listing")}
+                  onPress={() =>
+                    navigation.navigate("CreateListing", {
+                      existingListings: listings,
+                    })
+                  }
                 >
                   <Text style={styles.emptyListingsButtonText}>
                     Create Listing
