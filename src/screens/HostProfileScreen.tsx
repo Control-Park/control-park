@@ -118,6 +118,7 @@ export default function HostProfileScreen({ route }: Props) {
   const [isListingActionsVisible, setIsListingActionsVisible] = useState(false);
   const [pendingDeleteListing, setPendingDeleteListing] = useState<Listing | null>(null);
   const [deletedListingIds, setDeletedListingIds] = useState<Set<string>>(new Set());
+  const [publishedListingIds, setPublishedListingIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
 
   const loadProfile = useCallback(async () => {
@@ -174,9 +175,17 @@ export default function HostProfileScreen({ route }: Props) {
         return undefined;
       }
 
+      if (route.params?.publishedListingId) {
+        setPublishedListingIds((prev) => {
+          const next = new Set(prev);
+          next.add(route.params.publishedListingId!);
+          return next;
+        });
+      }
+
       void loadHostListings();
       return undefined;
-    }, [loadHostListings, route.params?.refreshKey]),
+    }, [loadHostListings, route.params?.publishedListingId, route.params?.refreshKey]),
   );
 
   const hostName = useMemo(() => getProfileDisplayName(profile), [profile]);
@@ -186,9 +195,18 @@ export default function HostProfileScreen({ route }: Props) {
   const balance = stats.wallet_balance;
   const completedBookings = stats.completed_bookings;
   const hasPaymentMethod = !!defaultMethod;
-  const activeListings = listings.filter((l) => l.is_active && !l.is_draft);
-  const inactiveListings = listings.filter((l) => !l.is_active && !l.is_draft);
-  const draftListings = listings.filter((l) => l.is_draft);
+  const normalizedListings = useMemo(
+    () =>
+      listings.map((listing) =>
+        publishedListingIds.has(listing.id)
+          ? { ...listing, is_active: true, is_draft: false }
+          : listing,
+      ),
+    [listings, publishedListingIds],
+  );
+  const activeListings = normalizedListings.filter((l) => l.is_active && !l.is_draft);
+  const inactiveListings = normalizedListings.filter((l) => !l.is_active && !l.is_draft);
+  const draftListings = normalizedListings.filter((l) => l.is_draft);
   const hasListings = listings.length > 0;
   const hasBalance = balance > 0;
   const hasCompletedBookings = completedBookings > 0;
@@ -305,6 +323,11 @@ export default function HostProfileScreen({ route }: Props) {
       setDeletedListingIds((prev) => {
         const next = new Set(prev);
         next.add(listing.id);
+        return next;
+      });
+      setPublishedListingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(listing.id);
         return next;
       });
       setListings((prev) => prev.filter((l) => l.id !== listing.id));

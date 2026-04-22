@@ -181,6 +181,7 @@ export default function EditListingScreen({ route, navigation }: Props) {
 
       setListingState(updatedListing);
       navigation.navigate("Profile", {
+        publishedListingId: isDraft ? listing.id : undefined,
         refreshKey: updatedListing.updated_at ?? `${Date.now()}`,
       });
     } catch (err: unknown) {
