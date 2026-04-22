@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -77,6 +77,13 @@ export default function ReservationsScreen({ navigation }: Props) {
   const dismissCancelledReservation = useReservationStore(
     (state) => state.dismissCancelledReservation,
   );
+  const hydrateDismissedReservations = useReservationStore(
+    (state) => state.hydrateDismissedReservations,
+  );
+
+  useEffect(() => {
+    void hydrateDismissedReservations();
+  }, [hydrateDismissedReservations]);
 
   const { data: reservations, isLoading, isError } = useQuery<Reservation[]>({
     queryKey: ["reservations"],

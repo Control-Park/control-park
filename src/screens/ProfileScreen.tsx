@@ -276,7 +276,7 @@ export default function ProfileScreen() {
 
             <TouchableOpacity
               style={styles.hostCard}
-              onPress={() => navigation.navigate("HostProfile")}
+              onPress={() => navigation.navigate("CreateListing")}
               activeOpacity={0.8}
             >
               <Text style={styles.hostTitle}>Become a host</Text>
