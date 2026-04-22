@@ -164,57 +164,82 @@ export default function CreateListingScreen({ navigation }: Props) {
     if (!validateForm()) {
       return;
     }
-
+  
     try {
       setIsSubmitting(true);
-
+  
       const {
         data: { session },
       } = await supabase.auth.getSession();
-
+  
+      console.log("session user:", session?.user);
+  
       if (!session?.user) {
         Alert.alert("Not signed in", "Please sign in and try again.");
         return;
       }
-
+  
       const perksArray = perks
         .split(",")
         .map((item) => item.trim())
         .filter(Boolean);
-
+  
       const incentivesArray = incentives
         .split(",")
         .map((item) => item.trim())
         .filter(Boolean);
-
+  
       const payload: Partial<Listing> = {
-        host_id: session.user.id,
         title: title.trim(),
         description: description.trim(),
-        structure_name: campusLot.trim(),
         address: address.trim(),
-        parking_type: access.trim(),
+        structure_name: campusLot.trim(),
+  
+        // Swagger strongly suggests this is a category, not free text
+        parking_type: "Structure",
+  
+        // Keep using your entered price for now
         price_per_hour: Number(pricePerDay),
+  
         amenities: [],
+        perks: perksArray,
+        incentives: incentivesArray,
+  
+        // Backend says images are stored as file path strings
         images: imageUri ? [imageUri] : [],
+  
         available_from: new Date().toISOString(),
         available_until: new Date(
           Date.now() + 30 * 24 * 60 * 60 * 1000,
         ).toISOString(),
+  
+        sub_heading: access.trim() ? [access.trim()] : [],
+  
+        // These may be optional, but sending safe defaults can help
+        is_guest_favorite: false,
+        is_popular: false,
+        original_price: Number(pricePerDay),
+        rating: 0,
+        review_count: 0,
         is_active: true,
-        perks: perksArray,
-        incentives: incentivesArray,
-        sub_heading: [],
       };
-
+  
+      console.log("create listing payload:", payload);
+  
       const created = await createNewListing(payload);
-
+  
+      console.log("created listing response:", created);
+  
       navigation.replace("Details", { id: created.id });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Create listing failed:", error);
+      console.error("Create listing failed response:", error?.response?.data);
+  
       Alert.alert(
         "Failed to create listing",
-        "Please check your input and try again.",
+        error?.response?.data?.message ||
+          error?.message ||
+          "Please check your input and try again.",
       );
     } finally {
       setIsSubmitting(false);
