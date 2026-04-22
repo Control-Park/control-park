@@ -18,6 +18,7 @@ import SearchBar from "../components/SearchBar";
 import { supabase } from "../utils/supabase";
 import { getMyProfile, UserProfile } from "../api/user";
 import { useAuthSession } from "../context/AuthSessionContext";
+import { getProfileDisplayName, getProfileInitial } from "../utils/profile";
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -78,15 +79,9 @@ export default function ProfileScreen() {
     }, [loadProfile]),
   );
 
-  const profileName = profile
-    ? `${profile.first_name} ${profile.last_name}`.trim()
-    : displayName;
+  const profileName = profile ? getProfileDisplayName(profile) : displayName;
   const profileRole = formatProfileRole(profile, isAuthenticated);
-  const avatarInitial = (
-    profile?.first_name?.[0] ??
-    profileName?.[0] ??
-    "?"
-  ).toUpperCase();
+  const avatarInitial = profile ? getProfileInitial(profile) : (profileName?.[0] ?? "?").toUpperCase();
 
   const menuItems = useMemo(
     () => [

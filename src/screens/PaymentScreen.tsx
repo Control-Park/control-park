@@ -67,6 +67,7 @@ export default function PaymentScreen() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
+  const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -83,6 +84,24 @@ export default function PaymentScreen() {
   const getLogoForBrand = (brandName: string) =>
     CARD_BRANDS.find(({ name }) => name === brandName)?.logo;
   const pendingRemovalMethod = methods.find(method => method.id === pendingRemovalId) ?? null;
+  const selectedMethod = methods.find((method) => method.id === selectedMethodId) ?? null;
+
+  const formatMethodExpiry = (expMonth: number, expYear: number) =>
+    `${String(expMonth).padStart(2, "0")}/${String(expYear).slice(-2)}`;
+
+  const formatAddedDate = (createdAt: string) => {
+    const parsedDate = new Date(createdAt);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "Not available";
+    }
+
+    return parsedDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
   const handleAdd = async () => {
     const digits = sanitizeCardNumber(cardNumber);
@@ -155,6 +174,14 @@ export default function PaymentScreen() {
     closeRemoveModal();
   };
 
+  const openDetailsModal = (methodId: string) => {
+    setSelectedMethodId(methodId);
+  };
+
+  const closeDetailsModal = () => {
+    setSelectedMethodId(null);
+  };
+
   const renderEmptyState = () => (
     <View style={styles.emptyStateWrapper}>
       <Text style={styles.emptyTitle}>No Payment Found</Text>
@@ -196,7 +223,7 @@ export default function PaymentScreen() {
                 <Pressable
                   style={styles.rowContent}
                   onPress={() => {
-                    void setDefaultPaymentMethod(method.id);
+                    openDetailsModal(method.id);
                   }}
                 >
                   <View style={styles.rowLogo}>
@@ -364,6 +391,106 @@ export default function PaymentScreen() {
                 <Text style={styles.removeText}>Remove</Text>
               </Pressable>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={selectedMethod !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={closeDetailsModal}
+      >
+        <View style={styles.confirmOverlay}>
+          <View style={styles.detailsCard}>
+            <View style={styles.detailsHeader}>
+              <Text style={styles.detailsTitle}>Payment Details</Text>
+              <Pressable onPress={closeDetailsModal} hitSlop={10}>
+                <Ionicons name="close" size={18} color="#6B7280" />
+              </Pressable>
+            </View>
+
+            {selectedMethod ? (
+              <>
+                <View style={styles.detailsBrandRow}>
+                  <View style={styles.detailsLogoBox}>
+                    <Image
+                      source={getLogoForBrand(selectedMethod.brand) ?? CARD_BRANDS[0].logo}
+                      style={styles.detailsLogo}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <View>
+                    <Text style={styles.detailsBrand}>{selectedMethod.brand}</Text>
+                    <Text style={styles.detailsMasked}>**** **** **** {selectedMethod.last4}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailsList}>
+                  <View style={styles.detailsRow}>
+                    <Text style={styles.detailsLabel}>Cardholder</Text>
+                    <Text style={styles.detailsValue}>
+                      {selectedMethod.holder || "Not provided"}
+                    </Text>
+                  </View>
+
+                  <View style={styles.detailsRow}>
+                    <Text style={styles.detailsLabel}>Expiry</Text>
+                    <Text style={styles.detailsValue}>
+                      {formatMethodExpiry(selectedMethod.expMonth, selectedMethod.expYear)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.detailsRow}>
+                    <Text style={styles.detailsLabel}>Type</Text>
+                    <Text style={styles.detailsValue}>{selectedMethod.typeLabel}</Text>
+                  </View>
+
+                  <View style={styles.detailsRow}>
+                    <Text style={styles.detailsLabel}>Status</Text>
+                    <Text style={styles.detailsValue}>
+                      {selectedMethod.id === defaultPaymentMethodId
+                        ? "Default payment method"
+                        : "Saved payment method"}
+                    </Text>
+                  </View>
+
+                  <View style={styles.detailsRow}>
+                    <Text style={styles.detailsLabel}>Added</Text>
+                    <Text style={styles.detailsValue}>
+                      {formatAddedDate(selectedMethod.createdAt)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailsActions}>
+                  {selectedMethod.id !== defaultPaymentMethodId ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.detailsPrimaryButton,
+                        pressed && styles.pressed,
+                      ]}
+                      onPress={() => {
+                        void setDefaultPaymentMethod(selectedMethod.id);
+                        closeDetailsModal();
+                      }}
+                    >
+                      <Text style={styles.detailsPrimaryButtonText}>Set as default</Text>
+                    </Pressable>
+                  ) : null}
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.detailsSecondaryButton,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={closeDetailsModal}
+                  >
+                    <Text style={styles.detailsSecondaryButtonText}>Close</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
           </View>
         </View>
       </Modal>
@@ -635,6 +762,107 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 18,
     elevation: 8,
+  },
+  detailsCard: {
+    width: "100%",
+    maxWidth: 340,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  detailsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+  },
+  detailsTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#111111",
+  },
+  detailsBrandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  detailsLogoBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  detailsLogo: {
+    width: 38,
+    height: 24,
+  },
+  detailsBrand: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111111",
+  },
+  detailsMasked: {
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#D4A017",
+  },
+  detailsList: {
+    gap: 12,
+  },
+  detailsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 16,
+  },
+  detailsLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  detailsValue: {
+    flex: 1,
+    fontSize: 14,
+    color: "#111111",
+    textAlign: "right",
+  },
+  detailsActions: {
+    marginTop: 24,
+    gap: 12,
+  },
+  detailsPrimaryButton: {
+    backgroundColor: "#F4B400",
+    borderRadius: 999,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  detailsPrimaryButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111111",
+  },
+  detailsSecondaryButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  detailsSecondaryButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111111",
   },
   confirmTitle: {
     paddingTop: 20,

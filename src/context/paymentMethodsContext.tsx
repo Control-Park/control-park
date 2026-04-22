@@ -15,6 +15,9 @@ async function hasSession(): Promise<boolean> {
 export type PaymentMethod = {
   id: string;
   brand: string;
+  createdAt: string;
+  expMonth: number;
+  expYear: number;
   last4: string;
   holder: string;
   typeLabel: string;
@@ -56,6 +59,9 @@ function toLocalMethod(m: APIPaymentMethod): PaymentMethod {
   return {
     id: m.id,
     brand: m.brand,
+    createdAt: m.created_at,
+    expMonth: m.exp_month,
+    expYear: m.exp_year,
     last4: m.last4,
     holder: m.holder_name ?? "",
     typeLabel: "Card",

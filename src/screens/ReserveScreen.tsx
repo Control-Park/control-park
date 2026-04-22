@@ -201,6 +201,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
   const [paymentError, setPaymentError] = useState("");
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
   const hourListRef = useRef<FlatList<string>>(null);
   const minuteListRef = useRef<FlatList<string>>(null);
   const periodListRef = useRef<FlatList<string>>(null);
@@ -445,6 +446,10 @@ export default function ReserveScreen({ route, navigation }: Props) {
   };
 
   const handleReservePress = () => {
+    if (isSubmitting || isReserveConfirmVisible) {
+      return;
+    }
+
     let hasError = false;
     if (!selectedVehicle) {
       setVehicleError("Please select a vehicle before reserving.");
@@ -462,7 +467,9 @@ export default function ReserveScreen({ route, navigation }: Props) {
   };
 
   const handleReserveConfirm = async () => {
-    if (!selectedVehicle || !selectedPaymentMethodId) return;
+    if (!selectedVehicle || !selectedPaymentMethodId || submitLockRef.current) return;
+
+    submitLockRef.current = true;
     setIsSubmitting(true);
     try {
       await createReservation({
@@ -481,6 +488,7 @@ export default function ReserveScreen({ route, navigation }: Props) {
       const msg = err instanceof Error ? err.message : "Failed to create reservation";
       reserveCancel(msg);
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -1157,12 +1165,20 @@ export default function ReserveScreen({ route, navigation }: Props) {
         transparent
         visible={isReserveConfirmVisible}
         animationType="fade"
-        onRequestClose={() => setIsReserveConfirmVisible(false)}
+        onRequestClose={() => {
+          if (!isSubmitting) {
+            setIsReserveConfirmVisible(false);
+          }
+        }}
       >
         <View className="flex-1 items-center justify-center bg-black/30 px-6">
           <Pressable
             className="absolute inset-0"
-            onPress={() => setIsReserveConfirmVisible(false)}
+            onPress={() => {
+              if (!isSubmitting) {
+                setIsReserveConfirmVisible(false);
+              }
+            }}
             accessibilityLabel="Close reserve confirmation"
           />
           <View className="w-full max-w-[280px] overflow-hidden rounded-2xl bg-white">
@@ -1181,10 +1197,14 @@ export default function ReserveScreen({ route, navigation }: Props) {
             <View className="flex-row border-t border-[#E5E7EB]">
               <Pressable
                 onPress={() => {
+                  if (isSubmitting) {
+                    return;
+                  }
                   setIsReserveConfirmVisible(false);
                   reserveCancel("Reservation has been canceled.");
                 }}
                 className="flex-1 items-center justify-center py-3"
+                disabled={isSubmitting}
               >
                 <Text className="font-abeezee text-[13px] text-[#111111]">
                   No
@@ -1194,9 +1214,10 @@ export default function ReserveScreen({ route, navigation }: Props) {
               <Pressable
                 onPress={handleReserveConfirm}
                 className="flex-1 items-center justify-center border-l border-[#E5E7EB] py-3"
+                disabled={isSubmitting}
               >
                 <Text className="font-abeezee text-[13px] text-[#111111]">
-                  Yes
+                  {isSubmitting ? "Submitting..." : "Yes"}
                 </Text>
               </Pressable>
             </View>

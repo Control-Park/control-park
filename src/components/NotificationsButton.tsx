@@ -1,15 +1,21 @@
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/AppNavigator";
 
 type Props = {
   onPress?: () => void;
 };
 
 export default function NotificationsButton({ onPress }: Props) {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={onPress ?? (() => navigation.navigate("Notification"))}
       hitSlop={10}
       style={styles.button}
       accessibilityLabel="Notifications"

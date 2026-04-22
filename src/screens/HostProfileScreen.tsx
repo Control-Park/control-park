@@ -22,6 +22,7 @@ import { deleteListing, fetchListings } from "../api/listings";
 import { fetchHostingReservations, fetchHostStats, HostStats } from "../api/reservations";
 import type { Listing } from "../types/listing";
 import { supabase } from "../utils/supabase";
+import { getProfileDisplayName, getProfileInitial } from "../utils/profile";
 
 type HostProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -100,17 +101,9 @@ export default function HostProfileScreen() {
     }, [loadProfile, loadHostListings]),
   );
 
-  const hostName = useMemo(() => {
-    const fullName =
-      `${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`.trim();
-    return fullName || "Host";
-  }, [profile]);
+  const hostName = useMemo(() => getProfileDisplayName(profile), [profile]);
 
-  const avatarInitial = (
-    profile?.first_name?.[0] ??
-    hostName?.[0] ??
-    "H"
-  ).toUpperCase();
+  const avatarInitial = getProfileInitial(profile);
 
   const balance = stats.wallet_balance;
   const completedBookings = stats.completed_bookings;
@@ -193,7 +186,7 @@ export default function HostProfileScreen() {
                 </Pressable>
 
                 <NotificationsButton
-                  onPress={() => navigation.navigate("NotificationSettings")}
+                  onPress={() => navigation.navigate("Notification")}
                 />
               </View>
             </View>

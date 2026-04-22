@@ -90,7 +90,8 @@ export default function ReservationsScreen({ navigation }: Props) {
 
   const cancelMutation = useMutation({
     mutationFn: cancelReservation,
-    onSuccess: () => {
+    onSuccess: (_data, reservationId) => {
+      dismissCancelledReservation(reservationId);
       void queryClient.invalidateQueries({ queryKey: ["reservations"] });
     },
   });
@@ -99,11 +100,7 @@ export default function ReservationsScreen({ navigation }: Props) {
   const visibleReservations = useMemo(
     () =>
       reservations?.filter(
-        (reservation) =>
-          !(
-            reservation.status === "cancelled" &&
-            dismissedCancelledIds.includes(reservation.id)
-          ),
+        (reservation) => !dismissedCancelledIds.includes(reservation.id),
       ) ?? [],
     [dismissedCancelledIds, reservations],
   );
@@ -184,6 +181,10 @@ export default function ReservationsScreen({ navigation }: Props) {
                     const status = r.status;
                     const isDimmed = status === "expired" || status === "rejected" || status === "cancelled";
                     const canCancel = status === "pending";
+                    const canDismiss =
+                      status === "cancelled" ||
+                      status === "expired" ||
+                      status === "rejected";
 
                     return (
                       <Pressable
@@ -219,7 +220,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                             </Text>
                           </View>
 
-                          {status === "cancelled" ? (
+                          {canDismiss ? (
                             <Pressable
                               style={({ pressed }) => [
                                 styles.dismissButton,
