@@ -13,7 +13,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
+import type {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
@@ -21,14 +24,32 @@ import NotificationsButton from "../components/NotificationsButton";
 import { getMyProfile, UserProfile } from "../api/user";
 import { usePaymentMethods } from "../context/paymentMethodsContext";
 import { deleteListing, fetchMyListings } from "../api/listings";
-import { approveReservation, fetchHostingReservations, fetchHostStats, HostStats, rejectReservation, Reservation } from "../api/reservations";
-import { CompletedReservation, createReview, fetchPendingReviews } from "../api/reviews";
+import {
+  approveReservation,
+  fetchHostingReservations,
+  fetchHostStats,
+  HostStats,
+  rejectReservation,
+  Reservation,
+} from "../api/reservations";
+import {
+  CompletedReservation,
+  createReview,
+  fetchPendingReviews,
+} from "../api/reviews";
 import type { Listing } from "../types/listing";
 import { supabase } from "../utils/supabase";
 import { getProfileDisplayName, getProfileInitial } from "../utils/profile";
 
+type ExtendedRootStackParamList = RootStackParamList & {
+  GuestReviews: {
+    guestId: string;
+    guestName: string;
+  };
+};
+
 type HostProfileScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
+  ExtendedRootStackParamList,
   "Profile"
 >;
 type Props = NativeStackScreenProps<RootStackParamList, "Profile">;
@@ -104,20 +125,40 @@ export default function HostProfileScreen({ route }: Props) {
 
   const [profile, setProfile] = useState<UserProfile | null>(cachedHostProfile);
   const [listings, setListings] = useState<Listing[]>([]);
-  const [stats, setStats] = useState<HostStats>({ completed_bookings: 0, wallet_balance: 0 });
-  const [occupiedListingIds, setOccupiedListingIds] = useState<Set<string>>(new Set());
-  const [pendingReservations, setPendingReservations] = useState<Reservation[]>([]);
-  const [completedReservations, setCompletedReservations] = useState<CompletedReservation[]>([]);
+  const [stats, setStats] = useState<HostStats>({
+    completed_bookings: 0,
+    wallet_balance: 0,
+  });
+  const [occupiedListingIds, setOccupiedListingIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [pendingReservations, setPendingReservations] = useState<Reservation[]>(
+    [],
+  );
+  const [completedReservations, setCompletedReservations] = useState<
+    CompletedReservation[]
+  >([]);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [reviewTarget, setReviewTarget] = useState<CompletedReservation | null>(null);
+
+  const [approveTarget, setApproveTarget] = useState<Reservation | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<Reservation | null>(null);
+  const [showApproveSuccessModal, setShowApproveSuccessModal] = useState(false);
+  const [showRejectSuccessModal, setShowRejectSuccessModal] = useState(false);
+
+  const [reviewTarget, setReviewTarget] = useState<CompletedReservation | null>(
+    null,
+  );
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [isListingActionsVisible, setIsListingActionsVisible] = useState(false);
-  const [pendingDeleteListing, setPendingDeleteListing] = useState<Listing | null>(null);
-  const [deletedListingIds, setDeletedListingIds] = useState<Set<string>>(new Set());
+  const [pendingDeleteListing, setPendingDeleteListing] =
+    useState<Listing | null>(null);
+  const [deletedListingIds, setDeletedListingIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [isDeleting, setIsDeleting] = useState(false);
 
   const loadProfile = useCallback(async () => {
@@ -133,33 +174,42 @@ export default function HostProfileScreen({ route }: Props) {
 
   const loadHostListings = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const userId = session?.user?.id ?? null;
-      if (!userId) { setListings([]); return; }
+      if (!userId) {
+        setListings([]);
+        return;
+      }
 
       const [myListings, hostStats, hostingReservations] = await Promise.all([
         fetchMyListings(),
         fetchHostStats(),
         fetchHostingReservations(),
       ]);
+
       setListings(
         myListings.filter((listing) => !deletedListingIds.has(listing.id)),
       );
       setStats(hostStats);
+
       const activeIds = new Set<string>(
         hostingReservations
           .filter((r: { status: string }) => r.status === "active")
           .map((r: { listing_id: string }) => r.listing_id),
       );
       setOccupiedListingIds(activeIds);
-      setPendingReservations(hostingReservations.filter((r: { status: string }) => r.status === "pending"));
+      setPendingReservations(
+        hostingReservations.filter((r: { status: string }) => r.status === "pending"),
+      );
+
       const completed = await fetchPendingReviews();
       setCompletedReservations(
-        completed
-          .sort(
-            (a, b) =>
-              new Date(b.end_time).getTime() - new Date(a.end_time).getTime(),
-          ),
+        completed.sort(
+          (a, b) =>
+            new Date(b.end_time).getTime() - new Date(a.end_time).getTime(),
+        ),
       );
     } catch (error) {
       console.error("Failed to load host data:", error);
@@ -186,7 +236,6 @@ export default function HostProfileScreen({ route }: Props) {
   );
 
   const hostName = useMemo(() => getProfileDisplayName(profile), [profile]);
-
   const avatarInitial = getProfileInitial(profile);
 
   const balance = stats.wallet_balance;
@@ -199,12 +248,38 @@ export default function HostProfileScreen({ route }: Props) {
   const hasBalance = balance > 0;
   const hasCompletedBookings = completedBookings > 0;
 
-  const handleApprove = async (id: string) => {
-    setApprovingId(id);
+  const openApproveModal = (reservation: Reservation) => {
+    if (approvingId || rejectingId) return;
+    setApproveTarget(reservation);
+  };
+
+  const closeApproveModal = () => {
+    if (approvingId) return;
+    setApproveTarget(null);
+  };
+
+  const openRejectModal = (reservation: Reservation) => {
+    if (approvingId || rejectingId) return;
+    setRejectTarget(reservation);
+  };
+
+  const closeRejectModal = () => {
+    if (rejectingId) return;
+    setRejectTarget(null);
+  };
+
+  const handleApprove = async () => {
+    const target = approveTarget;
+    if (!target) return;
+
+    setApproveTarget(null);
+    setApprovingId(target.id);
+
     try {
-      await approveReservation(id);
-      setPendingReservations((prev) => prev.filter((r) => r.id !== id));
-      void loadHostListings();
+      await approveReservation(target.id);
+      setPendingReservations((prev) => prev.filter((r) => r.id !== target.id));
+      await loadHostListings();
+      setShowApproveSuccessModal(true);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to approve";
       setTimeout(() => Alert.alert("Error", msg), 300);
@@ -213,11 +288,18 @@ export default function HostProfileScreen({ route }: Props) {
     }
   };
 
-  const handleReject = async (id: string) => {
-    setRejectingId(id);
+  const handleReject = async () => {
+    const target = rejectTarget;
+    if (!target) return;
+
+    setRejectTarget(null);
+    setRejectingId(target.id);
+
     try {
-      await rejectReservation(id);
-      setPendingReservations((prev) => prev.filter((r) => r.id !== id));
+      await rejectReservation(target.id);
+      setPendingReservations((prev) => prev.filter((r) => r.id !== target.id));
+      await loadHostListings();
+      setShowRejectSuccessModal(true);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to reject";
       setTimeout(() => Alert.alert("Error", msg), 300);
@@ -249,18 +331,25 @@ export default function HostProfileScreen({ route }: Props) {
         reservation_id: reviewTarget.id,
         rating: reviewRating,
         comment: reviewComment.trim() || undefined,
-        target_user_id: reviewTarget.role === "host" ? reviewTarget.guest?.id : undefined,
-        target_listing_id: reviewTarget.role === "guest" ? reviewTarget.listing_id : undefined,
+        target_user_id:
+          reviewTarget.role === "host" ? reviewTarget.guest?.id : undefined,
+        target_listing_id:
+          reviewTarget.role === "guest" ? reviewTarget.listing_id : undefined,
       });
+
       setCompletedReservations((prev) =>
         prev.filter(
           (reservation) =>
-            !(reservation.id === reviewTarget.id && reservation.role === reviewTarget.role),
+            !(
+              reservation.id === reviewTarget.id &&
+              reservation.role === reviewTarget.role
+            ),
         ),
       );
       closeReviewModal();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to submit review";
+      const msg =
+        err instanceof Error ? err.message : "Failed to submit review";
       setTimeout(() => Alert.alert("Error", msg), 300);
     } finally {
       setIsSubmittingReview(false);
@@ -329,7 +418,8 @@ export default function HostProfileScreen({ route }: Props) {
       });
       setPendingDeleteListing(null);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to delete listing";
+      const msg =
+        err instanceof Error ? err.message : "Failed to delete listing";
       setTimeout(() => Alert.alert("Error", msg), 300);
     } finally {
       setIsDeleting(false);
@@ -355,7 +445,11 @@ export default function HostProfileScreen({ route }: Props) {
                   ]}
                   onPress={() => navigation.navigate("ProfileSettings")}
                 >
-                  <Ionicons name="settings-outline" size={20} color="#111111" />
+                  <Ionicons
+                    name="settings-outline"
+                    size={20}
+                    color="#111111"
+                  />
                 </Pressable>
 
                 <NotificationsButton
@@ -383,9 +477,7 @@ export default function HostProfileScreen({ route }: Props) {
                 <Text style={styles.metricFooterLabel}>
                   Total Booking Completed
                 </Text>
-                <Text style={styles.metricFooterValue}>
-                  {completedBookings}
-                </Text>
+                <Text style={styles.metricFooterValue}>{completedBookings}</Text>
               </View>
 
               <Pressable
@@ -490,11 +582,19 @@ export default function HostProfileScreen({ route }: Props) {
                         ]}
                         hitSlop={10}
                       >
-                        <Ionicons name="ellipsis-horizontal" size={15} color="#555555" />
+                        <Ionicons
+                          name="ellipsis-horizontal"
+                          size={15}
+                          color="#555555"
+                        />
                       </Pressable>
 
                       <View style={styles.listingThumbnailPlaceholder}>
-                        <Ionicons name="image-outline" size={24} color="#B8B8B8" />
+                        <Ionicons
+                          name="image-outline"
+                          size={24}
+                          color="#B8B8B8"
+                        />
                       </View>
 
                       <Text style={styles.listingCardTitle} numberOfLines={2}>
@@ -507,7 +607,12 @@ export default function HostProfileScreen({ route }: Props) {
                           <Text style={styles.occupiedText}>Occupied</Text>
                         </View>
                       ) : (
-                        <Text style={[styles.listingStatus, { color: getStatusColor(listing) }]}>
+                        <Text
+                          style={[
+                            styles.listingStatus,
+                            { color: getStatusColor(listing) },
+                          ]}
+                        >
                           {getListingStatusLabel(listing)}
                         </Text>
                       )}
@@ -545,6 +650,7 @@ export default function HostProfileScreen({ route }: Props) {
                   const isApproving = approvingId === r.id;
                   const isRejecting = rejectingId === r.id;
                   const busy = isApproving || isRejecting;
+
                   return (
                     <View key={r.id} style={styles.pendingCard}>
                       <View style={styles.pendingCardInfo}>
@@ -552,17 +658,31 @@ export default function HostProfileScreen({ route }: Props) {
                           {r.listing?.title ?? "Listing"}
                         </Text>
                         <Text style={styles.pendingCardMeta}>
-                          {r.guest ? `${r.guest.first_name} ${r.guest.last_name}` : "Guest"}
+                          {r.guest
+                            ? `${r.guest.first_name} ${r.guest.last_name}`
+                            : "Guest"}
                         </Text>
                         <Text style={styles.pendingCardTime}>
-                          {start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          {start.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
                           {" · "}
-                          {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                          {start.toLocaleTimeString("en-US", {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
                           {" – "}
-                          {end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                          {end.toLocaleTimeString("en-US", {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
                         </Text>
-                        <Text style={styles.pendingCardPrice}>${r.total_price.toFixed(2)}</Text>
+                        <Text style={styles.pendingCardPrice}>
+                          ${r.total_price.toFixed(2)}
+                        </Text>
                       </View>
+
                       <View style={styles.pendingCardActions}>
                         <Pressable
                           style={styles.viewProfileButton}
@@ -573,20 +693,24 @@ export default function HostProfileScreen({ route }: Props) {
                             })
                           }
                         >
-                          <Text style={styles.viewProfileButtonText}>View Profile</Text>
+                          <Text style={styles.viewProfileButtonText}>
+                            View Profile
+                          </Text>
                         </Pressable>
+
                         <Pressable
                           style={[styles.approveButton, busy && { opacity: 0.5 }]}
-                          onPress={() => handleApprove(r.id)}
+                          onPress={() => openApproveModal(r)}
                           disabled={busy}
                         >
                           <Text style={styles.approveButtonText}>
                             {isApproving ? "..." : "Approve"}
                           </Text>
                         </Pressable>
+
                         <Pressable
                           style={[styles.rejectButton, busy && { opacity: 0.5 }]}
-                          onPress={() => handleReject(r.id)}
+                          onPress={() => openRejectModal(r)}
                           disabled={busy}
                         >
                           <Text style={styles.rejectButtonText}>
@@ -602,14 +726,17 @@ export default function HostProfileScreen({ route }: Props) {
 
             {completedReservations.length > 0 && (
               <View style={styles.completedSection}>
-                <Text style={styles.completedSectionTitle}>Completed Listings</Text>
+                <Text style={styles.completedSectionTitle}>
+                  Completed Listings
+                </Text>
                 {completedReservations.map((reservation) => {
                   const start = new Date(reservation.start_time);
-                  const cardTitle = reservation.role === "host"
-                    ? (reservation.guest
-                      ? `${reservation.guest.first_name} ${reservation.guest.last_name}`
-                      : "Guest")
-                    : (reservation.listing?.title ?? "Listing");
+                  const cardTitle =
+                    reservation.role === "host"
+                      ? reservation.guest
+                        ? `${reservation.guest.first_name} ${reservation.guest.last_name}`
+                        : "Guest"
+                      : reservation.listing?.title ?? "Listing";
 
                   return (
                     <Pressable
@@ -621,11 +748,16 @@ export default function HostProfileScreen({ route }: Props) {
                       onPress={() => openReviewModal(reservation)}
                     >
                       <View style={styles.completedCardInfo}>
-                        <Text style={styles.completedCardTitle} numberOfLines={1}>
+                        <Text
+                          style={styles.completedCardTitle}
+                          numberOfLines={1}
+                        >
                           {cardTitle}
                         </Text>
                         <Text style={styles.completedCardSub}>
-                          {reservation.role === "host" ? "Review guest" : "Review listing"}
+                          {reservation.role === "host"
+                            ? "Review guest"
+                            : "Review listing"}
                         </Text>
                         <Text style={styles.completedCardDate}>
                           {start.toLocaleDateString("en-US", {
@@ -635,7 +767,11 @@ export default function HostProfileScreen({ route }: Props) {
                           })}
                         </Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={18} color="#AAAAAA" />
+                      <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color="#AAAAAA"
+                      />
                     </Pressable>
                   );
                 })}
@@ -649,13 +785,27 @@ export default function HostProfileScreen({ route }: Props) {
                   <ListingRowActions
                     key={listing.id}
                     listing={listing}
-                    onEdit={() => navigation.navigate("EditListing", { listing })}
+                    onEdit={() =>
+                      navigation.navigate("EditListing", { listing })
+                    }
                     onOpenActions={() => openListingActions(listing)}
-                    badge={(
-                      <View style={[styles.inactiveBadge, { backgroundColor: "#FEF3C7" }]}>
-                        <Text style={[styles.inactiveBadgeText, { color: "#92400E" }]}>Draft</Text>
+                    badge={
+                      <View
+                        style={[
+                          styles.inactiveBadge,
+                          { backgroundColor: "#FEF3C7" },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.inactiveBadgeText,
+                            { color: "#92400E" },
+                          ]}
+                        >
+                          Draft
+                        </Text>
                       </View>
-                    )}
+                    }
                   />
                 ))}
               </View>
@@ -663,18 +813,22 @@ export default function HostProfileScreen({ route }: Props) {
 
             {inactiveListings.length > 0 && (
               <View style={styles.inactiveSection}>
-                <Text style={styles.inactiveSectionTitle}>Inactive Listings</Text>
+                <Text style={styles.inactiveSectionTitle}>
+                  Inactive Listings
+                </Text>
                 {inactiveListings.map((listing) => (
                   <ListingRowActions
                     key={listing.id}
                     listing={listing}
-                    onEdit={() => navigation.navigate("EditListing", { listing })}
+                    onEdit={() =>
+                      navigation.navigate("EditListing", { listing })
+                    }
                     onOpenActions={() => openListingActions(listing)}
-                    badge={(
+                    badge={
                       <View style={styles.inactiveBadge}>
                         <Text style={styles.inactiveBadgeText}>Inactive</Text>
                       </View>
-                    )}
+                    }
                   />
                 ))}
               </View>
@@ -693,6 +847,124 @@ export default function HostProfileScreen({ route }: Props) {
 
       <Modal
         transparent
+        animationType="fade"
+        visible={approveTarget !== null}
+        onRequestClose={closeApproveModal}
+      >
+        <Pressable style={styles.actionsBackdrop} onPress={closeApproveModal}>
+          <Pressable
+            style={styles.confirmModalCard}
+            onPress={(event) => event.stopPropagation()}
+          >
+            <Text style={styles.confirmModalTitle}>Approve booking?</Text>
+            <Text style={styles.confirmModalText}>
+              Are you sure you want to approve this booking request?
+            </Text>
+
+            <View style={styles.confirmModalActions}>
+              <Pressable
+                style={styles.confirmCancelButton}
+                onPress={closeApproveModal}
+              >
+                <Text style={styles.confirmCancelText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.confirmApproveButton}
+                onPress={() => void handleApprove()}
+              >
+                <Text style={styles.confirmApproveText}>Approve</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={rejectTarget !== null}
+        onRequestClose={closeRejectModal}
+      >
+        <Pressable style={styles.actionsBackdrop} onPress={closeRejectModal}>
+          <Pressable
+            style={styles.confirmModalCard}
+            onPress={(event) => event.stopPropagation()}
+          >
+            <Text style={styles.confirmModalTitle}>Reject booking?</Text>
+            <Text style={styles.confirmModalText}>
+              Are you sure you want to reject this booking request?
+            </Text>
+
+            <View style={styles.confirmModalActions}>
+              <Pressable
+                style={styles.confirmCancelButton}
+                onPress={closeRejectModal}
+              >
+                <Text style={styles.confirmCancelText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.confirmRejectButton}
+                onPress={() => void handleReject()}
+              >
+                <Text style={styles.confirmRejectText}>Reject</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={showApproveSuccessModal}
+        onRequestClose={() => setShowApproveSuccessModal(false)}
+      >
+        <View style={styles.actionsBackdrop}>
+          <View style={styles.successModalCard}>
+            <Text style={styles.successModalTitle}>
+              Confirmation Successful
+            </Text>
+            <Text style={styles.successModalText}>
+              The booking request has been successfully approved.
+            </Text>
+
+            <Pressable
+              style={styles.successModalButton}
+              onPress={() => setShowApproveSuccessModal(false)}
+            >
+              <Text style={styles.successModalButtonText}>OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={showRejectSuccessModal}
+        onRequestClose={() => setShowRejectSuccessModal(false)}
+      >
+        <View style={styles.actionsBackdrop}>
+          <View style={styles.successModalCard}>
+            <Text style={styles.successModalTitle}>Rejection Successful</Text>
+            <Text style={styles.successModalText}>
+              The booking request has been successfully rejected.
+            </Text>
+
+            <Pressable
+              style={styles.successModalButton}
+              onPress={() => setShowRejectSuccessModal(false)}
+            >
+              <Text style={styles.successModalButtonText}>OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
         animationType="slide"
         visible={!!reviewTarget}
         onRequestClose={closeReviewModal}
@@ -707,15 +979,19 @@ export default function HostProfileScreen({ route }: Props) {
             </Text>
             <Text style={styles.reviewModalSub} numberOfLines={1}>
               {reviewTarget?.role === "host"
-                ? (reviewTarget.guest
+                ? reviewTarget.guest
                   ? `${reviewTarget.guest.first_name} ${reviewTarget.guest.last_name}`
-                  : "Guest")
-                : (reviewTarget?.listing?.title ?? "Listing")}
+                  : "Guest"
+                : reviewTarget?.listing?.title ?? "Listing"}
             </Text>
 
             <View style={styles.starRow}>
               {[1, 2, 3, 4, 5].map((i) => (
-                <Pressable key={i} onPress={() => setReviewRating(i)} hitSlop={8}>
+                <Pressable
+                  key={i}
+                  onPress={() => setReviewRating(i)}
+                  hitSlop={8}
+                >
                   <Ionicons
                     name={i <= reviewRating ? "star" : "star-outline"}
                     size={32}
@@ -738,7 +1014,8 @@ export default function HostProfileScreen({ route }: Props) {
             <Pressable
               style={[
                 styles.reviewSubmitBtn,
-                (reviewRating === 0 || isSubmittingReview) && styles.reviewSubmitDisabled,
+                (reviewRating === 0 || isSubmittingReview) &&
+                  styles.reviewSubmitDisabled,
               ]}
               onPress={() => void handleSubmitReview()}
               disabled={reviewRating === 0 || isSubmittingReview}
@@ -757,11 +1034,11 @@ export default function HostProfileScreen({ route }: Props) {
         visible={isListingActionsVisible}
         onRequestClose={closeListingActions}
       >
-        <Pressable
-          style={styles.actionsBackdrop}
-          onPress={closeListingActions}
-        >
-          <Pressable style={styles.actionsCard} onPress={(event) => event.stopPropagation()}>
+        <Pressable style={styles.actionsBackdrop} onPress={closeListingActions}>
+          <Pressable
+            style={styles.actionsCard}
+            onPress={(event) => event.stopPropagation()}
+          >
             <Pressable
               style={({ pressed }) => [
                 styles.actionButton,
@@ -791,10 +1068,7 @@ export default function HostProfileScreen({ route }: Props) {
         visible={pendingDeleteListing !== null}
         onRequestClose={closeDeleteModal}
       >
-        <Pressable
-          style={styles.actionsBackdrop}
-          onPress={closeDeleteModal}
-        >
+        <Pressable style={styles.actionsBackdrop} onPress={closeDeleteModal}>
           <Pressable
             style={styles.deleteConfirmCard}
             onPress={(event) => event.stopPropagation()}
@@ -1451,8 +1725,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#111111",
   },
-  inactiveSection: { marginTop: 24 },
-  inactiveSectionTitle: { fontSize: 20, fontWeight: "500", color: "#111111", marginBottom: 12 },
+  inactiveSection: {
+    marginTop: 24,
+  },
+  inactiveSectionTitle: {
+    fontSize: 20,
+    fontWeight: "500",
+    color: "#111111",
+    marginBottom: 12,
+  },
   inactiveCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -1475,14 +1756,124 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 8,
   },
-  inactiveCardInfo: { flex: 1 },
-  inactiveCardTitle: { fontSize: 15, fontWeight: "600", color: "#111111", marginBottom: 2 },
-  inactiveCardSub: { fontSize: 12, color: "#777777" },
+  inactiveCardInfo: {
+    flex: 1,
+  },
+  inactiveCardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111111",
+    marginBottom: 2,
+  },
+  inactiveCardSub: {
+    fontSize: 12,
+    color: "#777777",
+  },
   inactiveBadge: {
     backgroundColor: "#E5E5E5",
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  inactiveBadgeText: { fontSize: 12, fontWeight: "600", color: "#555555" },
+  inactiveBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#555555",
+  },
+
+  confirmModalCard: {
+    width: "100%",
+    maxWidth: 340,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 20,
+  },
+  confirmModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111111",
+    marginBottom: 8,
+  },
+  confirmModalText: {
+    fontSize: 14,
+    color: "#666666",
+    lineHeight: 20,
+    marginBottom: 18,
+  },
+  confirmModalActions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  confirmCancelButton: {
+    flex: 1,
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  confirmCancelText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  confirmApproveButton: {
+    flex: 1,
+    backgroundColor: "#22C55E",
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  confirmApproveText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  confirmRejectButton: {
+    flex: 1,
+    backgroundColor: "#DC2626",
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  confirmRejectText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+
+  successModalCard: {
+    width: "100%",
+    maxWidth: 280,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 20,
+    alignItems: "center",
+  },
+  successModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111111",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  successModalText: {
+    fontSize: 14,
+    color: "#666666",
+    textAlign: "center",
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  successModalButton: {
+    backgroundColor: "#ECAA00",
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 12,
+  },
+  successModalButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111111",
+  },
 });
