@@ -10,6 +10,7 @@ export type Listing = {
   available_from: string;
   available_until: string;
   is_active: boolean;
+  is_draft?: boolean;
   is_saved?: boolean;
   created_at: string;
   updated_at: string;

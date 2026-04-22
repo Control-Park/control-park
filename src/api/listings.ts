@@ -87,4 +87,14 @@ export const deleteListing = async (id: string): Promise<void> => {
   await client.delete(`/listings/${id}`);
 };
 
+export const fetchMyListings = async (): Promise<Listing[]> => {
+  const { data } = await client.get<Listing[]>("/listings/mine");
+  return data;
+};
+
+export const saveListingAsDraft = async (payload: Partial<Listing> & { title: string }): Promise<Listing> => {
+  const { data } = await client.post<Listing>("/listings/draft", payload);
+  return data;
+};
+
 // RESERVATIONS:

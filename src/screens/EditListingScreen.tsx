@@ -42,6 +42,8 @@ export default function EditListingScreen({ route, navigation }: Props) {
   );
   const [showPickerModal, setShowPickerModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTogglingActive, setIsTogglingActive] = useState(false);
+  const isCurrentlyActive = listing.is_active ?? true;
 
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
@@ -138,6 +140,8 @@ export default function EditListingScreen({ route, navigation }: Props) {
         incentives: incentivesArray,
         images: imageUri ? [imageUri] : listing.images,
         sub_heading: access.trim() ? [access.trim()] : [],
+        // Publishing a draft makes it active
+        ...(listing.is_draft ? { is_draft: false, is_active: true } : {}),
       });
 
       navigation.goBack();
@@ -303,7 +307,38 @@ export default function EditListingScreen({ route, navigation }: Props) {
               ]}
             >
               <Text style={styles.postButtonText}>
-                {isSubmitting ? "Saving..." : "Save changes"}
+                {isSubmitting ? (listing.is_draft ? "Publishing..." : "Saving...") : (listing.is_draft ? "Publish Listing" : "Save changes")}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={async () => {
+                const nextActive = !isCurrentlyActive;
+                setIsTogglingActive(true);
+                try {
+                  await updateListing(listing.id, { is_active: nextActive });
+                  navigation.goBack();
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : "Failed to update listing";
+                  setTimeout(() => Alert.alert("Error", msg), 300);
+                } finally {
+                  setIsTogglingActive(false);
+                }
+              }}
+              disabled={isTogglingActive || isSubmitting}
+              style={({ pressed }) => [
+                styles.toggleActiveButton,
+                isCurrentlyActive ? styles.deactivateButton : styles.activateButton,
+                (isTogglingActive || isSubmitting) && styles.postButtonDisabled,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.toggleActiveButtonText}>
+                {isTogglingActive
+                  ? "Updating..."
+                  : isCurrentlyActive
+                  ? "Deactivate Listing"
+                  : "Activate Listing"}
               </Text>
             </Pressable>
 
@@ -460,4 +495,25 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   pressed: { opacity: 0.75 },
-});
+  toggleActiveButton: {
+    height: 44,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+    marginHorizontal: 60,
+  },
+  deactivateButton: {
+    borderWidth: 1.5,
+    borderColor: "#D93025",
+  },
+  activateButton: {
+    borderWidth: 1.5,
+    borderColor: "#22C55E",
+  },
+  toggleActiveButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#374151",
+  },
+});;

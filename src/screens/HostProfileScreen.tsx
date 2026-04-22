@@ -19,7 +19,7 @@ import Navbar from "../components/Navbar";
 import NotificationsButton from "../components/NotificationsButton";
 import { getMyProfile, UserProfile } from "../api/user";
 import { usePaymentMethods } from "../context/paymentMethodsContext";
-import { deleteListing, fetchListings } from "../api/listings";
+import { deleteListing, fetchMyListings } from "../api/listings";
 import { approveReservation, fetchHostingReservations, fetchHostStats, HostStats, rejectReservation, Reservation } from "../api/reservations";
 import { CompletedReservation, createReview, fetchPendingReviews } from "../api/reviews";
 import type { Listing } from "../types/listing";
@@ -88,20 +88,20 @@ export default function HostProfileScreen() {
       const userId = session?.user?.id ?? null;
       if (!userId) { setListings([]); return; }
 
-      const [allListings, hostStats, hostingReservations] = await Promise.all([
-        fetchListings(),
+      const [myListings, hostStats, hostingReservations] = await Promise.all([
+        fetchMyListings(),
         fetchHostStats(),
         fetchHostingReservations(),
       ]);
-      setListings(allListings.filter((l) => l.host_id === userId));
+      setListings(myListings);
       setStats(hostStats);
-      const activeIds = new Set(
+      const activeIds = new Set<string>(
         hostingReservations
-          .filter((r) => r.status === "active")
-          .map((r) => r.listing_id),
+          .filter((r: { status: string }) => r.status === "active")
+          .map((r: { listing_id: string }) => r.listing_id),
       );
       setOccupiedListingIds(activeIds);
-      setPendingReservations(hostingReservations.filter((r) => r.status === "pending"));
+      setPendingReservations(hostingReservations.filter((r: { status: string }) => r.status === "pending"));
       const completed = await fetchPendingReviews();
       setCompletedReservations(completed);
     } catch (error) {
@@ -124,7 +124,10 @@ export default function HostProfileScreen() {
   const balance = stats.wallet_balance;
   const completedBookings = stats.completed_bookings;
   const hasPaymentMethod = !!defaultMethod;
-  const hasListings = listings.length > 0;
+  const activeListings = listings.filter((l) => l.is_active && !l.is_draft);
+  const inactiveListings = listings.filter((l) => !l.is_active && !l.is_draft);
+  const draftListings = listings.filter((l) => l.is_draft);
+  const hasListings = activeListings.length > 0;
   const hasBalance = balance > 0;
   const hasCompletedBookings = completedBookings > 0;
 
@@ -212,31 +215,32 @@ export default function HostProfileScreen() {
   const handleDeleteListing = () => {
     const listing = selectedListing;
     if (!listing) return;
-
-    Alert.alert(
-      "Delete listing",
-      `Remove "${listing.title}"? Cannot delete listings with active reservations.`,
-      [
-        { text: "Cancel", style: "cancel", onPress: closeListingActions },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            closeListingActions();
-            setIsDeleting(true);
-            try {
-              await deleteListing(listing.id);
-              setListings((prev) => prev.filter((l) => l.id !== listing.id));
-            } catch (err: unknown) {
-              const msg = err instanceof Error ? err.message : "Failed to delete listing";
-              setTimeout(() => Alert.alert("Error", msg), 300);
-            } finally {
-              setIsDeleting(false);
-            }
+    closeListingActions();
+    setTimeout(() => {
+      Alert.alert(
+        "Delete listing",
+        `Remove "${listing.title}"? Cannot delete listings with active reservations.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              setIsDeleting(true);
+              try {
+                await deleteListing(listing.id);
+                setListings((prev) => prev.filter((l) => l.id !== listing.id));
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : "Failed to delete listing";
+                setTimeout(() => Alert.alert("Error", msg), 300);
+              } finally {
+                setIsDeleting(false);
+              }
+            },
           },
-        },
-      ],
-    );
+        ],
+      );
+    }, 350);
   };
 
   return (
@@ -374,7 +378,7 @@ export default function HostProfileScreen() {
                   <Text style={styles.addListingText}>Add Listing</Text>
                 </Pressable>
 
-                {listings.map((listing) => {
+                {activeListings.map((listing) => {
                   const isOccupied = occupiedListingIds.has(listing.id);
                   return (
                     <Pressable
@@ -529,6 +533,48 @@ export default function HostProfileScreen() {
                     </Pressable>
                   );
                 })}
+              </View>
+            )}
+
+            {draftListings.length > 0 && (
+              <View style={styles.inactiveSection}>
+                <Text style={styles.inactiveSectionTitle}>Draft Listings</Text>
+                {draftListings.map((listing) => (
+                  <Pressable
+                    key={listing.id}
+                    style={({ pressed }) => [styles.inactiveCard, pressed && { opacity: 0.75 }]}
+                    onPress={() => navigation.navigate("EditListing", { listing })}
+                  >
+                    <View style={styles.inactiveCardInfo}>
+                      <Text style={styles.inactiveCardTitle} numberOfLines={1}>{listing.title}</Text>
+                      <Text style={styles.inactiveCardSub}>Tap to continue editing</Text>
+                    </View>
+                    <View style={[styles.inactiveBadge, { backgroundColor: "#FEF3C7" }]}>
+                      <Text style={[styles.inactiveBadgeText, { color: "#92400E" }]}>Draft</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+
+            {inactiveListings.length > 0 && (
+              <View style={styles.inactiveSection}>
+                <Text style={styles.inactiveSectionTitle}>Inactive Listings</Text>
+                {inactiveListings.map((listing) => (
+                  <Pressable
+                    key={listing.id}
+                    style={({ pressed }) => [styles.inactiveCard, pressed && { opacity: 0.75 }]}
+                    onPress={() => navigation.navigate("EditListing", { listing })}
+                  >
+                    <View style={styles.inactiveCardInfo}>
+                      <Text style={styles.inactiveCardTitle} numberOfLines={1}>{listing.title}</Text>
+                      <Text style={styles.inactiveCardSub}>{listing.address}</Text>
+                    </View>
+                    <View style={styles.inactiveBadge}>
+                      <Text style={styles.inactiveBadgeText}>Inactive</Text>
+                    </View>
+                  </Pressable>
+                ))}
               </View>
             )}
 
@@ -1171,4 +1217,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   reviewSubmitBtnText: { fontSize: 16, fontWeight: "700", color: "#111111" },
+  inactiveSection: { marginTop: 24 },
+  inactiveSectionTitle: { fontSize: 20, fontWeight: "500", color: "#111111", marginBottom: 12 },
+  inactiveCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    opacity: 0.75,
+  },
+  inactiveCardInfo: { flex: 1 },
+  inactiveCardTitle: { fontSize: 15, fontWeight: "600", color: "#111111", marginBottom: 2 },
+  inactiveCardSub: { fontSize: 12, color: "#777777" },
+  inactiveBadge: {
+    backgroundColor: "#E5E5E5",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  inactiveBadgeText: { fontSize: 12, fontWeight: "600", color: "#555555" },
 });

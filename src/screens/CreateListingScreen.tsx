@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as ImagePicker from "expo-image-picker";
-import { createNewListing } from "../api/listings";
+import { createNewListing, saveListingAsDraft } from "../api/listings";
 import type { Listing } from "../types/listing";
 import { supabase } from "../utils/supabase";
 
@@ -39,6 +39,7 @@ export default function CreateListingScreen({ navigation }: Props) {
   const [pricePerDay, setPricePerDay] = useState("");
   const [showPickerModal, setShowPickerModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
 
   const [titleError, setTitleError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
@@ -246,6 +247,41 @@ export default function CreateListingScreen({ navigation }: Props) {
     }
   };
 
+  const handleSaveDraft = async () => {
+    let hasError = false;
+    if (!title.trim()) {
+      setTitleError("Title is required.");
+      hasError = true;
+    }
+    if (!description.trim()) {
+      setDescriptionError("Description is required.");
+      hasError = true;
+    }
+    if (hasError) return;
+    setIsSavingDraft(true);
+    try {
+      const perksArray = perks.split(",").map((s) => s.trim()).filter(Boolean);
+      const incentivesArray = incentives.split(",").map((s) => s.trim()).filter(Boolean);
+      await saveListingAsDraft({
+        title: title.trim(),
+        description: description.trim() || undefined,
+        address: address.trim() || undefined,
+        structure_name: campusLot.trim() || undefined,
+        price_per_hour: pricePerDay ? Number(pricePerDay) : undefined,
+        perks: perksArray,
+        incentives: incentivesArray,
+        images: imageUri ? [imageUri] : [],
+        sub_heading: access.trim() ? [access.trim()] : [],
+      });
+      navigation.goBack();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save draft";
+      Alert.alert("Error", msg);
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
   return (
     <View style={styles.safe}>
       <ScrollView
@@ -435,6 +471,20 @@ export default function CreateListingScreen({ navigation }: Props) {
               </Text>
             </Pressable>
 
+            <Pressable
+              onPress={handleSaveDraft}
+              disabled={isSavingDraft || isSubmitting}
+              style={({ pressed }) => [
+                styles.draftButton,
+                (isSavingDraft || isSubmitting) && styles.postButtonDisabled,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.draftButtonText}>
+                {isSavingDraft ? "Saving..." : "Save as Draft"}
+              </Text>
+            </Pressable>
+
             <View style={{ height: 100 }} />
           </View>
         </View>
@@ -597,6 +647,21 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#111111",
+  },
+  draftButton: {
+    height: 44,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "#D0D0D0",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    marginHorizontal: 60,
+  },
+  draftButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#555555",
   },
   inputErrorBorder: {
     borderColor: "#D93025",
