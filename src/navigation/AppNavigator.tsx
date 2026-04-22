@@ -26,6 +26,7 @@ import HostReservationsScreen from "../screens/HostReservationsScreen";
 import CreateListingScreen from "../screens/CreateListingScreen";
 import EditListingScreen from "../screens/EditListingScreen";
 import GuestReviewsScreen from "../screens/GuestReviewsScreen";
+import ViewProfileScreen from "../screens/ViewProfileScreen";
 
 export type RootStackParamList = {
   Home: undefined;
@@ -72,6 +73,7 @@ export type RootStackParamList = {
     guestId: string;
     guestName: string;
   };
+  ViewProfile: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -198,6 +200,11 @@ export default function AppNavigator() {
       <Stack.Screen
         name="GuestReviews"
         component={GuestReviewsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ViewProfile"
+        component={ViewProfileScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
