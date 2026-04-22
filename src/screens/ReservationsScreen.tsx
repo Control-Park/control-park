@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   Pressable,
   Image,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -71,6 +72,10 @@ export default function ReservationsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { favorites } = useFavoritesStore();
   const queryClient = useQueryClient();
+  const [selectedReservation, setSelectedReservation] =
+    useState<Reservation | null>(null);
+  const [pendingCancelReservation, setPendingCancelReservation] =
+    useState<Reservation | null>(null);
   const dismissedCancelledIds = useReservationStore(
     (state) => state.dismissedCancelledIds,
   );
@@ -99,9 +104,29 @@ export default function ReservationsScreen({ navigation }: Props) {
     mutationFn: cancelReservation,
     onSuccess: (_data, reservationId) => {
       dismissCancelledReservation(reservationId);
+      setPendingCancelReservation(null);
       void queryClient.invalidateQueries({ queryKey: ["reservations"] });
     },
   });
+
+  const handleConfirmCancel = () => {
+    if (!pendingCancelReservation || cancelMutation.isPending) {
+      return;
+    }
+
+    cancelMutation.mutate(pendingCancelReservation.id);
+  };
+
+  const closeReservationDetails = () => {
+    setSelectedReservation(null);
+  };
+
+  const selectedReservationStart = selectedReservation
+    ? new Date(selectedReservation.start_time)
+    : null;
+  const selectedReservationEnd = selectedReservation
+    ? new Date(selectedReservation.end_time)
+    : null;
 
   const savedListings = listings?.filter((l) => favorites[l.id]) ?? [];
   const visibleReservations = useMemo(
@@ -147,9 +172,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                         styles.activeCard,
                         pressed && { opacity: 0.85 },
                       ]}
-                      onPress={() =>
-                        navigation.navigate("ActiveReservation", { reservationId: r.id })
-                      }
+                      onPress={() => setSelectedReservation(r)}
                     >
                       <View style={styles.activeCardHeader}>
                         <View style={styles.activeDot} />
@@ -201,11 +224,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                           isDimmed && styles.dimmedCard,
                           pressed && { opacity: 0.75 },
                         ]}
-                        onPress={() => {
-                          if (status === "active" || status === "upcoming" || status === "approved") {
-                            navigation.navigate("ActiveReservation", { reservationId: r.id });
-                          }
-                        }}
+                        onPress={() => setSelectedReservation(r)}
                       >
                         <View style={styles.cardImageWrapper}>
                           {r.listing ? (
@@ -261,7 +280,7 @@ export default function ReservationsScreen({ navigation }: Props) {
                               styles.cancelButton,
                               cancelMutation.isPending && { opacity: 0.6 },
                             ]}
-                            onPress={() => cancelMutation.mutate(r.id)}
+                            onPress={() => setPendingCancelReservation(r)}
                             disabled={cancelMutation.isPending}
                           >
                             <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -324,6 +343,203 @@ export default function ReservationsScreen({ navigation }: Props) {
           <Navbar activeTab="Listings" />
         </View>
       </View>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={pendingCancelReservation !== null}
+        onRequestClose={() => {
+          if (!cancelMutation.isPending) {
+            setPendingCancelReservation(null);
+          }
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Cancel reservation?</Text>
+            <Text style={styles.confirmText}>
+              {pendingCancelReservation
+                ? `Are you sure you want to cancel ${
+                    pendingCancelReservation.listing?.title ?? "this reservation"
+                  }?`
+                : ""}
+            </Text>
+
+            <View style={styles.confirmActions}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.confirmButton,
+                  styles.confirmButtonBorder,
+                  pressed && styles.dismissButtonPressed,
+                ]}
+                onPress={() => setPendingCancelReservation(null)}
+                disabled={cancelMutation.isPending}
+              >
+                <Text style={styles.confirmKeepText}>Keep</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.confirmButton,
+                  pressed && styles.dismissButtonPressed,
+                ]}
+                onPress={handleConfirmCancel}
+                disabled={cancelMutation.isPending}
+              >
+                <Text style={styles.confirmCancelText}>
+                  {cancelMutation.isPending ? "Cancelling..." : "Cancel reservation"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={selectedReservation !== null}
+        onRequestClose={closeReservationDetails}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.detailsCard}>
+            <View style={styles.detailsHeader}>
+              <Text style={styles.detailsTitle}>Reservation Details</Text>
+              <Pressable onPress={closeReservationDetails} hitSlop={10}>
+                <Ionicons name="close" size={18} color="#6B7280" />
+              </Pressable>
+            </View>
+
+            {selectedReservation && selectedReservationStart && selectedReservationEnd ? (
+              <>
+                <View style={styles.detailsStatusRow}>
+                  <Text style={styles.detailsListingTitle}>
+                    {selectedReservation.listing?.title ?? "Listing"}
+                  </Text>
+                  <View
+                    style={[
+                      styles.detailsStatusBadge,
+                      {
+                        backgroundColor:
+                          STATUS_COLORS[selectedReservation.status],
+                      },
+                    ]}
+                  >
+                    <Text style={styles.detailsStatusText}>
+                      {STATUS_LABELS[selectedReservation.status]}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={styles.detailsAddress}>
+                  {selectedReservation.listing?.address ?? "Address not available"}
+                </Text>
+
+                <View style={styles.detailsList}>
+                  <View style={styles.detailsRow}>
+                    <Text style={styles.detailsLabel}>Date</Text>
+                    <Text style={styles.detailsValue}>
+                      {formatDate(selectedReservationStart)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.detailsRow}>
+                    <Text style={styles.detailsLabel}>Time</Text>
+                    <Text style={styles.detailsValue}>
+                      {formatTime(selectedReservationStart)} -{" "}
+                      {formatTime(selectedReservationEnd)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.detailsRow}>
+                    <Text style={styles.detailsLabel}>Duration</Text>
+                    <Text style={styles.detailsValue}>
+                      {formatDuration(
+                        selectedReservationStart,
+                        selectedReservationEnd,
+                      )}
+                    </Text>
+                  </View>
+
+                  <View style={styles.detailsRow}>
+                    <Text style={styles.detailsLabel}>Total</Text>
+                    <Text style={styles.detailsValue}>
+                      ${selectedReservation.total_price.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailsActions}>
+                  {selectedReservation.status === "pending" ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.detailsPrimaryButton,
+                        pressed && styles.dismissButtonPressed,
+                      ]}
+                      onPress={() => {
+                        setPendingCancelReservation(selectedReservation);
+                        closeReservationDetails();
+                      }}
+                    >
+                      <Text style={styles.detailsPrimaryButtonText}>
+                        Cancel reservation
+                      </Text>
+                    </Pressable>
+                  ) : null}
+
+                  {selectedReservation.status === "expired" ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.detailsPrimaryButton,
+                        pressed && styles.dismissButtonPressed,
+                      ]}
+                      onPress={() => {
+                        const listingId = selectedReservation.listing_id;
+                        closeReservationDetails();
+                        navigation.navigate("Reserve", { id: listingId });
+                      }}
+                    >
+                      <Text style={styles.detailsPrimaryButtonText}>Renew</Text>
+                    </Pressable>
+                  ) : null}
+
+                  {(selectedReservation.status === "active" ||
+                    selectedReservation.status === "approved" ||
+                    selectedReservation.status === "upcoming") ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.detailsPrimaryButton,
+                        pressed && styles.dismissButtonPressed,
+                      ]}
+                      onPress={() => {
+                        const reservationId = selectedReservation.id;
+                        closeReservationDetails();
+                        navigation.navigate("ActiveReservation", {
+                          reservationId,
+                        });
+                      }}
+                    >
+                      <Text style={styles.detailsPrimaryButtonText}>
+                        View reservation
+                      </Text>
+                    </Pressable>
+                  ) : null}
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.detailsSecondaryButton,
+                      pressed && styles.dismissButtonPressed,
+                    ]}
+                    onPress={closeReservationDetails}
+                  >
+                    <Text style={styles.detailsSecondaryButtonText}>Close</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -429,6 +645,166 @@ const styles = StyleSheet.create({
   },
   dismissButtonPressed: {
     opacity: 0.72,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.18)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  confirmCard: {
+    width: "100%",
+    maxWidth: 320,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  confirmTitle: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111111",
+    textAlign: "center",
+  },
+  confirmText: {
+    paddingTop: 10,
+    paddingBottom: 18,
+    paddingHorizontal: 24,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#4B5563",
+    textAlign: "center",
+  },
+  confirmActions: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  confirmButton: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmButtonBorder: {
+    borderRightWidth: 1,
+    borderRightColor: "#E5E7EB",
+  },
+  confirmKeepText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#111111",
+  },
+  confirmCancelText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#D97706",
+  },
+  detailsCard: {
+    width: "100%",
+    maxWidth: 340,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  detailsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+  },
+  detailsTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#111111",
+  },
+  detailsStatusRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  detailsListingTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111111",
+  },
+  detailsStatusBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  detailsStatusText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  detailsAddress: {
+    marginTop: 8,
+    marginBottom: 18,
+    fontSize: 14,
+    color: "#6B7280",
+    lineHeight: 20,
+  },
+  detailsList: {
+    gap: 12,
+  },
+  detailsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 16,
+  },
+  detailsLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  detailsValue: {
+    flex: 1,
+    fontSize: 14,
+    color: "#111111",
+    textAlign: "right",
+  },
+  detailsActions: {
+    marginTop: 24,
+    gap: 12,
+  },
+  detailsPrimaryButton: {
+    backgroundColor: "#ECAA00",
+    borderRadius: 999,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  detailsPrimaryButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111111",
+  },
+  detailsSecondaryButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  detailsSecondaryButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111111",
   },
   statusBadge: {
     position: "absolute",
