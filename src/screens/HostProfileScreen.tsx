@@ -236,6 +236,8 @@ export default function HostProfileScreen({ route }: Props) {
     if (!reviewTarget || reviewRating === 0) return;
     setIsSubmittingReview(true);
     try {
+      const submittedRole = reviewTarget.role;
+      const submittedReservationId = reviewTarget.id;
       await createReview({
         reservation_id: reviewTarget.id,
         rating: reviewRating,
@@ -243,7 +245,11 @@ export default function HostProfileScreen({ route }: Props) {
         target_user_id: reviewTarget.role === "host" ? reviewTarget.guest?.id : undefined,
         target_listing_id: reviewTarget.role === "guest" ? reviewTarget.listing_id : undefined,
       });
-      setCompletedReservations((prev) => prev.filter((r) => r.id !== reviewTarget.id));
+      setCompletedReservations((prev) =>
+        prev.filter(
+          (r) => !(r.id === submittedReservationId && r.role === submittedRole),
+        ),
+      );
       closeReviewModal();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to submit review";
@@ -597,7 +603,7 @@ export default function HostProfileScreen({ route }: Props) {
                   const subLabel = r.role === "host" ? "Review guest" : "Review listing";
                   return (
                     <Pressable
-                      key={r.id}
+                      key={`${r.id}-${r.role}`}
                       style={({ pressed }) => [styles.completedCard, pressed && { opacity: 0.75 }]}
                       onPress={() => openReviewModal(r)}
                     >
