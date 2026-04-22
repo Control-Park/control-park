@@ -154,7 +154,13 @@ export default function HostProfileScreen({ route }: Props) {
       setOccupiedListingIds(activeIds);
       setPendingReservations(hostingReservations.filter((r: { status: string }) => r.status === "pending"));
       const completed = await fetchPendingReviews();
-      setCompletedReservations(completed);
+      setCompletedReservations(
+        completed
+          .sort(
+            (a, b) =>
+              new Date(b.end_time).getTime() - new Date(a.end_time).getTime(),
+          ),
+      );
     } catch (error) {
       console.error("Failed to load host data:", error);
       setListings([]);
@@ -220,8 +226,8 @@ export default function HostProfileScreen({ route }: Props) {
     }
   };
 
-  const openReviewModal = (r: CompletedReservation) => {
-    setReviewTarget(r);
+  const openReviewModal = (reservation: CompletedReservation) => {
+    setReviewTarget(reservation);
     setReviewRating(0);
     setReviewComment("");
   };
@@ -233,11 +239,12 @@ export default function HostProfileScreen({ route }: Props) {
   };
 
   const handleSubmitReview = async () => {
-    if (!reviewTarget || reviewRating === 0) return;
+    if (!reviewTarget || reviewRating === 0 || isSubmittingReview) {
+      return;
+    }
+
     setIsSubmittingReview(true);
     try {
-      const submittedRole = reviewTarget.role;
-      const submittedReservationId = reviewTarget.id;
       await createReview({
         reservation_id: reviewTarget.id,
         rating: reviewRating,
@@ -247,7 +254,8 @@ export default function HostProfileScreen({ route }: Props) {
       });
       setCompletedReservations((prev) =>
         prev.filter(
-          (r) => !(r.id === submittedReservationId && r.role === submittedRole),
+          (reservation) =>
+            !(reservation.id === reviewTarget.id && reservation.role === reviewTarget.role),
         ),
       );
       closeReviewModal();
@@ -595,23 +603,36 @@ export default function HostProfileScreen({ route }: Props) {
             {completedReservations.length > 0 && (
               <View style={styles.completedSection}>
                 <Text style={styles.completedSectionTitle}>Completed Listings</Text>
-                {completedReservations.map((r) => {
-                  const start = new Date(r.start_time);
-                  const targetName = r.role === "host"
-                    ? (r.guest ? `${r.guest.first_name} ${r.guest.last_name}` : "Guest")
-                    : (r.listing?.title ?? "Listing");
-                  const subLabel = r.role === "host" ? "Review guest" : "Review listing";
+                {completedReservations.map((reservation) => {
+                  const start = new Date(reservation.start_time);
+                  const cardTitle = reservation.role === "host"
+                    ? (reservation.guest
+                      ? `${reservation.guest.first_name} ${reservation.guest.last_name}`
+                      : "Guest")
+                    : (reservation.listing?.title ?? "Listing");
+
                   return (
                     <Pressable
-                      key={`${r.id}-${r.role}`}
-                      style={({ pressed }) => [styles.completedCard, pressed && { opacity: 0.75 }]}
-                      onPress={() => openReviewModal(r)}
+                      key={`${reservation.id}-${reservation.role}`}
+                      style={({ pressed }) => [
+                        styles.completedCard,
+                        pressed && styles.pressed,
+                      ]}
+                      onPress={() => openReviewModal(reservation)}
                     >
                       <View style={styles.completedCardInfo}>
-                        <Text style={styles.completedCardTitle} numberOfLines={1}>{targetName}</Text>
-                        <Text style={styles.completedCardSub}>{subLabel}</Text>
+                        <Text style={styles.completedCardTitle} numberOfLines={1}>
+                          {cardTitle}
+                        </Text>
+                        <Text style={styles.completedCardSub}>
+                          {reservation.role === "host" ? "Review guest" : "Review listing"}
+                        </Text>
                         <Text style={styles.completedCardDate}>
-                          {start.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          {start.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
                         </Text>
                       </View>
                       <Ionicons name="chevron-forward" size={18} color="#AAAAAA" />
@@ -677,13 +698,18 @@ export default function HostProfileScreen({ route }: Props) {
         onRequestClose={closeReviewModal}
       >
         <Pressable style={styles.actionsBackdrop} onPress={closeReviewModal}>
-          <Pressable style={styles.reviewModalCard} onPress={() => {}}>
+          <Pressable
+            style={styles.reviewModalCard}
+            onPress={(event) => event.stopPropagation()}
+          >
             <Text style={styles.reviewModalTitle}>
               {reviewTarget?.role === "host" ? "Rate Guest" : "Rate Listing"}
             </Text>
             <Text style={styles.reviewModalSub} numberOfLines={1}>
               {reviewTarget?.role === "host"
-                ? (reviewTarget.guest ? `${reviewTarget.guest.first_name} ${reviewTarget.guest.last_name}` : "Guest")
+                ? (reviewTarget.guest
+                  ? `${reviewTarget.guest.first_name} ${reviewTarget.guest.last_name}`
+                  : "Guest")
                 : (reviewTarget?.listing?.title ?? "Listing")}
             </Text>
 
@@ -710,8 +736,11 @@ export default function HostProfileScreen({ route }: Props) {
             />
 
             <Pressable
-              style={[styles.reviewSubmitBtn, (reviewRating === 0 || isSubmittingReview) && { opacity: 0.5 }]}
-              onPress={handleSubmitReview}
+              style={[
+                styles.reviewSubmitBtn,
+                (reviewRating === 0 || isSubmittingReview) && styles.reviewSubmitDisabled,
+              ]}
+              onPress={() => void handleSubmitReview()}
               disabled={reviewRating === 0 || isSubmittingReview}
             >
               <Text style={styles.reviewSubmitBtnText}>
@@ -1334,7 +1363,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#111111",
   },
-  completedSection: { marginTop: 24 },
+  completedSection: {
+    marginTop: 24,
+  },
   completedSectionTitle: {
     fontSize: 20,
     fontWeight: "500",
@@ -1349,10 +1380,25 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
-  completedCardInfo: { flex: 1 },
-  completedCardTitle: { fontSize: 15, fontWeight: "600", color: "#111111", marginBottom: 2 },
-  completedCardSub: { fontSize: 12, color: "#ECAA00", fontWeight: "600", marginBottom: 2 },
-  completedCardDate: { fontSize: 12, color: "#777777" },
+  completedCardInfo: {
+    flex: 1,
+  },
+  completedCardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111111",
+    marginBottom: 2,
+  },
+  completedCardSub: {
+    fontSize: 12,
+    color: "#ECAA00",
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  completedCardDate: {
+    fontSize: 12,
+    color: "#777777",
+  },
   reviewModalCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
@@ -1397,7 +1443,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
   },
-  reviewSubmitBtnText: { fontSize: 16, fontWeight: "700", color: "#111111" },
+  reviewSubmitDisabled: {
+    opacity: 0.5,
+  },
+  reviewSubmitBtnText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111111",
+  },
   inactiveSection: { marginTop: 24 },
   inactiveSectionTitle: { fontSize: 20, fontWeight: "500", color: "#111111", marginBottom: 12 },
   inactiveCard: {
