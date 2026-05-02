@@ -28,6 +28,12 @@ import {
   deleteVehicle as apiDeleteVehicle,
 } from "../api/vehicles";
 import { supabase } from "../utils/supabase";
+import {
+  getVehicleImageOverrides,
+  normalizePickedImage,
+  removeVehicleImageOverride,
+  saveVehicleImageOverride,
+} from "../utils/localImagePersistence";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VehicleManagement">;
 
@@ -76,6 +82,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
       if (!data.session) return;
       try {
         const apiVehicles = await fetchVehicles();
+        const vehicleImageOverrides = await getVehicleImageOverrides();
         // Sync store: replace all vehicles with server state
         const storeVehicles: Vehicle[] = apiVehicles.map((v) => ({
           id: v.id,
@@ -85,6 +92,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
           model: v.model,
           year: v.year,
           color: v.color,
+          image: vehicleImageOverrides[v.id],
         }));
         // Reset store to server state
         setVehicles(storeVehicles);
@@ -233,11 +241,12 @@ export default function VehicleManagementScreen({ navigation }: Props) {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.7,
+      base64: true,
     });
 
     if (!result.canceled) {
-      setVehicleImageUri(result.assets[0].uri);
+      setVehicleImageUri(normalizePickedImage(result.assets[0]));
     }
   };
 
@@ -256,11 +265,12 @@ export default function VehicleManagementScreen({ navigation }: Props) {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.7,
+      base64: true,
     });
 
     if (!result.canceled) {
-      setVehicleImageUri(result.assets[0].uri);
+      setVehicleImageUri(normalizePickedImage(result.assets[0]));
     }
   };
 
@@ -280,6 +290,9 @@ export default function VehicleManagementScreen({ navigation }: Props) {
 
       if (isEditing && editingVehicleId) {
         const updated = await apiUpdateVehicle(editingVehicleId, payload);
+        if (vehicleImageUri) {
+          await saveVehicleImageOverride(updated.id, vehicleImageUri);
+        }
         const storeVehicle: Vehicle = {
           id: updated.id,
           name: `${updated.year} ${updated.make} ${updated.model}`,
@@ -294,6 +307,9 @@ export default function VehicleManagementScreen({ navigation }: Props) {
         setSelectedVehicle(storeVehicle);
       } else {
         const created = await createVehicle(payload);
+        if (vehicleImageUri) {
+          await saveVehicleImageOverride(created.id, vehicleImageUri);
+        }
         const storeVehicle: Vehicle = {
           id: created.id,
           name: `${created.year} ${created.make} ${created.model}`,
@@ -322,6 +338,7 @@ export default function VehicleManagementScreen({ navigation }: Props) {
       setIsSaving(true);
       try {
         await apiDeleteVehicle(editingVehicleId);
+        await removeVehicleImageOverride(editingVehicleId);
         removeVehicle(editingVehicleId);
         if (selectedVehicle?.id === editingVehicleId) {
           setSelectedVehicle(null);

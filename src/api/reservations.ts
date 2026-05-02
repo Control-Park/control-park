@@ -1,4 +1,5 @@
 import client from "./client";
+import { applyReservationListingImageOverrides } from "../utils/localImagePersistence";
 
 export type ApprovalStatus = "approved" | "cancelled" | "pending" | "rejected";
 export type ReservationStatus = "active" | "approved" | "cancelled" | "expired" | "pending" | "rejected" | "upcoming";
@@ -40,7 +41,7 @@ export interface CreateReservationPayload {
 
 export const fetchReservations = async (): Promise<Reservation[]> => {
   const res = await client.get<Reservation[]>("/reservations");
-  return res.data;
+  return applyReservationListingImageOverrides(res.data);
 };
 
 export const fetchHostingReservations = async (): Promise<Reservation[]> => {

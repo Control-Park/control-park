@@ -16,6 +16,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as ImagePicker from "expo-image-picker";
 import { updateListing } from "../api/listings";
 import type { RootStackParamList } from "../navigation/AppNavigator";
+import { normalizePickedImage } from "../utils/localImagePersistence";
 
 type Props = NativeStackScreenProps<RootStackParamList, "EditListing">;
 
@@ -115,10 +116,11 @@ export default function EditListingScreen({ route, navigation }: Props) {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.7,
+      base64: true,
     });
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      setImageUri(normalizePickedImage(result.assets[0]));
       setImageError("");
     }
   };
@@ -134,10 +136,11 @@ export default function EditListingScreen({ route, navigation }: Props) {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.7,
+      base64: true,
     });
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      setImageUri(normalizePickedImage(result.assets[0]));
       setImageError("");
     }
   };

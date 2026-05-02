@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   GestureResponderEvent,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -38,6 +39,7 @@ import {
   fetchPendingReviews,
 } from "../api/reviews";
 import type { Listing } from "../types/listing";
+import { getListingImage } from "../utils/listingImages";
 import { supabase } from "../utils/supabase";
 import { getProfileDisplayName, getProfileInitial } from "../utils/profile";
 
@@ -590,10 +592,10 @@ export default function HostProfileScreen({ route }: Props) {
                       </Pressable>
 
                       <View style={styles.listingThumbnailPlaceholder}>
-                        <Ionicons
-                          name="image-outline"
-                          size={24}
-                          color="#B8B8B8"
+                        <Image
+                          source={getListingImage(listing)}
+                          style={styles.listingThumbnailImage}
+                          resizeMode="cover"
                         />
                       </View>
 
@@ -1389,7 +1391,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
+    overflow: "hidden",
     backgroundColor: "#F3E6E6",
+  },
+  listingThumbnailImage: {
+    width: "100%",
+    height: "100%",
   },
   listingCardTitle: {
     fontSize: 15,

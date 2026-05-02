@@ -15,13 +15,21 @@ type ListingWithImages = {
 export function getListingImages(item: ListingWithImages) {
   const mappedImage = localImageMap[item.id];
   if (mappedImage) return [mappedImage];
-  if (item.images?.length) return item.images;
+  if (item.images?.length) {
+    return item.images.map((image) =>
+      typeof image === "string" ? { uri: image } : image,
+    );
+  }
   return [require("../../assets/parking1.png")];
 }
 
 export function getListingImage(item: ListingWithImages) {
   const mappedImage = localImageMap[item.id];
   if (mappedImage) return mappedImage;
-  if (item.images?.length) return item.images[0];
-  return [require("../../assets/parking1.png")];
+  if (item.images?.length) {
+    return typeof item.images[0] === "string"
+      ? { uri: item.images[0] }
+      : item.images[0];
+  }
+  return require("../../assets/parking1.png");
 }

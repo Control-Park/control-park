@@ -17,6 +17,7 @@ import * as ImagePicker from "expo-image-picker";
 import { createNewListing, saveListingAsDraft } from "../api/listings";
 import type { Listing } from "../types/listing";
 import { supabase } from "../utils/supabase";
+import { normalizePickedImage } from "../utils/localImagePersistence";
 
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
@@ -127,11 +128,12 @@ export default function CreateListingScreen({ navigation }: Props) {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.7,
+      base64: true,
     });
 
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      setImageUri(normalizePickedImage(result.assets[0]));
       setImageError("");
     }
   };
@@ -152,11 +154,12 @@ export default function CreateListingScreen({ navigation }: Props) {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.7,
+      base64: true,
     });
 
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      setImageUri(normalizePickedImage(result.assets[0]));
       setImageError("");
     }
   };
