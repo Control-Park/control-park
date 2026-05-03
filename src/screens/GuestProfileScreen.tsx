@@ -43,6 +43,7 @@ type RouteProp = NativeStackScreenProps<
 >["route"];
 
 const MAX_WIDTH = 428;
+const EMPTY_GUEST_BIO_MESSAGE = "This guest has not added a bio yet.";
 
 const REPORT_REASONS = [
   "Overstayed booking",
@@ -107,6 +108,7 @@ export default function GuestProfileScreen() {
   const isLoading = loadingGuest || loadingReservation;
 
   const guestName = guest ? `${guest.first_name} ${guest.last_name}` : "Guest";
+  const guestBio = guest?.bio?.trim() ?? "";
 
   const totalRatings = reviews.length;
   const avgRating = totalRatings
@@ -277,11 +279,8 @@ export default function GuestProfileScreen() {
 
           <View style={styles.bioCard}>
             <Text style={styles.bioTitle}>Bio</Text>
-            <Text style={styles.bioText}>
-              I am a college student using this app to reserve parking for my
-              classes, study sessions, campus events, and part-time work. I
-              usually look for reliable spots that make it easier for me to get
-              to school on time and manage a busy weekly schedule.
+            <Text style={[styles.bioText, !guestBio && styles.emptyBioText]}>
+              {guestBio || EMPTY_GUEST_BIO_MESSAGE}
             </Text>
           </View>
 
@@ -752,6 +751,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#444444",
     lineHeight: 20,
+  },
+  emptyBioText: {
+    color: "#777777",
   },
 
   ratingCard: {

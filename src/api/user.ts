@@ -16,11 +16,30 @@ export interface UserProfile {
   host_display_name: null | string;
   id: string;
   last_name: string;
+  bio: null | string;
   phone: null | string;
   preferred_name: null | string;
   role: string;
   updated_at: string;
 }
+
+type UserProfileUpdate = Partial<
+  Pick<
+    UserProfile,
+    | "address_city"
+    | "address_country"
+    | "address_line1"
+    | "address_line2"
+    | "address_postal_code"
+    | "address_state"
+    | "bio"
+    | "first_name"
+    | "host_display_name"
+    | "last_name"
+    | "phone"
+    | "preferred_name"
+  >
+>;
 
 export const fetchUserById = async (id: string): Promise<UserProfile> => {
   const { data } = await client.get(`/auth/user/${id}`);
@@ -39,7 +58,9 @@ export const getMyProfile = async (): Promise<UserProfile> => {
   return data as UserProfile;
 };
 
-export const updateMyProfile = async (updates: Partial<Omit<UserProfile, "id" | "created_at" | "updated_at" | "email">>): Promise<UserProfile> => {
+export const updateMyProfile = async (
+  updates: UserProfileUpdate,
+): Promise<UserProfile> => {
   const { data } = await client.patch("/auth/me", updates);
   return data as UserProfile;
 };

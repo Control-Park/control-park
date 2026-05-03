@@ -19,15 +19,14 @@ import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import NotificationsButton from "../components/NotificationsButton";
 import { getMyProfile, updateMyProfile } from "../api/user";
-import { fetchMyReservations } from "../api/reservations";
+import { fetchReservations } from "../api/reservations";
 import { fetchUserReviews } from "../api/reviews";
 import { getProfileDisplayName, getProfileInitial } from "../utils/profile";
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
 const MAX_WIDTH = 428;
-const DEFAULT_BIO =
-  "I am a college student using this app to reserve parking for my classes, study sessions, campus events, and part-time work. I usually look for reliable spots that make it easier for me to get to school on time and manage a busy weekly schedule.";
+const EMPTY_BIO_MESSAGE = "Add a bio so hosts can get to know you.";
 
 function StarRow({ rating }: { rating: number }) {
   return (
@@ -60,7 +59,7 @@ export default function ViewProfileScreen() {
 
   const { data: reservations = [], isLoading: loadingReservations } = useQuery({
     queryKey: ["my-reservations-view-profile"],
-    queryFn: fetchMyReservations,
+    queryFn: fetchReservations,
   });
 
   const latestReservation = useMemo(() => {
@@ -107,13 +106,10 @@ export default function ViewProfileScreen() {
       })
     : "—";
 
-  const currentBio =
-    bio ||
-    profile?.bio?.trim() ||
-    DEFAULT_BIO;
+  const currentBio = profile?.bio?.trim() ?? "";
 
   const handleStartEditingBio = () => {
-    setBio(profile?.bio?.trim() || DEFAULT_BIO);
+    setBio(profile?.bio?.trim() ?? "");
     setIsEditingBio(true);
   };
 
@@ -125,15 +121,11 @@ export default function ViewProfileScreen() {
   const handleSaveBio = async () => {
     const nextBio = bio.trim();
 
-    if (!nextBio) {
-      Alert.alert("Bio required", "Please enter a short bio before saving.");
-      return;
-    }
-
     try {
       setIsSavingBio(true);
-      await updateMyProfile({ bio: nextBio });
-      await queryClient.invalidateQueries({ queryKey: ["my-profile-view"] });
+      const updatedProfile = await updateMyProfile({ bio: nextBio || null });
+      queryClient.setQueryData(["my-profile-view"], updatedProfile);
+      queryClient.setQueryData(["user", updatedProfile.id], updatedProfile);
       setIsEditingBio(false);
       Alert.alert("Saved", "Your bio was updated successfully.");
     } catch (err: unknown) {
@@ -260,7 +252,11 @@ export default function ViewProfileScreen() {
                 </View>
               </>
             ) : (
-              <Text style={styles.bioText}>{currentBio}</Text>
+              <Text
+                style={[styles.bioText, !currentBio && styles.emptyBioText]}
+              >
+                {currentBio || EMPTY_BIO_MESSAGE}
+              </Text>
             )}
           </View>
 
@@ -506,6 +502,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#444444",
     lineHeight: 20,
+  },
+  emptyBioText: {
+    color: "#777777",
   },
   bioInput: {
     minHeight: 120,
