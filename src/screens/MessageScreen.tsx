@@ -1,6 +1,8 @@
 import React, { useEffect } from "react";
 import {
+  Alert,
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,12 +12,17 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import NotificationsButton from "../components/NotificationsButton";
-import { fetchConversations, ConversationSummary } from "../api/messages";
+import {
+  clearConversations,
+  deleteConversation,
+  fetchConversations,
+  ConversationSummary,
+} from "../api/messages";
 import { supabase } from "../utils/supabase";
 
 const MAX_WIDTH = 428;
@@ -40,6 +47,7 @@ function formatTimestamp(iso: string): string {
 
 export default function MessageScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const listingId = route.params?.listingId;
   const hostName = route.params?.hostName;
   const listingImage = route.params?.listingImage;
@@ -52,11 +60,103 @@ export default function MessageScreen({ navigation, route }: Props) {
   });
   const visibleConversations = conversations.filter((conv) => conv.last_message);
 
+  const deleteConversationMutation = useMutation({
+    mutationFn: deleteConversation,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+
+  const clearConversationsMutation = useMutation({
+    mutationFn: clearConversations,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
       setCurrentUserId(data.session?.user.id ?? null);
     });
   }, []);
+
+  const handleDeleteConversation = (conversationId: string) => {
+    if (deleteConversationMutation.isPending) return;
+
+    const deleteOne = () => {
+      deleteConversationMutation.mutate(conversationId);
+    };
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Do you really want to delete this conversation?",
+      );
+
+      if (confirmed) {
+        deleteOne();
+      }
+
+      return;
+    }
+
+    Alert.alert(
+      "Delete conversation",
+      "Do you really want to delete this conversation?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: deleteOne,
+        },
+      ],
+    );
+  };
+
+  const handleClearAllConversations = () => {
+    if (
+      visibleConversations.length === 0 ||
+      clearConversationsMutation.isPending ||
+      deleteConversationMutation.isPending
+    ) {
+      return;
+    }
+
+    const clearAll = () => {
+      clearConversationsMutation.mutate(undefined, {
+        onError: () => {
+          visibleConversations.forEach((conv) => {
+            deleteConversationMutation.mutate(conv.id);
+          });
+        },
+      });
+    };
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Do you really want to clear all your messages?",
+      );
+
+      if (confirmed) {
+        clearAll();
+      }
+
+      return;
+    }
+
+    Alert.alert(
+      "Clear all messages",
+      "Do you really want to clear all your messages?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear All",
+          style: "destructive",
+          onPress: clearAll,
+        },
+      ],
+    );
+  };
 
   // If navigated from Details with a listingId + hostName, redirect to Conversation
   // without creating a thread until the first message is sent.
@@ -96,6 +196,9 @@ export default function MessageScreen({ navigation, route }: Props) {
         : undefined;
     const preview = conv.last_message?.body ?? "No messages yet";
     const timestamp = conv.last_message ? formatTimestamp(conv.last_message.created_at) : "";
+    const isDeleting =
+      deleteConversationMutation.isPending &&
+      deleteConversationMutation.variables === conv.id;
 
     return (
       <Pressable
@@ -133,10 +236,37 @@ export default function MessageScreen({ navigation, route }: Props) {
           </Text>
         </View>
 
-        <Ionicons name="chevron-forward" size={18} color="#AAAAAA" />
+        <View style={styles.rowActions}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.deleteButton,
+              (pressed || isDeleting) && styles.pressed,
+            ]}
+            onPress={(event) => {
+              event.stopPropagation();
+              handleDeleteConversation(conv.id);
+            }}
+            disabled={isDeleting}
+            hitSlop={8}
+          >
+            {isDeleting ? (
+              <ActivityIndicator size="small" color="#6B7280" />
+            ) : (
+              <Ionicons name="trash-outline" size={18} color="#6B7280" />
+            )}
+          </Pressable>
+
+          <Ionicons name="chevron-forward" size={18} color="#AAAAAA" />
+        </View>
       </Pressable>
     );
   };
+
+  const canClearAll =
+    !isLoading &&
+    visibleConversations.length > 0 &&
+    !clearConversationsMutation.isPending &&
+    !deleteConversationMutation.isPending;
 
   return (
     <View style={styles.container}>
@@ -162,7 +292,29 @@ export default function MessageScreen({ navigation, route }: Props) {
               />
             </View>
 
-            <Text style={styles.title}>Messages</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>Messages</Text>
+
+              <Pressable
+                style={[
+                  styles.clearAllButton,
+                  !canClearAll && styles.clearAllButtonDisabled,
+                ]}
+                onPress={handleClearAllConversations}
+                disabled={!canClearAll}
+                hitSlop={10}
+              >
+                {clearConversationsMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#9CA3AF" />
+                ) : (
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color={canClearAll ? "#111111" : "#9CA3AF"}
+                  />
+                )}
+              </Pressable>
+            </View>
 
             <View style={styles.divider} />
 
@@ -245,8 +397,24 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "600",
     color: "#111111",
+  },
+  titleRow: {
     marginTop: 20,
     marginBottom: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  clearAllButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F3F3F3",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  clearAllButtonDisabled: {
+    opacity: 0.5,
   },
   divider: {
     height: 1,
@@ -340,6 +508,18 @@ const styles = StyleSheet.create({
   conversationPreview: {
     fontSize: 14,
     color: "#555555",
+  },
+  rowActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  deleteButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
   },
   navbarWrapper: {
     backgroundColor: "#FFFFFF",

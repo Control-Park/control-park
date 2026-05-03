@@ -38,6 +38,14 @@ export const fetchConversations = async (): Promise<ConversationSummary[]> => {
   return res.data.conversations;
 };
 
+export const deleteConversation = async (conversationId: string): Promise<void> => {
+  await client.delete(`/conversations/${conversationId}`);
+};
+
+export const clearConversations = async (): Promise<void> => {
+  await client.delete("/conversations");
+};
+
 export const fetchMessages = async (conversationId: string): Promise<Message[]> => {
   const res = await client.get<{ messages: Message[] }>(`/conversations/${conversationId}/messages`);
   return res.data.messages;

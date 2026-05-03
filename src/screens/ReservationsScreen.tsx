@@ -97,7 +97,7 @@ export default function ReservationsScreen({ navigation }: Props) {
 
   const { data: listings } = useQuery<Listing[]>({
     queryKey: ["listings"],
-    queryFn: fetchListings,
+    queryFn: () => fetchListings(),
   });
 
   const cancelMutation = useMutation({
@@ -309,11 +309,12 @@ export default function ReservationsScreen({ navigation }: Props) {
               <View style={styles.sectionDivider} />
               <Text style={styles.sectionTitle}>Saved Listings</Text>
 
-              {savedListings.map((item) => (
+              {savedListings.map((item, index) => (
                 <Pressable
                   key={item.id}
                   style={({ pressed }) => [
                     styles.listItem,
+                    index < savedListings.length - 1 && styles.listItemDivider,
                     pressed && { opacity: 0.75 },
                   ]}
                   onPress={() => navigation.navigate("Details", { id: item.id })}
@@ -847,7 +848,16 @@ const styles = StyleSheet.create({
     color: "#111111",
     marginBottom: 14,
   },
-  listItem: { flexDirection: "row", alignItems: "center", marginBottom: 18 },
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingBottom: 14,
+    marginBottom: 14,
+  },
+  listItemDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5E5",
+  },
   avatarImage: {
     width: 54,
     height: 54,
