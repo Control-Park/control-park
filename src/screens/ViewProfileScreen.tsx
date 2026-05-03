@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -22,6 +24,11 @@ import { getMyProfile, updateMyProfile } from "../api/user";
 import { fetchReservations } from "../api/reservations";
 import { fetchUserReviews } from "../api/reviews";
 import { getProfileDisplayName, getProfileInitial } from "../utils/profile";
+import {
+  normalizePickedImage,
+  saveProfileImageOverride,
+} from "../utils/localImagePersistence";
+import { useProfileImage } from "../hooks/useProfileImage";
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -72,6 +79,7 @@ export default function ViewProfileScreen() {
   }, [reservations]);
 
   const userId = profile?.id ?? "";
+  const { profileImageUri, setProfileImageUri } = useProfileImage(userId);
 
   const { data: reviews = [], isLoading: loadingReviews } = useQuery({
     queryKey: ["reviews-user-self-profile", userId],
@@ -136,6 +144,36 @@ export default function ViewProfileScreen() {
     }
   };
 
+  const handleChooseProfileImage = async () => {
+    if (!userId) return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        "Permission needed",
+        "Please allow photo library access to choose a profile picture.",
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      base64: true,
+      mediaTypes: ["images"],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets[0]) {
+      return;
+    }
+
+    const nextImageUri = normalizePickedImage(result.assets[0]);
+    setProfileImageUri(nextImageUri);
+    await saveProfileImageOverride(userId, nextImageUri);
+  };
+
   if (isLoading) {
     return (
       <View style={styles.safe}>
@@ -178,25 +216,33 @@ export default function ViewProfileScreen() {
           </View>
 
           <View style={styles.profileRow}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarInitial}>{avatarInitial}</Text>
-            </View>
+            <Pressable
+              style={({ pressed }) => [
+                styles.avatar,
+                pressed && styles.pressed,
+              ]}
+              onPress={handleChooseProfileImage}
+              accessibilityLabel="Change profile picture"
+            >
+              {profileImageUri ? (
+                <Image
+                  source={{ uri: profileImageUri }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Text style={styles.avatarInitial}>{avatarInitial}</Text>
+              )}
+
+              <View style={styles.avatarEditBadge}>
+                <Ionicons name="camera" size={14} color="#111111" />
+              </View>
+            </Pressable>
 
             <View style={styles.profileInfo}>
               <Text style={styles.name}>{displayName}</Text>
               <Text style={styles.role}>{profile?.host ? "Host" : "Guest"}</Text>
               <Text style={styles.memberSince}>Member since {memberSince}</Text>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.messageBtn,
-                  pressed && styles.pressed,
-                ]}
-                onPress={handleStartEditingBio}
-              >
-                <Ionicons name="create-outline" size={14} color="#111111" />
-                <Text style={styles.messageBtnText}>Edit Bio</Text>
-              </Pressable>
+              <Text style={styles.photoHint}>Tap photo to edit</Text>
             </View>
           </View>
 
@@ -435,6 +481,25 @@ const styles = StyleSheet.create({
     backgroundColor: "#ECAA00",
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
+  },
+  avatarImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+  },
+  avatarEditBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#ECAA00",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatarInitial: {
     fontSize: 28,
@@ -459,22 +524,11 @@ const styles = StyleSheet.create({
   memberSince: {
     fontSize: 13,
     color: "#777777",
-    marginBottom: 10,
+    marginBottom: 6,
   },
-  messageBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#ECAA00",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    alignSelf: "flex-start",
-  },
-  messageBtnText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#111111",
+  photoHint: {
+    fontSize: 12,
+    color: "#777777",
   },
   bioCard: {
     backgroundColor: "#F7F7F7",

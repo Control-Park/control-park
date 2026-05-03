@@ -13,6 +13,7 @@ type ReservationLike = {
 };
 
 const LISTING_IMAGE_OVERRIDES_KEY = "local-listing-image-overrides";
+const PROFILE_IMAGE_OVERRIDES_KEY = "local-profile-image-overrides";
 const VEHICLE_IMAGE_OVERRIDES_KEY = "local-vehicle-image-overrides";
 
 async function readOverrideMap(key: string): Promise<Record<string, string>> {
@@ -75,6 +76,16 @@ export async function removeListingImageOverride(listingId: string) {
   const next = await getListingImageOverrides();
   delete next[listingId];
   await writeOverrideMap(LISTING_IMAGE_OVERRIDES_KEY, next);
+}
+
+export async function getProfileImageOverrides(): Promise<Record<string, string>> {
+  return readOverrideMap(PROFILE_IMAGE_OVERRIDES_KEY);
+}
+
+export async function saveProfileImageOverride(userId: string, imageUri: string) {
+  const next = await getProfileImageOverrides();
+  next[userId] = imageUri;
+  await writeOverrideMap(PROFILE_IMAGE_OVERRIDES_KEY, next);
 }
 
 export async function applyListingImageOverrides<T extends ListingLike>(listings: T[]): Promise<T[]> {

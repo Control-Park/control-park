@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
+  Image,
   View,
   Text,
   StyleSheet,
@@ -19,6 +20,7 @@ import { supabase } from "../utils/supabase";
 import { getMyProfile, UserProfile } from "../api/user";
 import { useAuthSession } from "../context/AuthSessionContext";
 import { getProfileDisplayName, getProfileInitial } from "../utils/profile";
+import { useProfileImage } from "../hooks/useProfileImage";
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -86,6 +88,7 @@ export default function ProfileScreen() {
   const profileName = profile ? getProfileDisplayName(profile) : displayName;
   const profileRole = formatProfileRole(profile, isAuthenticated);
   const avatarInitial = profile ? getProfileInitial(profile) : (profileName?.[0] ?? "?").toUpperCase();
+  const { profileImageUri } = useProfileImage(profile?.id ?? session?.user?.id);
 
   const menuItems = useMemo(
     () => [
@@ -263,7 +266,14 @@ export default function ProfileScreen() {
 
             <View style={styles.profileCard}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{avatarInitial}</Text>
+                {profileImageUri ? (
+                  <Image
+                    source={{ uri: profileImageUri }}
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <Text style={styles.avatarText}>{avatarInitial}</Text>
+                )}
               </View>
 
               <Text style={styles.name}>{profileName}</Text>
@@ -448,6 +458,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
   },
   avatarText: {
     fontSize: 48,

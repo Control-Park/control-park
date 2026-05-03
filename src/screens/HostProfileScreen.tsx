@@ -42,6 +42,7 @@ import type { Listing } from "../types/listing";
 import { getListingImage } from "../utils/listingImages";
 import { supabase } from "../utils/supabase";
 import { getProfileDisplayName, getProfileInitial } from "../utils/profile";
+import { useProfileImage } from "../hooks/useProfileImage";
 
 type ExtendedRootStackParamList = RootStackParamList & {
   GuestReviews: {
@@ -239,6 +240,7 @@ export default function HostProfileScreen({ route }: Props) {
 
   const hostName = useMemo(() => getProfileDisplayName(profile), [profile]);
   const avatarInitial = getProfileInitial(profile);
+  const { profileImageUri } = useProfileImage(profile?.id);
 
   const balance = stats.wallet_balance;
   const completedBookings = stats.completed_bookings;
@@ -462,7 +464,14 @@ export default function HostProfileScreen({ route }: Props) {
 
             <View style={styles.hostHeaderRow}>
               <View style={styles.hostAvatar}>
-                <Text style={styles.hostAvatarText}>{avatarInitial}</Text>
+                {profileImageUri ? (
+                  <Image
+                    source={{ uri: profileImageUri }}
+                    style={styles.hostAvatarImage}
+                  />
+                ) : (
+                  <Text style={styles.hostAvatarText}>{avatarInitial}</Text>
+                )}
               </View>
 
               <View style={styles.hostIdentity}>
@@ -1175,6 +1184,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#ECAA00",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  hostAvatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
   hostAvatarText: {
     fontSize: 24,
