@@ -46,7 +46,7 @@ export const fetchReservations = async (): Promise<Reservation[]> => {
 
 export const fetchHostingReservations = async (): Promise<Reservation[]> => {
   const res = await client.get<Reservation[]>("/reservations/hosting");
-  return res.data;
+  return applyReservationListingImageOverrides(res.data);
 };
 
 export const createReservation = async (payload: CreateReservationPayload): Promise<Reservation> => {

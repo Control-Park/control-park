@@ -15,12 +15,16 @@ import { useQuery } from "@tanstack/react-query";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import NotificationsButton from "../components/NotificationsButton";
-import { fetchConversations, getOrCreateConversation, ConversationSummary } from "../api/messages";
+import { fetchConversations, ConversationSummary } from "../api/messages";
 import { supabase } from "../utils/supabase";
 
 const MAX_WIDTH = 428;
 
 type Props = NativeStackScreenProps<RootStackParamList, "Message">;
+
+function toImageSource(image: unknown) {
+  return typeof image === "string" ? { uri: image } : image;
+}
 
 function formatTimestamp(iso: string): string {
   const date = new Date(iso);
@@ -38,12 +42,15 @@ export default function MessageScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const listingId = route.params?.listingId;
   const hostName = route.params?.hostName;
+  const listingImage = route.params?.listingImage;
+  const listingTitle = route.params?.listingTitle;
   const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
 
   const { data: conversations = [], isLoading } = useQuery<ConversationSummary[]>({
     queryFn: fetchConversations,
     queryKey: ["conversations"],
   });
+  const visibleConversations = conversations.filter((conv) => conv.last_message);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -52,6 +59,7 @@ export default function MessageScreen({ navigation, route }: Props) {
   }, []);
 
   // If navigated from Details with a listingId + hostName, redirect to Conversation
+  // without creating a thread until the first message is sent.
   useEffect(() => {
     if (!listingId) return;
 
@@ -64,18 +72,13 @@ export default function MessageScreen({ navigation, route }: Props) {
       const params = route.params as (typeof route.params) & { hostId?: string };
       if (!params?.hostId) return;
 
-      try {
-        const conv = await getOrCreateConversation(params.hostId, listingId);
-        navigation.replace("Conversation", {
-          hostId: params.hostId,
-          hostName,
-          listingId,
-          listingTitle: undefined,
-        });
-        void conv; // suppress unused warning
-      } catch {
-        // Fail silently — user stays on MessageScreen
-      }
+      navigation.replace("Conversation", {
+        hostId: params.hostId,
+        hostName,
+        listingId,
+        listingImage,
+        listingTitle,
+      });
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -87,6 +90,10 @@ export default function MessageScreen({ navigation, route }: Props) {
       ? `${otherPerson.first_name} ${otherPerson.last_name}`
       : isHost ? "Guest" : "Host";
     const listingTitle = conv.listing?.title ?? `Listing ${conv.listing_id.slice(0, 8)}`;
+    const listingImage =
+      Array.isArray(conv.listing?.images) && conv.listing.images.length > 0
+        ? toImageSource(conv.listing.images[0])
+        : undefined;
     const preview = conv.last_message?.body ?? "No messages yet";
     const timestamp = conv.last_message ? formatTimestamp(conv.last_message.created_at) : "";
 
@@ -100,6 +107,7 @@ export default function MessageScreen({ navigation, route }: Props) {
             hostId: conv.host_id,
             hostName: otherName,
             listingId: conv.listing_id,
+            listingImage,
             listingTitle,
           })
         }
@@ -164,7 +172,7 @@ export default function MessageScreen({ navigation, route }: Props) {
               </View>
             )}
 
-            {!isLoading && conversations.length === 0 && (
+            {!isLoading && visibleConversations.length === 0 && (
               <View style={styles.emptyStateWrapper}>
                 <Text style={styles.emptyTitle}>No new messages</Text>
                 <Text style={styles.emptySubtitle}>
@@ -182,9 +190,9 @@ export default function MessageScreen({ navigation, route }: Props) {
               </View>
             )}
 
-            {!isLoading && conversations.length > 0 && (
+            {!isLoading && visibleConversations.length > 0 && (
               <View style={styles.conversationList}>
-                {conversations.map(renderConversation)}
+                {visibleConversations.map(renderConversation)}
               </View>
             )}
 

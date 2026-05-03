@@ -17,6 +17,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { RootStackParamList } from "../navigation/AppNavigator";
+import { fetchListingById } from "../api/listings";
 import {
   getOrCreateConversation,
   fetchMessages,
@@ -24,6 +25,7 @@ import {
   Message,
 } from "../api/messages";
 import { supabase } from "../utils/supabase";
+import { getListingImage } from "../utils/listingImages";
 
 const MAX_WIDTH = 428;
 
@@ -35,6 +37,10 @@ type ChatMessage = {
   sender: "user" | "host";
   timestamp: string;
 };
+
+function toImageSource(image: unknown) {
+  return typeof image === "string" ? { uri: image } : image;
+}
 
 function formatTimestamp(iso: string): string {
   const date = new Date(iso);
@@ -68,21 +74,14 @@ export default function ConversationScreen({ navigation, route }: Props) {
   const [initError, setInitError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
-  // Get current user id; create conversation only if not already provided
+  // Get current user id. New conversations are created only after sending.
   useEffect(() => {
     void (async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) return;
       setCurrentUserId(data.session.user.id);
-      if (paramConversationId) return; // already have it
-      try {
-        const conv = await getOrCreateConversation(hostId, listingId, guestId);
-        setConversationId(conv.id);
-      } catch {
-        setInitError("Failed to load conversation");
-      }
     })();
-  }, [hostId, listingId, paramConversationId]);
+  }, []);
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     enabled: !!conversationId,
@@ -91,17 +90,44 @@ export default function ConversationScreen({ navigation, route }: Props) {
     refetchInterval: false,
   });
 
+  const { data: listing } = useQuery({
+    enabled: !listingImage && !!listingId,
+    queryFn: () => fetchListingById(listingId),
+    queryKey: ["listing", listingId],
+  });
+
   const sendMutation = useMutation({
-    mutationFn: (body: string) => sendMessage(conversationId!, body),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+    mutationFn: async (body: string) => {
+      let nextConversationId = conversationId;
+
+      if (!nextConversationId) {
+        const conversation = await getOrCreateConversation(
+          hostId,
+          listingId,
+          guestId,
+        );
+        nextConversationId = conversation.id;
+        setConversationId(conversation.id);
+      }
+
+      return sendMessage(nextConversationId, body);
+    },
+    onSuccess: (sentMessage) => {
+      setInitError(null);
+      void queryClient.invalidateQueries({
+        queryKey: ["messages", sentMessage.conversation_id],
+      });
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+    onError: () => {
+      setInitError("Failed to send message");
     },
   });
 
   const handleSend = () => {
     const trimmed = messageText.trim();
-    if (!trimmed || !conversationId) return;
+    if (!trimmed) return;
+    setInitError(null);
     setMessageText("");
     sendMutation.mutate(trimmed);
   };
@@ -116,6 +142,10 @@ export default function ConversationScreen({ navigation, route }: Props) {
   const chatMessages: ChatMessage[] = currentUserId
     ? messages.map((m) => toChat(m, currentUserId))
     : [];
+  const listingImageSource = toImageSource(
+    listingImage ?? (listing ? getListingImage(listing) : null),
+  );
+  const displayedListingTitle = listingTitle || listing?.title || "This listing";
 
   return (
     <View style={styles.container}>
@@ -143,7 +173,7 @@ export default function ConversationScreen({ navigation, route }: Props) {
               <Text style={styles.headerTitle}>{hostName || "Host"}</Text>
 
               <Text style={styles.headerSubtitle} numberOfLines={1}>
-                {listingTitle || `Listing ${listingId}`}
+                {displayedListingTitle}
               </Text>
             </View>
 
@@ -157,15 +187,15 @@ export default function ConversationScreen({ navigation, route }: Props) {
               <View style={styles.listingCardText}>
                 <Text style={styles.listingLabel}>Messaging about</Text>
                 <Text style={styles.listingTitle} numberOfLines={1}>
-                  {listingTitle || "This listing"}
+                  {displayedListingTitle}
                 </Text>
                 <Text style={styles.listingMeta} numberOfLines={1}>
                   Host: {hostName || "Host"}
                 </Text>
               </View>
 
-              {listingImage ? (
-                <Image source={listingImage} style={styles.listingImage} />
+              {listingImageSource ? (
+                <Image source={listingImageSource} style={styles.listingImage} />
               ) : (
                 <View style={styles.listingImageFallback}>
                   <Ionicons name="image-outline" size={22} color="#888888" />
@@ -179,7 +209,7 @@ export default function ConversationScreen({ navigation, route }: Props) {
               contentContainerStyle={styles.messagesContent}
               showsVerticalScrollIndicator={false}
             >
-              {(isLoading || !conversationId) && !initError && (
+              {isLoading && !initError && (
                 <View style={styles.emptyChat}>
                   <ActivityIndicator color="#ECAA00" />
                 </View>

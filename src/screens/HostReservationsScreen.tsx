@@ -6,6 +6,8 @@ import {
   Text,
   Pressable,
   ActivityIndicator,
+  Alert,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +22,7 @@ import {
   Reservation,
   ReservationStatus,
 } from "../api/reservations";
+import { getListingImage } from "../utils/listingImages";
 
 type Props = NativeStackScreenProps<RootStackParamList, "HostReservations">;
 
@@ -197,6 +200,10 @@ function ReservationCard({ reservation: r, onApprove, onReject, isApproving, isR
   const guestName = r.guest
     ? `${r.guest.first_name} ${r.guest.last_name}`
     : "Guest";
+  const listingImage = getListingImage({
+    id: r.listing?.id ?? r.listing_id,
+    images: r.listing?.images ?? [],
+  });
 
   return (
     <View style={cardStyles.card}>
@@ -207,6 +214,8 @@ function ReservationCard({ reservation: r, onApprove, onReject, isApproving, isR
         <Text style={cardStyles.price}>${r.total_price.toFixed(2)}</Text>
       </View>
 
+      <View style={cardStyles.contentRow}>
+        <View style={cardStyles.details}>
       <Text style={cardStyles.listing} numberOfLines={1}>
         {r.listing?.title ?? "Listing"}
       </Text>
@@ -217,6 +226,13 @@ function ReservationCard({ reservation: r, onApprove, onReject, isApproving, isR
       <Text style={cardStyles.duration}>
         {formatDuration(r.start_time, r.end_time)}
       </Text>
+
+        </View>
+
+        <View style={cardStyles.priceImageColumn}>
+          <Image source={listingImage} style={cardStyles.listingImage} />
+        </View>
+      </View>
 
       {isPending && onApprove && onReject && (
         <View style={cardStyles.actions}>
@@ -325,7 +341,7 @@ const cardStyles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   badge: {
     paddingHorizontal: 10,
@@ -334,6 +350,26 @@ const cardStyles = StyleSheet.create({
   },
   badgeText: { color: "#FFFFFF", fontSize: 12, fontWeight: "600" },
   price: { fontSize: 16, fontWeight: "600", color: "#111111" },
+  contentRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  details: {
+    flex: 1,
+    minWidth: 0,
+  },
+  priceImageColumn: {
+    width: 78,
+    alignItems: "flex-end",
+    marginTop: -2,
+  },
+  listingImage: {
+    width: 78,
+    height: 78,
+    borderRadius: 12,
+    backgroundColor: "#E5E5E5",
+  },
   listing: { fontSize: 16, fontWeight: "500", color: "#111111", marginBottom: 2 },
   guest: { fontSize: 14, color: "#555555", marginBottom: 2 },
   time: { fontSize: 13, color: "#555555", marginBottom: 2 },
