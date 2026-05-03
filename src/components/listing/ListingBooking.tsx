@@ -19,6 +19,11 @@ type ReserveNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function ListingBooking({ original_price, price, id, price_per_hour }: Props) {
   const navigation = useNavigation<ReserveNavigationProp>();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const displayPrice = price ?? price_per_hour ?? 0;
+  const showOriginalPrice =
+    typeof original_price === "number" &&
+    original_price > 0 &&
+    original_price !== displayPrice;
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -38,13 +43,17 @@ export default function ListingBooking({ original_price, price, id, price_per_ho
     <View className="flex-row w-full items-center justify-between px-8 py-4">
       <View className="flex-col">
         <View className="flex-row items-center">
-          <Text className="font-abeezee text-lg line-through text-[#6A6A6A]">
-            $ {original_price}
+          {showOriginalPrice ? (
+            <Text className="font-abeezee text-lg line-through text-[#6A6A6A]">
+              ${original_price.toFixed(2)}
+            </Text>
+          ) : null}
+          <Text className="font-abeezee text-lg">
+            {showOriginalPrice ? " " : ""}${displayPrice.toFixed(2)}
           </Text>
-          <Text className="font-abeezee text-lg"> ${price}</Text>
         </View>
         <Text className="font-abeezee text-md text-[#6A6A6A]">
-          For 1 day{"  "}Aug 1
+          per hour
         </Text>
       </View>
 

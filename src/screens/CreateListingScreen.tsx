@@ -444,7 +444,7 @@ export default function CreateListingScreen({ navigation }: Props) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Price per day*</Text>
+              <Text style={styles.inputLabel}>Price per hour*</Text>
               <TextInput
                 value={pricePerDay}
                 onChangeText={(text) => {

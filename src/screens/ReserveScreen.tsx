@@ -223,6 +223,14 @@ export default function ReserveScreen({ route, navigation }: Props) {
 
   const fallbackListing = allListings.find((item) => item.id === id);
   const listingData = listing ?? fallbackListing;
+  const listingAddressDetails = listingData
+    ? [
+        listingData.structure_name,
+        ...("sub_heading" in listingData && Array.isArray(listingData.sub_heading)
+          ? listingData.sub_heading
+          : []),
+      ].filter(Boolean)
+    : [];
   const hourlyRate = listingData?.price_per_hour ?? 0;
   const durationMinutes = Math.max(
     15,
@@ -530,9 +538,14 @@ export default function ReserveScreen({ route, navigation }: Props) {
           <Text className="mt-2 text-[14px] text-[#555555]">
             {listingData.address}
           </Text>
-          <Text className="mt-1 text-[13px] text-[#777777]">
-            Campus Parking Lot • Multiple Levels • Easy Access
-          </Text>
+          {listingAddressDetails.map((detail, index) => (
+            <Text
+              key={`${detail}-${index}`}
+              className="mt-1 text-[13px] text-[#777777]"
+            >
+              {detail}
+            </Text>
+          ))}
 
           <View className="mt-5 items-center justify-center">
             <View className="h-[1px] w-full bg-[#c5c5c5]" />

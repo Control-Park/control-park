@@ -63,6 +63,9 @@ export default function DetailsScreen({ route, navigation }: Props) {
   if (!listing) return null;
 
   const textStyle = { fontFamily: "ABeeZee-Regular" };
+  const perks = listing.perks ?? [];
+  const incentives = listing.incentives ?? [];
+  const amenities = listing.amenities ?? [];
 
   return (
     <ScrollView
@@ -87,6 +90,8 @@ export default function DetailsScreen({ route, navigation }: Props) {
           <ListingHeader
             title={listing.title}
             address={listing.address}
+            location={listing.structure_name}
+            accessDetails={listing.sub_heading}
             rating={listing.rating ?? "0.00"}
             review_count={listing.review_count ?? 0}
             isGuestFavorite={listing.is_guest_favorite}
@@ -99,43 +104,52 @@ export default function DetailsScreen({ route, navigation }: Props) {
           <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
         </View>
 
-        <View className={`py-4 ${textStyle}`}>
-          {listing.perks.map((perk, index) => (
-            <ListingPerks
-              key={index}
-              perk={perk}
-              subHeading={listing.sub_heading?.[index]}
-            />
-          ))}
-        </View>
+        {perks.length || incentives.length ? (
+          <>
+            <View className={`py-4 ${textStyle}`}>
+              {perks.map((perk, index) => (
+                <ListingPerks key={`perk-${index}`} perk={perk} />
+              ))}
+              {incentives.map((incentive, index) => (
+                <ListingPerks key={`incentive-${index}`} perk={incentive} />
+              ))}
+            </View>
 
-        <View className="flex items-center justify-center px-6">
-          <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
-        </View>
+            <View className="flex items-center justify-center px-6">
+              <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
+            </View>
+          </>
+        ) : null}
 
         <ListingDescription description={listing.description} />
 
-        <View className="flex items-center justify-center px-6">
-          <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
-        </View>
-
-        <View className={`py-4 ${textStyle}`}>
-          {listing.amenities.map((amenity, index) => (
-            <ListingAmenities key={index} amenities={amenity} />
-          ))}
-        </View>
-
-        <View className="h-[2px] w-[100%] bg-[#ECAA00]" />
-
-        <View className="flex justify-end">
-          <View className="bg-[#cacaca] h-[52px] flex justify-center items-center">
-            <Text className="font-abeezee">
-              Popular! This place is usually booked
-            </Text>
+        {listing.description?.trim() ? (
+          <View className="flex items-center justify-center px-6">
+            <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
           </View>
-        </View>
+        ) : null}
 
-        <View className="h-[2px] w-[100%] bg-[#ECAA00] mb-2" />
+        {amenities.length ? (
+          <View className={`py-4 ${textStyle}`}>
+            {amenities.map((amenity, index) => (
+              <ListingAmenities key={index} amenities={amenity} />
+            ))}
+          </View>
+        ) : null}
+
+        {listing.is_popular ? (
+          <View>
+            <View className="h-[2px] w-[100%] bg-[#ECAA00]" />
+            <View className="flex justify-end">
+              <View className="bg-[#cacaca] h-[52px] flex justify-center items-center">
+                <Text className="font-abeezee">
+                  Popular! This place is usually booked
+                </Text>
+              </View>
+            </View>
+            <View className="h-[2px] w-[100%] bg-[#ECAA00] mb-2" />
+          </View>
+        ) : null}
 
         <View className="px-6 pb-3">
           <Pressable
