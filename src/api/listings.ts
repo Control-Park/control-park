@@ -3,6 +3,7 @@ import { Listing } from "../types/listing";
 import axios from "axios";
 import {
   applyListingImageOverrides,
+  persistListingImage,
   removeListingImageOverride,
   saveListingImageOverride,
 } from "../utils/localImagePersistence";
@@ -13,6 +14,11 @@ export interface ListingSearchParams {
   name?: string;
   priceMax?: number;
   priceMin?: number;
+}
+
+function withoutImages(payload: Partial<Listing>): Partial<Listing> {
+  const { images: _images, ...rest } = payload;
+  return rest;
 }
 
 // LISTINGS:
@@ -57,19 +63,26 @@ export const fetchListings = async (params?: ListingSearchParams): Promise<Listi
 export const createNewListing = async (
   listingData: Partial<Listing>,
 ): Promise<Listing> => {
+  const uploadedImageUri =
+    typeof listingData.images?.[0] === "string"
+      ? await persistListingImage(listingData.images[0])
+      : null;
+  const payload = uploadedImageUri ? withoutImages(listingData) : listingData;
+
   console.log("POST /listings", {
     baseURL: apiBaseUrl,
-    hasImage: !!listingData.images?.[0],
+    hasImage: !!uploadedImageUri,
   });
-  const { data } = await client.post(`/listings`, listingData);
-  const imageUri = typeof listingData.images?.[0] === "string" ? listingData.images[0] : null;
-  if (imageUri) {
-    await saveListingImageOverride(data.id, imageUri);
+
+  const { data } = await client.post(`/listings`, payload);
+  if (uploadedImageUri) {
+    await saveListingImageOverride(data.id, uploadedImageUri);
     return {
       ...data,
-      images: [imageUri],
+      images: [uploadedImageUri],
     };
   }
+
   return data;
 };
 
@@ -97,13 +110,18 @@ export const unsaveListing = async (id: string): Promise<void> => {
 };
 
 export const updateListing = async (id: string, payload: Partial<Listing>): Promise<Listing> => {
-  const { data } = await client.patch<Listing>(`/listings/${id}`, payload);
-  const imageUri = typeof payload.images?.[0] === "string" ? payload.images[0] : null;
-  if (imageUri) {
-    await saveListingImageOverride(id, imageUri);
+  const uploadedImageUri =
+    typeof payload.images?.[0] === "string"
+      ? await persistListingImage(payload.images[0])
+      : null;
+  const requestPayload = uploadedImageUri ? withoutImages(payload) : payload;
+
+  const { data } = await client.patch<Listing>(`/listings/${id}`, requestPayload);
+  if (uploadedImageUri) {
+    await saveListingImageOverride(id, uploadedImageUri);
     return {
       ...data,
-      images: [imageUri],
+      images: [uploadedImageUri],
     };
   }
 
@@ -122,19 +140,26 @@ export const fetchMyListings = async (): Promise<Listing[]> => {
 };
 
 export const saveListingAsDraft = async (payload: Partial<Listing> & { title: string }): Promise<Listing> => {
+  const uploadedImageUri =
+    typeof payload.images?.[0] === "string"
+      ? await persistListingImage(payload.images[0])
+      : null;
+  const requestPayload = uploadedImageUri ? withoutImages(payload) : payload;
+
   console.log("POST /listings/draft", {
     baseURL: apiBaseUrl,
-    hasImage: !!payload.images?.[0],
+    hasImage: !!uploadedImageUri,
   });
-  const { data } = await client.post<Listing>("/listings/draft", payload);
-  const imageUri = typeof payload.images?.[0] === "string" ? payload.images[0] : null;
-  if (imageUri) {
-    await saveListingImageOverride(data.id, imageUri);
+
+  const { data } = await client.post<Listing>("/listings/draft", requestPayload);
+  if (uploadedImageUri) {
+    await saveListingImageOverride(data.id, uploadedImageUri);
     return {
       ...data,
-      images: [imageUri],
+      images: [uploadedImageUri],
     };
   }
+
   return data;
 };
 

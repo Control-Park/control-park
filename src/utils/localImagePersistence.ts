@@ -50,7 +50,12 @@ export function normalizePickedImage(asset: {
 }
 
 async function persistLocalImage(imageUri: string, directory: string | null) {
-  if (!directory || !imageUri.startsWith("file://")) {
+  if (
+    !directory ||
+    imageUri.startsWith("http://") ||
+    imageUri.startsWith("https://") ||
+    imageUri.startsWith("data:")
+  ) {
     return imageUri;
   }
 
@@ -67,6 +72,14 @@ async function persistLocalImage(imageUri: string, directory: string | null) {
   } catch {
     return imageUri;
   }
+}
+
+export function isPersistentListingImageUri(imageUri: string) {
+  return !!LISTING_IMAGE_DIRECTORY && imageUri.startsWith(LISTING_IMAGE_DIRECTORY);
+}
+
+export async function persistListingImage(imageUri: string) {
+  return persistLocalImage(imageUri, LISTING_IMAGE_DIRECTORY);
 }
 
 export async function getVehicleImageOverrides(): Promise<Record<string, string>> {
@@ -91,7 +104,7 @@ export async function getListingImageOverrides(): Promise<Record<string, string>
 
 export async function saveListingImageOverride(listingId: string, imageUri: string) {
   const next = await getListingImageOverrides();
-  next[listingId] = await persistLocalImage(imageUri, LISTING_IMAGE_DIRECTORY);
+  next[listingId] = await persistListingImage(imageUri);
   await writeOverrideMap(LISTING_IMAGE_OVERRIDES_KEY, next);
 }
 

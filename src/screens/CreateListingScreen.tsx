@@ -4,6 +4,7 @@ import {
   Image,
   Modal,
   Pressable,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -128,8 +129,8 @@ export default function CreateListingScreen({ navigation }: Props) {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.7,
-      base64: false,
+      quality: Platform.OS === "web" ? 0.35 : 0.7,
+      base64: Platform.OS === "web",
     });
 
     if (!result.canceled) {
@@ -154,8 +155,8 @@ export default function CreateListingScreen({ navigation }: Props) {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.7,
-      base64: false,
+      quality: Platform.OS === "web" ? 0.35 : 0.7,
+      base64: Platform.OS === "web",
     });
 
     if (!result.canceled) {

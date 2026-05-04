@@ -3,6 +3,7 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { updateListing } from "../api/listings";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import { normalizePickedImage } from "../utils/localImagePersistence";
+import { getUploadedListingImageUri } from "../utils/listingImages";
 
 type Props = NativeStackScreenProps<RootStackParamList, "EditListing">;
 
@@ -28,7 +30,7 @@ export default function EditListingScreen({ route, navigation }: Props) {
   const [listingState, setListingState] = useState(listing);
 
   const [imageUri, setImageUri] = useState<string | null>(
-    listing.images?.[0] ?? null,
+    getUploadedListingImageUri(listing),
   );
   const [title, setTitle] = useState(listing.title ?? "");
   const [description, setDescription] = useState(listing.description ?? "");
@@ -116,8 +118,8 @@ export default function EditListingScreen({ route, navigation }: Props) {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.7,
-      base64: false,
+      quality: Platform.OS === "web" ? 0.35 : 0.7,
+      base64: Platform.OS === "web",
     });
     if (!result.canceled) {
       setImageUri(normalizePickedImage(result.assets[0]));
@@ -136,8 +138,8 @@ export default function EditListingScreen({ route, navigation }: Props) {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.7,
-      base64: false,
+      quality: Platform.OS === "web" ? 0.35 : 0.7,
+      base64: Platform.OS === "web",
     });
     if (!result.canceled) {
       setImageUri(normalizePickedImage(result.assets[0]));
