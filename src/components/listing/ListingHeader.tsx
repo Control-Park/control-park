@@ -7,12 +7,25 @@ type Props = {
   address?: string;
   location?: string;
   accessDetails?: string[];
-  rating?: any;
+  rating?: number | string | null;
   review_count?: number;
   isGuestFavorite?: boolean;
   host_name?: string;
   host_type?: string;
 };
+
+function formatRating(rating?: number | string | null) {
+  const numericRating =
+    typeof rating === "number" ? rating : Number.parseFloat(String(rating ?? 0));
+
+  if (!Number.isFinite(numericRating)) {
+    return "0";
+  }
+
+  return Number.isInteger(numericRating)
+    ? String(numericRating)
+    : numericRating.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+}
 
 export default function ListingHeader({
   title,
@@ -28,6 +41,7 @@ export default function ListingHeader({
   const textStyle = { fontFamily: "ABeeZee-Regular" };
   const subTextClass = "text-[#6A6A6A] font-md mt-4 text-md";
   const meta = [location, ...(accessDetails ?? [])].filter(Boolean).join(" · ");
+  const ratingText = formatRating(rating);
 
   return (
     <View className="items-center justify-center px-6">
@@ -59,7 +73,7 @@ export default function ListingHeader({
         <View className="items-center px-6">
           <View className="flex-row items-center gap-1">
             <Text style={textStyle} className="text-xl">
-              {rating}
+              {ratingText}
             </Text>
             <FontAwesome name="star" size={14} color="#ECAA00" />
           </View>
@@ -80,7 +94,7 @@ export default function ListingHeader({
         <View className="w-[1px] h-10 bg-[#c5c5c5]" />
         <View className="items-center px-6">
           <Text style={textStyle} className="text-xl">
-            {review_count}
+            {review_count ?? 0}
           </Text>
           <Text style={textStyle} className="text-xs">
             Reviews

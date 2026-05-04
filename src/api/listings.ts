@@ -1,4 +1,4 @@
-import client from "./client";
+import client, { apiBaseUrl } from "./client";
 import { Listing } from "../types/listing";
 import axios from "axios";
 import {
@@ -57,6 +57,10 @@ export const fetchListings = async (params?: ListingSearchParams): Promise<Listi
 export const createNewListing = async (
   listingData: Partial<Listing>,
 ): Promise<Listing> => {
+  console.log("POST /listings", {
+    baseURL: apiBaseUrl,
+    hasImage: !!listingData.images?.[0],
+  });
   const { data } = await client.post(`/listings`, listingData);
   const imageUri = typeof listingData.images?.[0] === "string" ? listingData.images[0] : null;
   if (imageUri) {
@@ -118,6 +122,10 @@ export const fetchMyListings = async (): Promise<Listing[]> => {
 };
 
 export const saveListingAsDraft = async (payload: Partial<Listing> & { title: string }): Promise<Listing> => {
+  console.log("POST /listings/draft", {
+    baseURL: apiBaseUrl,
+    hasImage: !!payload.images?.[0],
+  });
   const { data } = await client.post<Listing>("/listings/draft", payload);
   const imageUri = typeof payload.images?.[0] === "string" ? payload.images[0] : null;
   if (imageUri) {

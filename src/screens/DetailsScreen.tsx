@@ -66,6 +66,7 @@ export default function DetailsScreen({ route, navigation }: Props) {
   const perks = listing.perks ?? [];
   const incentives = listing.incentives ?? [];
   const amenities = listing.amenities ?? [];
+  const secondaryDetails = [...incentives, ...amenities];
 
   return (
     <ScrollView
@@ -104,14 +105,11 @@ export default function DetailsScreen({ route, navigation }: Props) {
           <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
         </View>
 
-        {perks.length || incentives.length ? (
+        {perks.length ? (
           <>
             <View className={`py-4 ${textStyle}`}>
               {perks.map((perk, index) => (
                 <ListingPerks key={`perk-${index}`} perk={perk} />
-              ))}
-              {incentives.map((incentive, index) => (
-                <ListingPerks key={`incentive-${index}`} perk={incentive} />
               ))}
             </View>
 
@@ -129,10 +127,10 @@ export default function DetailsScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
-        {amenities.length ? (
+        {secondaryDetails.length ? (
           <View className={`py-4 ${textStyle}`}>
-            {amenities.map((amenity, index) => (
-              <ListingAmenities key={index} amenities={amenity} />
+            {secondaryDetails.map((detail, index) => (
+              <ListingAmenities key={index} amenities={detail} />
             ))}
           </View>
         ) : null}

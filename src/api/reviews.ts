@@ -1,4 +1,5 @@
 import client from "./client";
+import type { Listing } from "../types/listing";
 
 export interface Review {
   id: string;
@@ -9,6 +10,9 @@ export interface Review {
   rating: number;
   comment: string | null;
   created_at: string;
+  listing_rating?: number | null;
+  listing_review_count?: number;
+  listing?: Pick<Listing, "id" | "rating" | "review_count">;
   reviewer?: { first_name: string; last_name: string };
   reservation?: { listing?: { title: string } };
 }

@@ -117,7 +117,7 @@ export default function EditListingScreen({ route, navigation }: Props) {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
-      base64: true,
+      base64: false,
     });
     if (!result.canceled) {
       setImageUri(normalizePickedImage(result.assets[0]));
@@ -137,7 +137,7 @@ export default function EditListingScreen({ route, navigation }: Props) {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
-      base64: true,
+      base64: false,
     });
     if (!result.canceled) {
       setImageUri(normalizePickedImage(result.assets[0]));

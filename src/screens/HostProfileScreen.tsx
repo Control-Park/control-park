@@ -38,6 +38,7 @@ import {
   CompletedReservation,
   createReview,
   fetchPendingReviews,
+  Review,
 } from "../api/reviews";
 import type { Listing } from "../types/listing";
 import { getListingImage } from "../utils/listingImages";
@@ -326,21 +327,86 @@ export default function HostProfileScreen({ route }: Props) {
     setReviewComment("");
   };
 
+  const addReviewToGuestCache = (guestId: string, review: Review) => {
+    queryClient.setQueryData<Review[]>(
+      ["reviews-user", guestId],
+      (existing = []) => {
+        if (existing.some((item) => item.id === review.id)) {
+          return existing;
+        }
+
+        return [review, ...existing];
+      },
+    );
+  };
+
+  const updateListingRatingCache = (
+    listingId: string,
+    rating: number,
+    review?: Review,
+  ) => {
+    const applyRating = (listing: Listing): Listing => {
+      const serverRating =
+        review?.listing?.rating ?? review?.listing_rating ?? undefined;
+      const serverReviewCount =
+        review?.listing?.review_count ?? review?.listing_review_count ?? undefined;
+
+      if (
+        typeof serverRating === "number" ||
+        typeof serverReviewCount === "number"
+      ) {
+        return {
+          ...listing,
+          rating:
+            typeof serverRating === "number" ? serverRating : listing.rating,
+          review_count:
+            typeof serverReviewCount === "number"
+              ? serverReviewCount
+              : listing.review_count,
+        };
+      }
+
+      const previousCount = listing.review_count ?? 0;
+      const previousRating = listing.rating ?? 0;
+      const nextCount = previousCount + 1;
+      const nextRating =
+        (previousRating * previousCount + rating) / nextCount;
+
+      return {
+        ...listing,
+        rating: Number(nextRating.toFixed(2)),
+        review_count: nextCount,
+      };
+    };
+
+    queryClient.setQueryData<Listing>(["listing", listingId], (existing) =>
+      existing ? applyRating(existing) : existing,
+    );
+    queryClient.setQueryData<Listing[]>(["listings"], (existing) =>
+      existing?.map((listing) =>
+        listing.id === listingId ? applyRating(listing) : listing,
+      ),
+    );
+  };
+
   const handleSubmitReview = async () => {
     if (!reviewTarget || reviewRating === 0 || isSubmittingReview) {
       return;
     }
 
+    const targetGuestId =
+      reviewTarget.role === "host" ? reviewTarget.guest?.id : undefined;
+    const targetListingId =
+      reviewTarget.role === "guest" ? reviewTarget.listing_id : undefined;
+
     setIsSubmittingReview(true);
     try {
-      await createReview({
+      const createdReview = await createReview({
         reservation_id: reviewTarget.id,
         rating: reviewRating,
         comment: reviewComment.trim() || undefined,
-        target_user_id:
-          reviewTarget.role === "host" ? reviewTarget.guest?.id : undefined,
-        target_listing_id:
-          reviewTarget.role === "guest" ? reviewTarget.listing_id : undefined,
+        target_user_id: targetGuestId,
+        target_listing_id: targetListingId,
       });
 
       setCompletedReservations((prev) =>
@@ -352,14 +418,20 @@ export default function HostProfileScreen({ route }: Props) {
           ),
         ),
       );
+
+      if (targetGuestId) {
+        addReviewToGuestCache(targetGuestId, createdReview);
+      }
+
+      if (targetListingId) {
+        updateListingRatingCache(targetListingId, reviewRating, createdReview);
+      }
+
       await Promise.all([
         queryClient.invalidateQueries({
           predicate: (query) =>
             typeof query.queryKey[0] === "string" &&
             query.queryKey[0].startsWith("reviews-user"),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["reviews-user", reviewTarget.guest?.id],
         }),
       ]);
       closeReviewModal();

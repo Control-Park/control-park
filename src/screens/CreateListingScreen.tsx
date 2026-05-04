@@ -129,7 +129,7 @@ export default function CreateListingScreen({ navigation }: Props) {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
-      base64: true,
+      base64: false,
     });
 
     if (!result.canceled) {
@@ -155,7 +155,7 @@ export default function CreateListingScreen({ navigation }: Props) {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
-      base64: true,
+      base64: false,
     });
 
     if (!result.canceled) {
@@ -289,6 +289,7 @@ export default function CreateListingScreen({ navigation }: Props) {
     <View style={styles.safe}>
       <ScrollView
         style={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.pageMax}>
