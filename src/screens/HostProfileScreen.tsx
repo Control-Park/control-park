@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useQueryClient } from "@tanstack/react-query";
 import type {
   NativeStackNavigationProp,
   NativeStackScreenProps,
@@ -125,6 +126,7 @@ export default function HostProfileScreen({ route }: Props) {
   const navigation = useNavigation<HostProfileScreenNavigationProp>();
   const insets = useSafeAreaInsets();
   const { defaultMethod } = usePaymentMethods();
+  const queryClient = useQueryClient();
 
   const [profile, setProfile] = useState<UserProfile | null>(cachedHostProfile);
   const [listings, setListings] = useState<Listing[]>([]);
@@ -347,9 +349,19 @@ export default function HostProfileScreen({ route }: Props) {
             !(
               reservation.id === reviewTarget.id &&
               reservation.role === reviewTarget.role
-            ),
+          ),
         ),
       );
+      await Promise.all([
+        queryClient.invalidateQueries({
+          predicate: (query) =>
+            typeof query.queryKey[0] === "string" &&
+            query.queryKey[0].startsWith("reviews-user"),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["reviews-user", reviewTarget.guest?.id],
+        }),
+      ]);
       closeReviewModal();
     } catch (err: unknown) {
       const msg =
