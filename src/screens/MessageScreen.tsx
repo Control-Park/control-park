@@ -65,12 +65,24 @@ export default function MessageScreen({ navigation, route }: Props) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not delete this conversation.";
+      Alert.alert("Delete failed", message);
+    },
   });
 
   const clearConversationsMutation = useMutation({
     mutationFn: clearConversations,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error ? error.message : "Could not clear messages.";
+      Alert.alert("Clear failed", message);
     },
   });
 
@@ -123,13 +135,7 @@ export default function MessageScreen({ navigation, route }: Props) {
     }
 
     const clearAll = () => {
-      clearConversationsMutation.mutate(undefined, {
-        onError: () => {
-          visibleConversations.forEach((conv) => {
-            deleteConversationMutation.mutate(conv.id);
-          });
-        },
-      });
+      clearConversationsMutation.mutate();
     };
 
     if (Platform.OS === "web") {
