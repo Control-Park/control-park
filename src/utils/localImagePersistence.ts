@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system/legacy";
 
 type ListingLike = {
   id: string;
@@ -15,6 +16,8 @@ type ReservationLike = {
 const LISTING_IMAGE_OVERRIDES_KEY = "local-listing-image-overrides";
 const PROFILE_IMAGE_OVERRIDES_KEY = "local-profile-image-overrides";
 const VEHICLE_IMAGE_OVERRIDES_KEY = "local-vehicle-image-overrides";
+const LISTING_IMAGE_DIRECTORY =
+  FileSystem.documentDirectory ? `${FileSystem.documentDirectory}listing-images/` : null;
 
 async function readOverrideMap(key: string): Promise<Record<string, string>> {
   try {
@@ -46,6 +49,26 @@ export function normalizePickedImage(asset: {
   return asset.uri;
 }
 
+async function persistLocalImage(imageUri: string, directory: string | null) {
+  if (!directory || !imageUri.startsWith("file://")) {
+    return imageUri;
+  }
+
+  try {
+    await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
+    const extensionMatch = imageUri.match(/\.[a-zA-Z0-9]+(?:\?|$)/);
+    const extension = extensionMatch?.[0]?.replace("?", "") ?? ".jpg";
+    const destination = `${directory}${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}${extension}`;
+
+    await FileSystem.copyAsync({ from: imageUri, to: destination });
+    return destination;
+  } catch {
+    return imageUri;
+  }
+}
+
 export async function getVehicleImageOverrides(): Promise<Record<string, string>> {
   return readOverrideMap(VEHICLE_IMAGE_OVERRIDES_KEY);
 }
@@ -68,7 +91,7 @@ export async function getListingImageOverrides(): Promise<Record<string, string>
 
 export async function saveListingImageOverride(listingId: string, imageUri: string) {
   const next = await getListingImageOverrides();
-  next[listingId] = imageUri;
+  next[listingId] = await persistLocalImage(imageUri, LISTING_IMAGE_DIRECTORY);
   await writeOverrideMap(LISTING_IMAGE_OVERRIDES_KEY, next);
 }
 
