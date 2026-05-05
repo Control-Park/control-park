@@ -3,7 +3,10 @@ import { Listing } from "../types/listing";
 import axios from "axios";
 import {
   applyListingImageOverrides,
+<<<<<<< Updated upstream
   persistListingImage,
+=======
+>>>>>>> Stashed changes
   removeListingImageOverride,
   saveListingImageOverride,
 } from "../utils/localImagePersistence";
@@ -63,6 +66,7 @@ export const fetchListings = async (params?: ListingSearchParams): Promise<Listi
 export const createNewListing = async (
   listingData: Partial<Listing>,
 ): Promise<Listing> => {
+<<<<<<< Updated upstream
   const uploadedImageUri =
     typeof listingData.images?.[0] === "string"
       ? await persistListingImage(listingData.images[0])
@@ -88,6 +92,17 @@ export const createNewListing = async (
     };
   }
 
+=======
+  const { data } = await client.post(`/listings`, listingData);
+  const imageUri = typeof listingData.images?.[0] === "string" ? listingData.images[0] : null;
+  if (imageUri) {
+    await saveListingImageOverride(data.id, imageUri);
+    return {
+      ...data,
+      images: [imageUri],
+    };
+  }
+>>>>>>> Stashed changes
   return data;
 };
 
@@ -115,6 +130,7 @@ export const unsaveListing = async (id: string): Promise<void> => {
 };
 
 export const updateListing = async (id: string, payload: Partial<Listing>): Promise<Listing> => {
+<<<<<<< Updated upstream
   const uploadedImageUri =
     typeof payload.images?.[0] === "string"
       ? await persistListingImage(payload.images[0])
@@ -132,6 +148,15 @@ export const updateListing = async (id: string, payload: Partial<Listing>): Prom
     return {
       ...data,
       images: [uploadedImageUri],
+=======
+  const { data } = await client.patch<Listing>(`/listings/${id}`, payload);
+  const imageUri = typeof payload.images?.[0] === "string" ? payload.images[0] : null;
+  if (imageUri) {
+    await saveListingImageOverride(id, imageUri);
+    return {
+      ...data,
+      images: [imageUri],
+>>>>>>> Stashed changes
     };
   }
 
@@ -150,6 +175,7 @@ export const fetchMyListings = async (): Promise<Listing[]> => {
 };
 
 export const saveListingAsDraft = async (payload: Partial<Listing> & { title: string }): Promise<Listing> => {
+<<<<<<< Updated upstream
   const uploadedImageUri =
     typeof payload.images?.[0] === "string"
       ? await persistListingImage(payload.images[0])
@@ -172,6 +198,15 @@ export const saveListingAsDraft = async (payload: Partial<Listing> & { title: st
     return {
       ...data,
       images: [uploadedImageUri],
+=======
+  const { data } = await client.post<Listing>("/listings/draft", payload);
+  const imageUri = typeof payload.images?.[0] === "string" ? payload.images[0] : null;
+  if (imageUri) {
+    await saveListingImageOverride(data.id, imageUri);
+    return {
+      ...data,
+      images: [imageUri],
+>>>>>>> Stashed changes
     };
   }
 
