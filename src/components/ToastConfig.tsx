@@ -1,52 +1,167 @@
-import { BaseToast, ErrorToast, ToastConfig } from 'react-native-toast-message';
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { BaseToast, ErrorToast, ToastConfig } from "react-native-toast-message";
+
+type NotificationToastProps = {
+  props?: {
+    ctaLabel?: string;
+    onPress?: () => void;
+  };
+  text1?: string;
+  text2?: string;
+};
+
+function NotificationToast({
+  props,
+  text1,
+  text2,
+}: NotificationToastProps) {
+  return (
+    <Pressable
+      onPress={props?.onPress}
+      disabled={!props?.onPress}
+      style={({ pressed }) => [
+        styles.notificationCard,
+        pressed && props?.onPress ? styles.notificationPressed : null,
+      ]}
+    >
+      <View style={styles.notificationIconWrap}>
+        <Ionicons name="chatbubble-ellipses" size={18} color="#111111" />
+      </View>
+
+      <View style={styles.notificationContent}>
+        <Text style={styles.notificationTitle} numberOfLines={1}>
+          {text1}
+        </Text>
+
+        {text2 ? (
+          <Text style={styles.notificationBody} numberOfLines={2}>
+            {text2}
+          </Text>
+        ) : null}
+
+        {props?.onPress ? (
+          <Text style={styles.notificationCta}>
+            {props.ctaLabel ?? "Tap to open"}
+          </Text>
+        ) : null}
+      </View>
+    </Pressable>
+  );
+}
 
 export const toastConfig: ToastConfig = {
-  success: (props) => (
+  success: (toastProps) => (
     <BaseToast
-      {...props}
-      style={{
-        maxWidth: 480,
-        width: '90%',
-        minHeight: 80,
-        borderLeftColor: '#4CAF50',
-        borderLeftWidth: 6,
-      }}
-      contentContainerStyle={{
-        paddingHorizontal: 20,  
-        paddingVertical: 20,   
-      }}
-      text1Style={{
-        fontSize: 16,
-        fontWeight: '600',
-        color: "blue",
-      }}
-      text2Style={{
-        fontSize: 14,
-        color: "blue",
-      }}
+      {...toastProps}
+      style={styles.successToast}
+      contentContainerStyle={styles.baseContent}
+      text1Style={styles.successTitle}
+      text2Style={styles.successBody}
     />
   ),
-  error: (props) => (
+  error: (toastProps) => (
     <ErrorToast
-      {...props}
-      style={{
-        maxWidth: 480,
-        width: '90%',
-        minHeight: 80,
-        borderLeftColor: '#F44336',
-        borderLeftWidth: 6,
-      }}
-      contentContainerStyle={{
-        paddingHorizontal: 20,  
-        paddingVertical: 20,   
-      }}
-      text1Style={{
-        fontSize: 16,
-        fontWeight: '600',
-      }}
-      text2Style={{
-        fontSize: 14,
-      }}
+      {...toastProps}
+      style={styles.errorToast}
+      contentContainerStyle={styles.baseContent}
+      text1Style={styles.errorTitle}
+      text2Style={styles.errorBody}
     />
   ),
+  notification: (toastProps) => <NotificationToast {...toastProps} />,
 };
+
+const styles = StyleSheet.create({
+  baseContent: {
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  successToast: {
+    minHeight: 74,
+    width: "92%",
+    maxWidth: 460,
+    borderLeftWidth: 5,
+    borderLeftColor: "#22C55E",
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+  },
+  successTitle: {
+    color: "#111111",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  successBody: {
+    color: "#4B5563",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  errorToast: {
+    minHeight: 74,
+    width: "92%",
+    maxWidth: 460,
+    borderLeftWidth: 5,
+    borderLeftColor: "#EF4444",
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+  },
+  errorTitle: {
+    color: "#111111",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  errorBody: {
+    color: "#4B5563",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  notificationCard: {
+    width: "92%",
+    maxWidth: 460,
+    minHeight: 86,
+    borderRadius: 20,
+    backgroundColor: "#111827",
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    shadowColor: "#000000",
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  notificationPressed: {
+    opacity: 0.9,
+  },
+  notificationIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FDE68A",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  notificationContent: {
+    flex: 1,
+  },
+  notificationTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  notificationBody: {
+    color: "#D1D5DB",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  notificationCta: {
+    color: "#FDE68A",
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 8,
+  },
+});

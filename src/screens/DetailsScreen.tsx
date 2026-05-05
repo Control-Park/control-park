@@ -29,8 +29,7 @@ const MAX_WIDTH = 480;
 export default function DetailsScreen({ route, navigation }: Props) {
   const { width } = useWindowDimensions();
   const { id } = route.params;
-  const { favorites, toggleFavorite } = useFavoritesStore();
-  const isFavorited = favorites[id];
+  const { favorites, setFavorite } = useFavoritesStore();
 
   const {
     data: listing,
@@ -62,6 +61,8 @@ export default function DetailsScreen({ route, navigation }: Props) {
   if (isError) return <Text>Error: {(error as Error)?.message}</Text>;
   if (!listing) return null;
 
+  const isFavorited = favorites[id] ?? !!listing.is_saved;
+
   const textStyle = { fontFamily: "ABeeZee-Regular" };
   const perks = listing.perks ?? [];
   const incentives = listing.incentives ?? [];
@@ -82,8 +83,10 @@ export default function DetailsScreen({ route, navigation }: Props) {
           <ReportButton listingId={id} />
           <SaveButton
             listingId={id}
-            onPress={() => toggleFavorite(id)}
             isFavorited={isFavorited}
+            onToggleState={(nextIsFavorited) =>
+              setFavorite(id, nextIsFavorited)
+            }
           />
         </View>
 

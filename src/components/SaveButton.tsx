@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   showSavedSuccess,
   showSavedRemove,
@@ -11,11 +12,17 @@ import { supabase } from "../utils/supabase";
 
 type Props = {
   listingId: string;
-  onPress?: () => void;
   isFavorited?: boolean;
+  onToggleState?: (nextIsFavorited: boolean) => void;
 };
 
-export default function SaveButton({ listingId, onPress, isFavorited }: Props) {
+export default function SaveButton({
+  listingId,
+  isFavorited,
+  onToggleState,
+}: Props) {
+  const queryClient = useQueryClient();
+
   const handlePress = async () => {
     const { data } = await supabase.auth.getSession();
 
@@ -24,7 +31,9 @@ export default function SaveButton({ listingId, onPress, isFavorited }: Props) {
       return;
     }
 
-    onPress?.();
+    const nextIsFavorited = !isFavorited;
+    onToggleState?.(nextIsFavorited);
+
     try {
       if (isFavorited) {
         await unsaveListing(listingId);
@@ -33,7 +42,12 @@ export default function SaveButton({ listingId, onPress, isFavorited }: Props) {
         await saveListing(listingId);
         showSavedSuccess("Added to your saved listings");
       }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["listings"] }),
+        queryClient.invalidateQueries({ queryKey: ["listing", listingId] }),
+      ]);
     } catch (err) {
+      onToggleState?.(!!isFavorited);
       console.error("Failed to update saved listing:", err);
     }
   };

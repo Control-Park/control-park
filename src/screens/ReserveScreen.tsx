@@ -173,9 +173,8 @@ const getTimeParts = (date: Date) => {
 };
 
 export default function ReserveScreen({ route, navigation }: Props) {
-  const { favorites, toggleFavorite } = useFavoritesStore();
+  const { favorites, setFavorite } = useFavoritesStore();
   const { id } = route.params;
-  const isFavorited = favorites[id];
   const queryClient = useQueryClient();
   const { defaultPaymentMethodId, methods: paymentMethods } = usePaymentMethods();
 
@@ -351,6 +350,8 @@ export default function ReserveScreen({ route, navigation }: Props) {
     );
   }
 
+  const isFavorited = favorites[id] ?? !!listingData.is_saved;
+
   const openDateTimeModal = () => {
     setDraftStart(reservationStart);
     setDraftEnd(reservationEnd);
@@ -520,8 +521,10 @@ export default function ReserveScreen({ route, navigation }: Props) {
           <ReportButton listingId={listingData.id} />
           <SaveButton
             listingId={id}
-            onPress={() => toggleFavorite(id)}
             isFavorited={isFavorited}
+            onToggleState={(nextIsFavorited) =>
+              setFavorite(id, nextIsFavorited)
+            }
           />
         </View>
 

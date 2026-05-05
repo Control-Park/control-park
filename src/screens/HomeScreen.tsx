@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -25,8 +25,8 @@ import {
   showSavedSuccess,
   showSignInRequired,
 } from "../utils/validation";
-import { fetchListings } from "../api/listings";
-import { useQuery } from "@tanstack/react-query";
+import { fetchListings, saveListing, unsaveListing } from "../api/listings";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Listing } from "../types/listing";
 import { getListingImages } from "../utils/listingImages";
 import { supabase } from "../utils/supabase";
@@ -77,7 +77,8 @@ const isListingAvailableNow = (listing: Listing) => {
 
 export default function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { favorites, toggleFavorite } = useFavoritesStore();
+  const queryClient = useQueryClient();
+  const { favorites, hydrateFavorites, setFavorite } = useFavoritesStore();
   const [searchValue, setSearchValue] = useState("");
   const [searchResults, setSearchResults] = useState<Listing[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -97,6 +98,12 @@ export default function HomeScreen({ navigation }: Props) {
     queryKey: ["listings"],
     queryFn: () => fetchListings(),
   });
+
+  useEffect(() => {
+    if (Array.isArray(listings)) {
+      hydrateFavorites(listings);
+    }
+  }, [hydrateFavorites, listings]);
 
   const filteredAndSortedListings = useMemo(() => {
     if (!Array.isArray(listings)) {
@@ -164,37 +171,54 @@ export default function HomeScreen({ navigation }: Props) {
     return filters;
   }, [availabilityFilter, priceFilter, sortFilter]);
 
-  const renderCard = ({ item }: { item: Listing }) => (
-    <View style={{ marginRight: 12 }}>
-      <ParkingCard
-        data={{
-          id: item.id,
-          title: item.title || item.structure_name,
-          subtitle: `$${item.price_per_hour} per hour`,
-          images: getListingImages(item),
-          isGuestFavorite: !!item.is_guest_favorite,
-          isFavorited: !!favorites[item.id],
-        }}
-        onToggleFavorite={() => {
-          void supabase.auth.getSession().then(({ data }) => {
-            if (!data.session) {
-              showSignInRequired();
-              return;
-            }
+  const renderCard = ({ item }: { item: Listing }) => {
+    const isFavorited = favorites[item.id] ?? !!item.is_saved;
 
-            const isCurrentlyFavorited = !!favorites[item.id];
-            toggleFavorite(item.id);
-            if (!isCurrentlyFavorited) {
-              showSavedSuccess("Added to your saved listings");
-            } else {
-              showSavedRemove("Removed from saved listings");
-            }
-          });
-        }}
-        onPress={() => navigation.navigate("Details", { id: item.id })}
-      />
-    </View>
-  );
+    return (
+      <View style={{ marginRight: 12 }}>
+        <ParkingCard
+          data={{
+            id: item.id,
+            title: item.title || item.structure_name,
+            subtitle: `$${item.price_per_hour} per hour`,
+            images: getListingImages(item),
+            isGuestFavorite: !!item.is_guest_favorite,
+            isFavorited,
+          }}
+          onToggleFavorite={() => {
+            void supabase.auth.getSession().then(({ data }) => {
+              if (!data.session) {
+                showSignInRequired();
+                return;
+              }
+
+              void (async () => {
+                setFavorite(item.id, !isFavorited);
+                try {
+                  if (isFavorited) {
+                    await unsaveListing(item.id);
+                    showSavedRemove("Removed from saved listings");
+                  } else {
+                    await saveListing(item.id);
+                    showSavedSuccess("Added to your saved listings");
+                  }
+
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["listings"] }),
+                    queryClient.invalidateQueries({ queryKey: ["listing", item.id] }),
+                  ]);
+                } catch (err) {
+                  setFavorite(item.id, isFavorited);
+                  console.error("Failed to update saved listing:", err);
+                }
+              })();
+            });
+          }}
+          onPress={() => navigation.navigate("Details", { id: item.id })}
+        />
+      </View>
+    );
+  };
 
   if (isLoading) return <Text>Loading...</Text>;
   if (isError) return <Text>Error: {(error as Error)?.message}</Text>;

@@ -66,12 +66,20 @@ export const reserveSuccess = (message: string) => {
   });
 };
 
-export const showNotification = (title: string, body: string) => {
+export const showNotification = (
+  title: string,
+  body: string,
+  options?: {
+    ctaLabel?: string;
+    onPress?: () => void;
+  },
+) => {
   Toast.show({
-    type: "success",
+    type: "notification",
     text1: title,
     text2: body,
     topOffset: 100,
+    props: options,
   });
 };
 

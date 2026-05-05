@@ -68,9 +68,9 @@ const STATUS_LABELS: Record<ReservationStatus, string> = {
   cancelled: "Cancelled",
 };
 
-export default function ReservationsScreen({ navigation }: Props) {
+export default function ReservationsScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
-  const { favorites } = useFavoritesStore();
+  const { favorites, hydrateFavorites } = useFavoritesStore();
   const queryClient = useQueryClient();
   const [selectedReservation, setSelectedReservation] =
     useState<Reservation | null>(null);
@@ -90,7 +90,7 @@ export default function ReservationsScreen({ navigation }: Props) {
     void hydrateDismissedReservations();
   }, [hydrateDismissedReservations]);
 
-  const { data: reservations, isLoading, isError } = useQuery<Reservation[]>({
+  const { data: reservations, isLoading, isError, refetch: refetchReservations } = useQuery<Reservation[]>({
     queryKey: ["reservations"],
     queryFn: fetchReservations,
   });
@@ -99,6 +99,20 @@ export default function ReservationsScreen({ navigation }: Props) {
     queryKey: ["listings"],
     queryFn: () => fetchListings(),
   });
+
+  useEffect(() => {
+    if (Array.isArray(listings)) {
+      hydrateFavorites(listings);
+    }
+  }, [hydrateFavorites, listings]);
+
+  useEffect(() => {
+    if (!route.params?.refreshKey) {
+      return;
+    }
+
+    void refetchReservations();
+  }, [refetchReservations, route.params?.refreshKey]);
 
   const cancelMutation = useMutation({
     mutationFn: cancelReservation,
@@ -128,7 +142,8 @@ export default function ReservationsScreen({ navigation }: Props) {
     ? new Date(selectedReservation.end_time)
     : null;
 
-  const savedListings = listings?.filter((l) => favorites[l.id]) ?? [];
+  const persistedSavedListings =
+    listings?.filter((listing) => favorites[listing.id] ?? !!listing.is_saved) ?? [];
   const visibleReservations = useMemo(
     () =>
       reservations?.filter(
@@ -309,12 +324,12 @@ export default function ReservationsScreen({ navigation }: Props) {
               <View style={styles.sectionDivider} />
               <Text style={styles.sectionTitle}>Saved Listings</Text>
 
-              {savedListings.map((item, index) => (
+              {persistedSavedListings.map((item, index) => (
                 <Pressable
                   key={item.id}
                   style={({ pressed }) => [
                     styles.listItem,
-                    index < savedListings.length - 1 && styles.listItemDivider,
+                    index < persistedSavedListings.length - 1 && styles.listItemDivider,
                     pressed && { opacity: 0.75 },
                   ]}
                   onPress={() => navigation.navigate("Details", { id: item.id })}

@@ -7,6 +7,7 @@ import SplashScreen from "./src/screens/SplashScreen";
 
 import AppNavigator from "./src/navigation/AppNavigator";
 import { NavigationContainer } from "@react-navigation/native";
+import { navigationRef } from "./src/navigation/navigationRef";
 
 import Toast from "react-native-toast-message";
 import { toastConfig } from "./src/components/ToastConfig";
@@ -38,7 +39,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
           <AuthSessionProvider>
             <PaymentMethodsProvider>
               <View className="flex-1">

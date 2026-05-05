@@ -45,7 +45,7 @@ export type RootStackParamList = {
   };
   Details: { id: string };
   Test: undefined;
-  Reservations: undefined;
+  Reservations: { refreshKey?: string } | undefined;
   Message:
     | {
         hostId?: string;

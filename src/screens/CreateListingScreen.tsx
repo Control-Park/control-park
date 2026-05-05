@@ -130,7 +130,7 @@ export default function CreateListingScreen({ navigation }: Props) {
       allowsEditing: true,
       aspect: [4, 3],
       quality: Platform.OS === "web" ? 0.35 : 0.7,
-      base64: Platform.OS === "web",
+      base64: true,
     });
 
     if (!result.canceled) {
@@ -156,7 +156,7 @@ export default function CreateListingScreen({ navigation }: Props) {
       allowsEditing: true,
       aspect: [4, 3],
       quality: Platform.OS === "web" ? 0.35 : 0.7,
-      base64: Platform.OS === "web",
+      base64: true,
     });
 
     if (!result.canceled) {

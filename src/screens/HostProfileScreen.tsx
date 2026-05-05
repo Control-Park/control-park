@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   GestureResponderEvent,
@@ -230,16 +230,14 @@ export default function HostProfileScreen({ route }: Props) {
     }, [loadProfile, loadHostListings]),
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!route.params?.refreshKey) {
-        return undefined;
-      }
+  useEffect(() => {
+    if (!route.params?.refreshKey) {
+      return;
+    }
 
-      void loadHostListings();
-      return undefined;
-    }, [loadHostListings, route.params?.refreshKey]),
-  );
+    void loadProfile();
+    void loadHostListings();
+  }, [loadHostListings, loadProfile, route.params?.refreshKey]);
 
   const hostName = useMemo(() => getProfileDisplayName(profile), [profile]);
   const avatarInitial = getProfileInitial(profile);

@@ -67,7 +67,12 @@ export const createNewListing = async (
     typeof listingData.images?.[0] === "string"
       ? await persistListingImage(listingData.images[0])
       : null;
-  const payload = uploadedImageUri ? withoutImages(listingData) : listingData;
+  const payload = uploadedImageUri
+    ? {
+        ...withoutImages(listingData),
+        images: [uploadedImageUri],
+      }
+    : listingData;
 
   console.log("POST /listings", {
     baseURL: apiBaseUrl,
@@ -114,7 +119,12 @@ export const updateListing = async (id: string, payload: Partial<Listing>): Prom
     typeof payload.images?.[0] === "string"
       ? await persistListingImage(payload.images[0])
       : null;
-  const requestPayload = uploadedImageUri ? withoutImages(payload) : payload;
+  const requestPayload = uploadedImageUri
+    ? {
+        ...withoutImages(payload),
+        images: [uploadedImageUri],
+      }
+    : payload;
 
   const { data } = await client.patch<Listing>(`/listings/${id}`, requestPayload);
   if (uploadedImageUri) {
@@ -144,7 +154,12 @@ export const saveListingAsDraft = async (payload: Partial<Listing> & { title: st
     typeof payload.images?.[0] === "string"
       ? await persistListingImage(payload.images[0])
       : null;
-  const requestPayload = uploadedImageUri ? withoutImages(payload) : payload;
+  const requestPayload = uploadedImageUri
+    ? {
+        ...withoutImages(payload),
+        images: [uploadedImageUri],
+      }
+    : payload;
 
   console.log("POST /listings/draft", {
     baseURL: apiBaseUrl,

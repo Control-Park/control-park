@@ -3,7 +3,15 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { QueryClient } from "@tanstack/react-query";
+import { apiBaseUrl } from "../api/client";
+import { fetchConversations, type ConversationSummary } from "../api/messages";
 import { registerPushToken } from "../api/notifications";
+import {
+  navigate,
+  navigationRef,
+  push,
+  refreshRoute,
+} from "../navigation/navigationRef";
 import { supabase } from "../utils/supabase";
 import { showNotification } from "../utils/validation";
 
@@ -18,9 +26,20 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL ?? "http://localhost:9001";
+const SERVER_URL = apiBaseUrl;
 // Convert http(s) to ws(s) for the WebSocket connection
 const WS_URL = SERVER_URL.replace(/^http/, "ws");
+
+type NotificationPayload = {
+  body?: string;
+  conversationId?: string;
+  kind?: string;
+  listingId?: string;
+  reservationId?: string;
+  senderId?: string;
+  title?: string;
+  type?: string;
+};
 
 export function usePushNotifications(queryClient: QueryClient) {
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
@@ -42,15 +61,16 @@ export function usePushNotifications(queryClient: QueryClient) {
 
       ws.onmessage = (event) => {
         try {
-          const payload = JSON.parse(event.data as string) as {
-            body?: string;
-            conversationId?: string;
-            title?: string;
-            type?: string;
-          };
+          const payload = JSON.parse(event.data as string) as NotificationPayload;
 
           if (payload.title && payload.body) {
-            showNotification(payload.title, payload.body);
+            const formatted = formatNotificationContent(payload);
+            showNotification(formatted.title, formatted.body, {
+              ctaLabel: payload.type === "new_message" ? "Open chat" : "Open",
+              onPress: () => {
+                void handleNotificationPress(queryClient, payload);
+              },
+            });
           }
 
           queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -59,6 +79,27 @@ export function usePushNotifications(queryClient: QueryClient) {
             queryClient.invalidateQueries({ queryKey: ["conversations"] });
             if (payload.conversationId) {
               queryClient.invalidateQueries({ queryKey: ["messages", payload.conversationId] });
+            }
+          }
+
+          if (isReservationNotification(payload)) {
+            queryClient.invalidateQueries({ queryKey: ["reservations"] });
+            queryClient.invalidateQueries({ queryKey: ["hosting-reservations"] });
+            queryClient.invalidateQueries({ queryKey: ["my-reservations-view-profile"] });
+            if (payload.reservationId) {
+              queryClient.invalidateQueries({
+                queryKey: ["reservation-for-host", payload.reservationId],
+              });
+            }
+
+            if (navigationRef.getCurrentRoute()?.name === "Reservations") {
+              refreshRoute("Reservations", { refreshKey: new Date().toISOString() });
+            }
+          }
+
+          if (isBookingRequestNotification(payload)) {
+            if (navigationRef.getCurrentRoute()?.name === "Profile") {
+              refreshRoute("Profile", { refreshKey: new Date().toISOString() });
             }
           }
         } catch {
@@ -84,7 +125,8 @@ export function usePushNotifications(queryClient: QueryClient) {
     // Fires when the user taps a notification (dev builds)
     responseListener.current = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        console.log("Notification tapped:", response.notification.request.content.data);
+        const data = response.notification.request.content.data as NotificationPayload;
+        void handleNotificationPress(queryClient, data);
       },
     );
 
@@ -105,6 +147,110 @@ export function usePushNotifications(queryClient: QueryClient) {
       wsRef.current?.close();
     };
   }, [queryClient]);
+}
+
+function formatNotificationContent(payload: NotificationPayload) {
+  if (isReservationNotification(payload)) {
+    return {
+      body: payload.body ?? "",
+      title: payload.title ?? "Reservation update",
+    };
+  }
+
+  if (isBookingRequestNotification(payload)) {
+    return {
+      body: payload.body ?? "",
+      title: "New booking request",
+    };
+  }
+
+  if (payload.type !== "new_message") {
+    return {
+      body: payload.body ?? "",
+      title: payload.title ?? "Notification",
+    };
+  }
+
+  const senderName = payload.title?.replace(/^New message from\s+/i, "").trim();
+  return {
+    title: "New message",
+    body: senderName ? `${senderName}: ${payload.body ?? ""}` : payload.body ?? "",
+  };
+}
+
+async function handleNotificationPress(
+  queryClient: QueryClient,
+  payload: NotificationPayload,
+) {
+  if (isReservationNotification(payload)) {
+    refreshRoute("Reservations", { refreshKey: new Date().toISOString() });
+    return;
+  }
+
+  if (isBookingRequestNotification(payload)) {
+    refreshRoute("Profile", { refreshKey: new Date().toISOString() });
+    return;
+  }
+
+  if (payload.type === "new_message") {
+    if (payload.conversationId) {
+      let conversations =
+        queryClient.getQueryData<ConversationSummary[]>(["conversations"]);
+
+      if (!conversations) {
+        try {
+          conversations = await queryClient.fetchQuery({
+            queryKey: ["conversations"],
+            queryFn: fetchConversations,
+          });
+        } catch {
+          conversations = undefined;
+        }
+      }
+
+      const conversation = conversations?.find(
+        (item) => item.id === payload.conversationId,
+      );
+
+      if (conversation) {
+        const hostName = conversation.host
+          ? `${conversation.host.first_name} ${conversation.host.last_name}`.trim()
+          : undefined;
+
+        push("Conversation", {
+          conversationId: conversation.id,
+          hostId: conversation.host_id,
+          hostName,
+          listingId: conversation.listing_id,
+          listingTitle: conversation.listing?.title,
+        });
+        return;
+      }
+    }
+
+    navigate("Message");
+    return;
+  }
+
+  navigate("Notification");
+}
+
+function isBookingRequestNotification(payload: NotificationPayload) {
+  return (
+    payload.kind === "booking_request" ||
+    (payload.type === "parking_alert" &&
+      payload.title?.trim().toLowerCase() === "new booking request")
+  );
+}
+
+function isReservationNotification(payload: NotificationPayload) {
+  return (
+    payload.kind === "reservation_approved" ||
+    payload.kind === "reservation_rejected" ||
+    (payload.type === "parking_alert" &&
+      (payload.title?.trim().toLowerCase() === "booking approved" ||
+        payload.title?.trim().toLowerCase() === "booking rejected"))
+  );
 }
 
 async function registerToken() {
