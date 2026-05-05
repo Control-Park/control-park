@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Image } from "react-native";
+import { View, Text, Image, Pressable } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
 type Props = {
@@ -12,6 +12,8 @@ type Props = {
   isGuestFavorite?: boolean;
   host_name?: string;
   host_type?: string;
+  hostInitial?: string;
+  onHostPress?: () => void;
 };
 
 function formatRating(rating?: number | string | null) {
@@ -37,11 +39,20 @@ export default function ListingHeader({
   isGuestFavorite,
   host_name,
   host_type,
+  hostInitial,
+  onHostPress,
 }: Props) {
   const textStyle = { fontFamily: "ABeeZee-Regular" };
   const subTextClass = "text-[#6A6A6A] font-md mt-4 text-md";
   const meta = [location, ...(accessDetails ?? [])].filter(Boolean).join(" · ");
   const ratingText = formatRating(rating);
+  const numericRating =
+    typeof rating === "number" ? rating : Number.parseFloat(String(rating ?? 0));
+  const reviews = review_count ?? 0;
+  const showGuestFavorite =
+    isGuestFavorite ||
+    (Number.isFinite(numericRating) && numericRating >= 4 && reviews >= 10);
+  const badgeLines = showGuestFavorite ? ["Guest", "favorite"] : ["New", "Listing"];
 
   return (
     <View className="items-center justify-center px-6">
@@ -78,23 +89,21 @@ export default function ListingHeader({
             <FontAwesome name="star" size={14} color="#ECAA00" />
           </View>
         </View>
-        {isGuestFavorite ? (
-          <>
-            <View className="w-[1px] h-10 bg-[#c5c5c5]" />
-            <View className="items-center px-10">
-              <Text style={textStyle} className="text-lg font-medium">
-                Guest
-              </Text>
-              <Text style={textStyle} className="text-lg font-medium -mt-2">
-                favorite
-              </Text>
-            </View>
-          </>
-        ) : null}
+
+        <View className="w-[1px] h-10 bg-[#c5c5c5]" />
+        <View className="items-center px-10">
+          <Text style={textStyle} className="text-lg font-medium">
+            {badgeLines[0]}
+          </Text>
+          <Text style={textStyle} className="text-lg font-medium -mt-2">
+            {badgeLines[1]}
+          </Text>
+        </View>
+
         <View className="w-[1px] h-10 bg-[#c5c5c5]" />
         <View className="items-center px-6">
           <Text style={textStyle} className="text-xl">
-            {review_count ?? 0}
+            {reviews}
           </Text>
           <Text style={textStyle} className="text-xs">
             Reviews
@@ -106,16 +115,38 @@ export default function ListingHeader({
         <View className="flex w-full items-start">
           <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
 
-          <View className="flex-row items-center justify-center py-4">
-            <Image
-              source={require("../../../assets/csulb-logo.png")}
-              style={{ width: 50, height: 50 }}
-            />
+          <Pressable
+            className="flex-row items-center justify-center py-4"
+            disabled={!onHostPress}
+            onPress={onHostPress}
+            style={({ pressed }) => (pressed ? { opacity: 0.7 } : undefined)}
+          >
+            {hostInitial ? (
+              <View
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: "#ECAA00",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={[textStyle, { fontSize: 20, fontWeight: "700" }]}>
+                  {hostInitial}
+                </Text>
+              </View>
+            ) : (
+              <Image
+                source={require("../../../assets/csulb-logo.png")}
+                style={{ width: 50, height: 50 }}
+              />
+            )}
             <View className="flex-col ml-4 gap-1.5">
               <Text className="font-abeezee">Hosted by {host_name}</Text>
               <Text className="font-abeezee text-[#525252]">{host_type}</Text>
             </View>
-          </View>
+          </Pressable>
         </View>
       ) : null}
     </View>

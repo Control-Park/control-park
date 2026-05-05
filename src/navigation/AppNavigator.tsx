@@ -81,7 +81,7 @@ export type RootStackParamList = {
     guestId: string;
     guestName: string;
   };
-  ViewProfile: undefined;
+  ViewProfile: { userId?: string } | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

@@ -15,12 +15,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import NotificationsButton from "../components/NotificationsButton";
-import { getMyProfile, updateMyProfile } from "../api/user";
+import { fetchUserById, getMyProfile, updateMyProfile } from "../api/user";
 import { fetchReservations } from "../api/reservations";
 import { fetchUserReviews } from "../api/reviews";
 import { getProfileDisplayName, getProfileInitial } from "../utils/profile";
@@ -31,6 +32,7 @@ import {
 import { useProfileImage } from "../hooks/useProfileImage";
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
+type Props = NativeStackScreenProps<RootStackParamList, "ViewProfile">;
 
 const MAX_WIDTH = 428;
 const EMPTY_BIO_MESSAGE = "Add a bio so hosts can get to know you.";
@@ -50,23 +52,26 @@ function StarRow({ rating }: { rating: number }) {
   );
 }
 
-export default function ViewProfileScreen() {
+export default function ViewProfileScreen({ route }: Props) {
   const navigation = useNavigation<NavProp>();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const viewedUserId = route.params?.userId;
+  const isOwnProfile = !viewedUserId;
 
   const [bio, setBio] = useState("");
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [isSavingBio, setIsSavingBio] = useState(false);
 
   const { data: profile, isLoading: loadingProfile } = useQuery({
-    queryKey: ["my-profile-view"],
-    queryFn: getMyProfile,
+    queryKey: viewedUserId ? ["user", viewedUserId] : ["my-profile-view"],
+    queryFn: () => viewedUserId ? fetchUserById(viewedUserId) : getMyProfile(),
   });
 
   const { data: reservations = [], isLoading: loadingReservations } = useQuery({
     queryKey: ["my-reservations-view-profile"],
     queryFn: fetchReservations,
+    enabled: isOwnProfile,
   });
 
   const latestReservation = useMemo(() => {
@@ -95,7 +100,7 @@ export default function ViewProfileScreen() {
     }, []),
   );
 
-  const isLoading = loadingProfile || loadingReservations || loadingReviews;
+  const isLoading = loadingProfile || (isOwnProfile && loadingReservations) || loadingReviews;
 
   const displayName = profile ? getProfileDisplayName(profile) : "User";
   const avatarInitial = profile ? getProfileInitial(profile) : "U";
@@ -146,6 +151,7 @@ export default function ViewProfileScreen() {
 
   const handleChooseProfileImage = async () => {
     if (!userId) return;
+    if (!isOwnProfile) return;
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -223,6 +229,7 @@ export default function ViewProfileScreen() {
               ]}
               onPress={handleChooseProfileImage}
               accessibilityLabel="Change profile picture"
+              disabled={!isOwnProfile}
             >
               {profileImageUri ? (
                 <Image
@@ -233,16 +240,20 @@ export default function ViewProfileScreen() {
                 <Text style={styles.avatarInitial}>{avatarInitial}</Text>
               )}
 
-              <View style={styles.avatarEditBadge}>
-                <Ionicons name="camera" size={14} color="#111111" />
-              </View>
+              {isOwnProfile ? (
+                <View style={styles.avatarEditBadge}>
+                  <Ionicons name="camera" size={14} color="#111111" />
+                </View>
+              ) : null}
             </Pressable>
 
             <View style={styles.profileInfo}>
               <Text style={styles.name}>{displayName}</Text>
               <Text style={styles.role}>{profile?.host ? "Host" : "Guest"}</Text>
               <Text style={styles.memberSince}>Member since {memberSince}</Text>
-              <Text style={styles.photoHint}>Tap photo to edit</Text>
+              {isOwnProfile ? (
+                <Text style={styles.photoHint}>Tap photo to edit</Text>
+              ) : null}
             </View>
           </View>
 
@@ -250,7 +261,7 @@ export default function ViewProfileScreen() {
             <View style={styles.bioHeader}>
               <Text style={styles.bioTitle}>Bio</Text>
 
-              {!isEditingBio ? (
+              {isOwnProfile && !isEditingBio ? (
                 <Pressable
                   onPress={handleStartEditingBio}
                   style={({ pressed }) => pressed && styles.pressed}
