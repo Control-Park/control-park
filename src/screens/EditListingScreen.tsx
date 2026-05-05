@@ -18,10 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { updateListing } from "../api/listings";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import { normalizePickedImage } from "../utils/localImagePersistence";
-<<<<<<< Updated upstream
 import { getUploadedListingImageUri } from "../utils/listingImages";
-=======
->>>>>>> Stashed changes
 
 type Props = NativeStackScreenProps<RootStackParamList, "EditListing">;
 
