@@ -20,8 +20,10 @@ import { useFavoritesStore } from "../context/favoritesStore";
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchListingById } from "../api/listings";
+import { fetchUserById } from "../api/user";
 import { Listing } from "../types/listing";
 import { getListingImages } from "../utils/listingImages";
+import { getProfileDisplayName, getProfileInitial } from "../utils/profile";
 import DetailsScreenSkeleton from "../components/skeletons/DetailsScreenSkeleton";
 
 const MAX_WIDTH = 480;
@@ -45,6 +47,12 @@ export default function DetailsScreen({ route, navigation }: Props) {
   const [showSkeleton, setShowSkeleton] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  const { data: hostProfile } = useQuery({
+    queryKey: ["user", listing?.host_id],
+    queryFn: () => fetchUserById(listing!.host_id),
+    enabled: !!listing?.host_id && !listing.host_name,
+  });
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSkeleton(false);
@@ -67,6 +75,12 @@ export default function DetailsScreen({ route, navigation }: Props) {
   const incentives = listing.incentives ?? [];
   const amenities = listing.amenities ?? [];
   const secondaryDetails = [...incentives, ...amenities];
+  const hostName =
+    listing.host_name ?? (hostProfile ? getProfileDisplayName(hostProfile) : undefined);
+  const hostType =
+    listing.host_type ?? (hostProfile?.host ? "Host" : hostProfile ? "Guest" : undefined);
+  const hostInitial =
+    listing.host_name || !hostProfile ? undefined : getProfileInitial(hostProfile);
 
   return (
     <ScrollView
@@ -96,8 +110,12 @@ export default function DetailsScreen({ route, navigation }: Props) {
             rating={listing.rating ?? "0.00"}
             review_count={listing.review_count ?? 0}
             isGuestFavorite={listing.is_guest_favorite}
-            host_name={listing.host_name}
-            host_type={listing.host_type}
+            host_name={hostName}
+            host_type={hostType}
+            hostInitial={hostInitial}
+            onHostPress={() =>
+              navigation.navigate("ViewProfile", { userId: listing.host_id })
+            }
           />
         </View>
 
@@ -157,7 +175,7 @@ export default function DetailsScreen({ route, navigation }: Props) {
             onPress={() =>
               navigation.navigate("Conversation", {
                 hostId: listing.host_id,
-                hostName: listing.host_name,
+                hostName,
                 listingId: listing.id,
                 listingImage: getListingImages(listing)[0],
                 listingTitle: listing.title,
