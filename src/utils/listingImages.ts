@@ -22,9 +22,8 @@ function isUsableImage(image: unknown) {
 export function getListingImages(item: ListingWithImages) {
   const mappedImage = localImageMap[item.id];
   if (mappedImage) return [mappedImage];
-  const images = item.images?.filter(isUsableImage) ?? [];
-  if (images.length) {
-    return images.map((image) =>
+  if (item.images?.length) {
+    return item.images.map((image) =>
       typeof image === "string" ? { uri: image } : image,
     );
   }
@@ -39,9 +38,10 @@ export function getUploadedListingImageUri(item: ListingWithImages) {
 export function getListingImage(item: ListingWithImages) {
   const mappedImage = localImageMap[item.id];
   if (mappedImage) return mappedImage;
-  const image = item.images?.find(isUsableImage);
-  if (image) {
-    return typeof image === "string" ? { uri: image } : image;
+  if (item.images?.length) {
+    return typeof item.images[0] === "string"
+      ? { uri: item.images[0] }
+      : item.images[0];
   }
   return require("../../assets/parking1.png");
 }
