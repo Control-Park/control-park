@@ -118,11 +118,7 @@ export default function EditListingScreen({ route, navigation }: Props) {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-<<<<<<< Updated upstream
       quality: Platform.OS === "web" ? 0.35 : 0.7,
-=======
-      quality: 0.7,
->>>>>>> Stashed changes
       base64: true,
     });
     if (!result.canceled) {
@@ -142,11 +138,7 @@ export default function EditListingScreen({ route, navigation }: Props) {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
-<<<<<<< Updated upstream
       quality: Platform.OS === "web" ? 0.35 : 0.7,
-=======
-      quality: 0.7,
->>>>>>> Stashed changes
       base64: true,
     });
     if (!result.canceled) {
