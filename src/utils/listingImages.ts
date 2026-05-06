@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 export const localImageMap: Record<string, any> = {
   "164352ef-c16a-433b-bf34-3a7f2e33cea2": require("../../assets/thaipicture.png"),
   "b836ae95-47fb-45cc-9451-761326f06b5d": require("../../assets/parking1.png"),
@@ -15,15 +17,18 @@ type ListingWithImages = {
 function isUsableImage(image: unknown) {
   return (
     !!image &&
-    (typeof image !== "string" || !image.startsWith("blob:"))
+    (typeof image !== "string" ||
+      Platform.OS === "web" ||
+      !image.startsWith("blob:"))
   );
 }
 
 export function getListingImages(item: ListingWithImages) {
   const mappedImage = localImageMap[item.id];
   if (mappedImage) return [mappedImage];
-  if (item.images?.length) {
-    return item.images.map((image) =>
+  const usableImages = item.images?.filter(isUsableImage);
+  if (usableImages?.length) {
+    return usableImages.map((image) =>
       typeof image === "string" ? { uri: image } : image,
     );
   }
@@ -38,10 +43,9 @@ export function getUploadedListingImageUri(item: ListingWithImages) {
 export function getListingImage(item: ListingWithImages) {
   const mappedImage = localImageMap[item.id];
   if (mappedImage) return mappedImage;
-  if (item.images?.length) {
-    return typeof item.images[0] === "string"
-      ? { uri: item.images[0] }
-      : item.images[0];
+  const image = item.images?.find(isUsableImage);
+  if (image) {
+    return typeof image === "string" ? { uri: image } : image;
   }
   return require("../../assets/parking1.png");
 }

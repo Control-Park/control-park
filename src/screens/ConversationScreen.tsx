@@ -541,6 +541,7 @@ const styles = StyleSheet.create({
   messageRow: {
     marginBottom: 14,
     maxWidth: "84%",
+    minWidth: 0,
   },
   userRow: {
     alignSelf: "flex-end",
@@ -554,6 +555,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 10,
+    maxWidth: "100%",
+    minWidth: 0,
   },
   userBubble: {
     backgroundColor: "#ECAA00",
@@ -566,6 +569,7 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 15,
     lineHeight: 21,
+    flexShrink: 1,
   },
   userMessageText: {
     color: "#111111",

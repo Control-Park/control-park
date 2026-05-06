@@ -5,6 +5,7 @@ import {
   useNavigation,
   NavigationProp,
 } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useAuthSession } from "../context/AuthSessionContext";
 import { showSignInRequired } from "../utils/validation";
@@ -39,6 +40,7 @@ const activeIconNameByTab: Record<TabKey, keyof typeof Ionicons.glyphMap> = {
 
 export default function Navbar({ activeTab, onTabPress }: Props) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const insets = useSafeAreaInsets();
   const { isGuest } = useAuthSession();
 
   const handlePress = (tab: TabKey) => {
@@ -68,7 +70,12 @@ export default function Navbar({ activeTab, onTabPress }: Props) {
 
   return (
     <View style={styles.outer}>
-      <View style={styles.bar}>
+      <View
+        style={[
+          styles.bar,
+          { paddingBottom: Math.max(insets.bottom - 12, 8) },
+        ]}
+      >
         {TABS.map((t) => {
           const isActive = activeTab === t.key;
 
@@ -106,19 +113,24 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
     borderTopColor: "#ECECEC",
+    width: "100%",
+    alignItems: "center",
   },
   bar: {
     backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 8,
-    paddingBottom: 12,
-    paddingHorizontal: 10,
-    minHeight: 64,
+    paddingTop: 16,
+    paddingHorizontal: 0,
+    minHeight: 82,
+    width: "100%",
+    maxWidth: 428,
   },
   item: {
-    flex: 1,
+    flexBasis: "25%",
+    flexGrow: 0,
+    flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 4,

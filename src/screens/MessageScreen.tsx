@@ -288,7 +288,7 @@ export default function MessageScreen({ navigation, route }: Props) {
           <Text style={styles.conversationListing} numberOfLines={1}>
             {listingTitle}
           </Text>
-          <Text style={styles.conversationPreview} numberOfLines={1}>
+          <Text style={styles.conversationPreview} numberOfLines={2}>
             {preview}
           </Text>
         </View>
@@ -555,12 +555,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 2,
+    minWidth: 0,
   },
   conversationName: {
     fontSize: 16,
     fontWeight: "600",
     color: "#111111",
     flex: 1,
+    minWidth: 0,
   },
   conversationTimestamp: {
     fontSize: 12,
@@ -572,10 +574,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#777777",
     marginBottom: 2,
+    flexShrink: 1,
   },
   conversationPreview: {
     fontSize: 14,
     color: "#555555",
+    flexShrink: 1,
+    lineHeight: 19,
   },
   rowActions: {
     flexDirection: "row",
