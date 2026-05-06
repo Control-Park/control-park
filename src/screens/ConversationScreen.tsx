@@ -182,7 +182,7 @@ export default function ConversationScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.contentWrapper}>
-          <View style={styles.pageMax}>
+          <View style={[styles.pageMax, styles.chatPage]}>
             <View style={styles.listingCard}>
               <View style={styles.listingCardText}>
                 <Text style={styles.listingLabel}>Messaging about</Text>
@@ -377,6 +377,10 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     paddingHorizontal: 16,
   },
+  chatPage: {
+    flex: 1,
+    minHeight: 0,
+  },
   listingCard: {
     marginTop: 14,
     marginBottom: 10,
@@ -423,6 +427,7 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     flex: 1,
+    minHeight: 0,
   },
   messagesContent: {
     paddingTop: 8,
