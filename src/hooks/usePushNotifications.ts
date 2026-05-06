@@ -90,6 +90,10 @@ export function usePushNotifications(queryClient: QueryClient) {
         }
 
         for (const notification of unseen) {
+          if (notification.is_read) {
+            continue;
+          }
+
           const payload = toPayload(notification);
           const signature = getNotificationSignature(payload);
           const socketEventAt = recentSocketEventsRef.current.get(signature);
