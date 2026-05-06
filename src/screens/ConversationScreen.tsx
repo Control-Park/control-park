@@ -190,6 +190,9 @@ export default function ConversationScreen({ navigation, route }: Props) {
     listingImage ?? (listing ? getListingImage(listing) : null),
   );
   const displayedListingTitle = listingTitle || listing?.title || "This listing";
+  const otherProfileId =
+    currentUserId === hostId ? guestId : hostId;
+  const canOpenOtherProfile = !!otherProfileId;
 
   return (
     <View style={styles.container}>
@@ -210,9 +213,20 @@ export default function ConversationScreen({ navigation, route }: Props) {
             </Pressable>
 
             <View style={styles.headerCenter}>
-              <View style={styles.hostAvatarFallback}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.hostAvatarFallback,
+                  pressed && styles.pressed,
+                ]}
+                disabled={!canOpenOtherProfile}
+                onPress={() => {
+                  if (!otherProfileId) return;
+                  navigation.navigate("ViewProfile", { userId: otherProfileId });
+                }}
+                hitSlop={8}
+              >
                 <Ionicons name="person" size={16} color="#666666" />
-              </View>
+              </Pressable>
 
               <Text style={styles.headerTitle}>{hostName || "Host"}</Text>
 
@@ -227,7 +241,13 @@ export default function ConversationScreen({ navigation, route }: Props) {
 
         <View style={styles.contentWrapper}>
           <View style={[styles.pageMax, styles.chatPage]}>
-            <View style={styles.listingCard}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.listingCard,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => navigation.navigate("Details", { id: listingId })}
+            >
               <View style={styles.listingCardText}>
                 <Text style={styles.listingLabel}>Messaging about</Text>
                 <Text style={styles.listingTitle} numberOfLines={1}>
@@ -245,7 +265,7 @@ export default function ConversationScreen({ navigation, route }: Props) {
                   <Ionicons name="image-outline" size={22} color="#888888" />
                 </View>
               )}
-            </View>
+            </Pressable>
 
             <ScrollView
               ref={scrollRef}

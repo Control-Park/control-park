@@ -192,6 +192,7 @@ export default function MessageScreen({ navigation, route }: Props) {
   const renderConversation = (conv: ConversationSummary) => {
     const isHost = currentUserId === conv.host_id;
     const otherPerson = isHost ? conv.guest : conv.host;
+    const otherPersonId = isHost ? conv.guest_id : conv.host_id;
     const otherName = otherPerson
       ? `${otherPerson.first_name} ${otherPerson.last_name}`
       : isHost ? "Guest" : "Host";
@@ -214,6 +215,7 @@ export default function MessageScreen({ navigation, route }: Props) {
           navigation.navigate("Conversation", {
             conversationId: conv.id,
             hostId: conv.host_id,
+            guestId: conv.guest_id,
             hostName: otherName,
             listingId: conv.listing_id,
             listingImage,
@@ -221,9 +223,19 @@ export default function MessageScreen({ navigation, route }: Props) {
           })
         }
       >
-        <View style={styles.avatarCircle}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.avatarCircle,
+            pressed && styles.pressed,
+          ]}
+          onPress={(event) => {
+            event.stopPropagation();
+            navigation.navigate("ViewProfile", { userId: otherPersonId });
+          }}
+          hitSlop={8}
+        >
           <Ionicons name="person" size={20} color="#666666" />
-        </View>
+        </Pressable>
 
         <View style={styles.conversationInfo}>
           <View style={styles.conversationTopRow}>
