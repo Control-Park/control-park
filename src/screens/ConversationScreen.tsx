@@ -72,6 +72,7 @@ export default function ConversationScreen({ navigation, route }: Props) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(paramConversationId ?? null);
   const [initError, setInitError] = useState<string | null>(null);
+  const [isResolvingConversation, setIsResolvingConversation] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   // Get current user id. New conversations are created only after sending.
@@ -83,11 +84,54 @@ export default function ConversationScreen({ navigation, route }: Props) {
     })();
   }, []);
 
+  useEffect(() => {
+    if (paramConversationId) {
+      setConversationId(paramConversationId);
+    }
+  }, [paramConversationId]);
+
+  useEffect(() => {
+    if (conversationId || !currentUserId) return;
+    if (hostId === currentUserId && !guestId) return;
+
+    let isMounted = true;
+
+    void (async () => {
+      setIsResolvingConversation(true);
+      setInitError(null);
+
+      try {
+        const conversation = await getOrCreateConversation(
+          hostId,
+          listingId,
+          guestId,
+        );
+
+        if (isMounted) {
+          setConversationId(conversation.id);
+          void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        }
+      } catch {
+        if (isMounted) {
+          setInitError("Failed to load conversation");
+        }
+      } finally {
+        if (isMounted) {
+          setIsResolvingConversation(false);
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [conversationId, currentUserId, guestId, hostId, listingId, queryClient]);
+
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     enabled: !!conversationId,
     queryFn: () => fetchMessages(conversationId!),
     queryKey: ["messages", conversationId],
-    refetchInterval: false,
+    refetchInterval: 5000,
   });
 
   const { data: listing } = useQuery({
@@ -209,7 +253,7 @@ export default function ConversationScreen({ navigation, route }: Props) {
               contentContainerStyle={styles.messagesContent}
               showsVerticalScrollIndicator={false}
             >
-              {isLoading && !initError && (
+              {(isLoading || isResolvingConversation) && !initError && (
                 <View style={styles.emptyChat}>
                   <ActivityIndicator color="#ECAA00" />
                 </View>
@@ -221,7 +265,7 @@ export default function ConversationScreen({ navigation, route }: Props) {
                 </View>
               )}
 
-              {!isLoading && !initError && chatMessages.length === 0 && (
+              {!isLoading && !isResolvingConversation && !initError && chatMessages.length === 0 && (
                 <View style={styles.emptyChat}>
                   <Text style={styles.emptyChatText}>
                     Start a conversation with {hostName || "the host"}

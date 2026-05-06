@@ -108,6 +108,9 @@ export function usePushNotifications(queryClient: QueryClient) {
 
           if (payload.type === "new_message") {
             queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            queryClient.invalidateQueries({
+              predicate: (query) => query.queryKey[0] === "messages",
+            });
           }
 
           if (isReservationNotification(payload) || isBookingRequestNotification(payload)) {
@@ -166,6 +169,10 @@ export function usePushNotifications(queryClient: QueryClient) {
             queryClient.invalidateQueries({ queryKey: ["conversations"] });
             if (payload.conversationId) {
               queryClient.invalidateQueries({ queryKey: ["messages", payload.conversationId] });
+            } else {
+              queryClient.invalidateQueries({
+                predicate: (query) => query.queryKey[0] === "messages",
+              });
             }
           }
 
