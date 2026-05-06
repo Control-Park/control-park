@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { BaseToast, ErrorToast, ToastConfig } from "react-native-toast-message";
+import Toast, { BaseToast, ErrorToast, ToastConfig } from "react-native-toast-message";
 
 type NotificationToastProps = {
   props?: {
@@ -17,9 +17,20 @@ function NotificationToast({
   text1,
   text2,
 }: NotificationToastProps) {
+  const closeToast = () => {
+    Toast.hide();
+  };
+
+  const handlePress = () => {
+    closeToast();
+    props?.onPress?.();
+  };
+
   return (
     <Pressable
-      onPress={props?.onPress}
+      onLongPress={closeToast}
+      onPress={handlePress}
+      onPressOut={closeToast}
       disabled={!props?.onPress}
       style={({ pressed }) => [
         styles.notificationCard,
@@ -31,18 +42,18 @@ function NotificationToast({
       </View>
 
       <View style={styles.notificationContent}>
-        <Text style={styles.notificationTitle} numberOfLines={1}>
+        <Text selectable={false} style={styles.notificationTitle} numberOfLines={1}>
           {text1}
         </Text>
 
         {text2 ? (
-          <Text style={styles.notificationBody} numberOfLines={2}>
+          <Text selectable={false} style={styles.notificationBody} numberOfLines={2}>
             {text2}
           </Text>
         ) : null}
 
         {props?.onPress ? (
-          <Text style={styles.notificationCta}>
+          <Text selectable={false} style={styles.notificationCta}>
             {props.ctaLabel ?? "Tap to open"}
           </Text>
         ) : null}

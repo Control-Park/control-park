@@ -75,10 +75,12 @@ export const showNotification = (
   },
 ) => {
   Toast.show({
+    autoHide: true,
     type: "notification",
     text1: title,
     text2: body,
     topOffset: 100,
+    visibilityTime: 4500,
     props: options,
   });
 };

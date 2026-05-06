@@ -302,39 +302,29 @@ async function handleNotificationPress(
   }
 
   if (payload.type === "new_message") {
-    if (payload.conversationId) {
-      let conversations =
-        queryClient.getQueryData<ConversationSummary[]>(["conversations"]);
+    let conversations =
+      queryClient.getQueryData<ConversationSummary[]>(["conversations"]);
 
-      if (!conversations) {
-        try {
-          conversations = await queryClient.fetchQuery({
-            queryKey: ["conversations"],
-            queryFn: fetchConversations,
-          });
-        } catch {
-          conversations = undefined;
-        }
-      }
-
-      const conversation = conversations?.find(
-        (item) => item.id === payload.conversationId,
-      );
-
-      if (conversation) {
-        const hostName = conversation.host
-          ? `${conversation.host.first_name} ${conversation.host.last_name}`.trim()
-          : undefined;
-
-        push("Conversation", {
-          conversationId: conversation.id,
-          hostId: conversation.host_id,
-          hostName,
-          listingId: conversation.listing_id,
-          listingTitle: conversation.listing?.title,
+    if (!conversations) {
+      try {
+        conversations = await queryClient.fetchQuery({
+          queryKey: ["conversations"],
+          queryFn: fetchConversations,
         });
-        return;
+      } catch {
+        conversations = undefined;
       }
+    }
+
+    const conversation = payload.conversationId
+      ? conversations?.find(
+        (item) => item.id === payload.conversationId,
+      )
+      : await findConversationFromNotification(conversations, payload);
+
+    if (conversation) {
+      await openConversation(conversation);
+      return;
     }
 
     navigate("Message");
@@ -342,6 +332,54 @@ async function handleNotificationPress(
   }
 
   navigate("Notification");
+}
+
+async function findConversationFromNotification(
+  conversations: ConversationSummary[] | undefined,
+  payload: NotificationPayload,
+) {
+  if (!conversations?.length) {
+    return undefined;
+  }
+
+  const senderName = payload.title?.replace(/^New message from\s+/i, "").trim().toLowerCase();
+  const body = payload.body?.trim();
+
+  return conversations.find((conversation) => {
+    if (body && conversation.last_message?.body !== body) {
+      return false;
+    }
+
+    if (!senderName) {
+      return true;
+    }
+
+    const participantNames = [conversation.guest, conversation.host]
+      .filter(Boolean)
+      .map((user) => `${user?.first_name ?? ""} ${user?.last_name ?? ""}`.trim().toLowerCase());
+
+    return participantNames.includes(senderName);
+  });
+}
+
+async function openConversation(conversation: ConversationSummary) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const currentUserId = session?.user.id;
+  const isHost = currentUserId === conversation.host_id;
+  const otherPerson = isHost ? conversation.guest : conversation.host;
+  const otherName = otherPerson
+    ? `${otherPerson.first_name} ${otherPerson.last_name}`.trim()
+    : isHost ? "Guest" : "Host";
+
+  push("Conversation", {
+    conversationId: conversation.id,
+    hostId: conversation.host_id,
+    hostName: otherName,
+    listingId: conversation.listing_id,
+    listingTitle: conversation.listing?.title,
+  });
 }
 
 function isBookingRequestNotification(payload: NotificationPayload) {
