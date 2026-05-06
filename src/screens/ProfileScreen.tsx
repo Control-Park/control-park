@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
+  Alert,
   Image,
   View,
   Text,
@@ -9,6 +10,7 @@ import {
   Pressable,
   Modal,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -17,7 +19,11 @@ import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import SearchBar from "../components/SearchBar";
 import { supabase } from "../utils/supabase";
-import { getMyProfile, UserProfile } from "../api/user";
+import { getMyProfile, updateMyProfile, UserProfile } from "../api/user";
+import {
+  normalizePickedImage,
+  saveProfileImageOverride,
+} from "../utils/localImagePersistence";
 import { useAuthSession } from "../context/AuthSessionContext";
 import { getProfileDisplayName, getProfileInitial } from "../utils/profile";
 import { useProfileImage } from "../hooks/useProfileImage";
@@ -84,6 +90,42 @@ export default function ProfileScreen() {
       void loadProfile();
     }, [loadProfile]),
   );
+
+  const handleChooseProfileImage = async () => {
+    const userId = profile?.id ?? session?.user?.id;
+    if (!userId) return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        "Permission needed",
+        "Please allow photo library access to choose a profile picture.",
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      base64: true,
+      mediaTypes: ["images"],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets[0]) return;
+
+    const nextImageUri = normalizePickedImage(result.assets[0]);
+    await saveProfileImageOverride(userId, nextImageUri);
+
+    try {
+      const updatedProfile = await updateMyProfile({ profile_image: nextImageUri });
+      cachedProfile = updatedProfile;
+      setProfile(updatedProfile);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update profile picture";
+      Alert.alert("Saved locally", msg);
+    }
+  };
 
   const profileName = profile ? getProfileDisplayName(profile) : displayName;
   const profileRole = formatProfileRole(profile, isAuthenticated);
@@ -268,7 +310,15 @@ export default function ProfileScreen() {
             ) : null}
 
             <View style={styles.profileCard}>
-              <View style={styles.avatar}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.avatar,
+                  pressed && styles.pressed,
+                ]}
+                onPress={handleChooseProfileImage}
+                disabled={!isAuthenticated}
+                accessibilityLabel="Change profile picture"
+              >
                 {profileImageUri ? (
                   <Image
                     source={{ uri: profileImageUri }}
@@ -277,7 +327,13 @@ export default function ProfileScreen() {
                 ) : (
                   <Text style={styles.avatarText}>{avatarInitial}</Text>
                 )}
-              </View>
+
+                {isAuthenticated ? (
+                  <View style={styles.avatarEditBadge}>
+                    <Ionicons name="camera" size={14} color="#111111" />
+                  </View>
+                ) : null}
+              </Pressable>
 
               <Text style={styles.name}>{profileName}</Text>
               <Text style={styles.role}>{profileRole}</Text>
@@ -461,17 +517,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
-    overflow: "hidden",
   },
   avatarImage: {
     width: 110,
     height: 110,
     borderRadius: 55,
+    overflow: "hidden",
   },
   avatarText: {
     fontSize: 48,
     fontWeight: "300",
     color: "#FFFFFF",
+  },
+  avatarEditBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#ECAA00",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
   },
   name: {
     fontSize: 28,
