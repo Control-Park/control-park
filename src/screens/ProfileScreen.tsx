@@ -138,7 +138,7 @@ export default function ProfileScreen() {
         key: "view-profile",
         keywords: "view public profile guest host profile page",
         label: "View profile",
-        onPress: () => navigation.navigate("ViewProfile"),
+        onPress: () => navigation.navigate("ViewProfile", {}),
       },
       {
         icon: (

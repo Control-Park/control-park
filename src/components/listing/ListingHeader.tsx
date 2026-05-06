@@ -14,6 +14,7 @@ type Props = {
   host_type?: string;
   hostInitial?: string;
   onHostPress?: () => void;
+  onReviewsPress?: () => void;
 };
 
 function formatRating(rating?: number | string | null) {
@@ -41,6 +42,7 @@ export default function ListingHeader({
   host_type,
   hostInitial,
   onHostPress,
+  onReviewsPress,
 }: Props) {
   const textStyle = { fontFamily: "ABeeZee-Regular" };
   const subTextClass = "text-[#6A6A6A] font-md mt-4 text-md";
@@ -101,14 +103,19 @@ export default function ListingHeader({
         </View>
 
         <View className="w-[1px] h-10 bg-[#c5c5c5]" />
-        <View className="items-center px-6">
+        <Pressable
+          className="items-center px-6"
+          disabled={!onReviewsPress}
+          onPress={onReviewsPress}
+          style={({ pressed }) => (pressed ? { opacity: 0.7 } : undefined)}
+        >
           <Text style={textStyle} className="text-xl">
             {reviews}
           </Text>
           <Text style={textStyle} className="text-xs">
             Reviews
           </Text>
-        </View>
+        </Pressable>
       </View>
 
       {host_name ? (

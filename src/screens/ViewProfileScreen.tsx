@@ -36,6 +36,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "ViewProfile">;
 
 const MAX_WIDTH = 428;
 const EMPTY_BIO_MESSAGE = "Add a bio so hosts can get to know you.";
+const PUBLIC_EMPTY_BIO_MESSAGE = "No bio added yet.";
 
 function StarRow({ rating }: { rating: number }) {
   return (
@@ -312,7 +313,7 @@ export default function ViewProfileScreen({ route }: Props) {
               <Text
                 style={[styles.bioText, !currentBio && styles.emptyBioText]}
               >
-                {currentBio || EMPTY_BIO_MESSAGE}
+                {currentBio || (isOwnProfile ? EMPTY_BIO_MESSAGE : PUBLIC_EMPTY_BIO_MESSAGE)}
               </Text>
             )}
           </View>

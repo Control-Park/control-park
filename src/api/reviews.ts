@@ -34,6 +34,11 @@ export const fetchUserReviews = async (userId: string): Promise<Review[]> => {
   return res.data;
 };
 
+export const fetchListingReviews = async (listingId: string): Promise<Review[]> => {
+  const res = await client.get<Review[]>(`/reviews/listing/${listingId}`);
+  return res.data;
+};
+
 export const fetchPendingReviews = async (): Promise<CompletedReservation[]> => {
   const res = await client.get<CompletedReservation[]>("/reviews/mine/pending");
   return res.data;

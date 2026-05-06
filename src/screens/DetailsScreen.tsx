@@ -119,6 +119,12 @@ export default function DetailsScreen({ route, navigation }: Props) {
             onHostPress={() =>
               navigation.navigate("ViewProfile", { userId: listing.host_id })
             }
+            onReviewsPress={() =>
+              navigation.navigate("ListingReviews", {
+                listingId: listing.id,
+                listingTitle: listing.title,
+              })
+            }
           />
         </View>
 

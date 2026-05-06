@@ -16,7 +16,13 @@ export function navigate<RouteName extends keyof RootStackParamList>(
     return;
   }
 
-  navigationRef.navigate(name, params);
+  (navigationRef.navigate as unknown as (
+    screen: RouteName,
+    params?: RootStackParamList[RouteName],
+  ) => void)(
+    name,
+    params,
+  );
 }
 
 export function push<RouteName extends keyof RootStackParamList>(
@@ -45,5 +51,11 @@ export function refreshRoute<RouteName extends keyof RootStackParamList>(
     return;
   }
 
-  navigationRef.navigate(name, params);
+  (navigationRef.navigate as unknown as (
+    screen: RouteName,
+    params: RootStackParamList[RouteName],
+  ) => void)(
+    name,
+    params,
+  );
 }
