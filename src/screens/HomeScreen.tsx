@@ -13,7 +13,6 @@ import { Ionicons } from "@expo/vector-icons";
 
 import SearchBar from "../components/SearchBar";
 import NotificationsButton from "../components/NotificationsButton";
-import SectionHeader from "../components/SectionHeader";
 import ParkingCard from "../components/ParkingCard";
 
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -35,6 +34,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 type PriceFilter = "any" | "under5" | "5to10" | "10plus";
 type AvailabilityFilter = "any" | "availableNow";
 type SortFilter = "none" | "highestRated" | "highestReview";
+type ViewMode = "grid" | "list";
 
 const MAX_WIDTH = 428;
 
@@ -88,6 +88,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [availabilityFilter, setAvailabilityFilter] =
     useState<AvailabilityFilter>("any");
   const [sortFilter, setSortFilter] = useState<SortFilter>("none");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   const {
     data: listings,
@@ -171,53 +172,34 @@ export default function HomeScreen({ navigation }: Props) {
     return filters;
   }, [availabilityFilter, priceFilter, sortFilter]);
 
-  const renderCard = ({ item }: { item: Listing }) => {
-    const isFavorited = favorites[item.id] ?? !!item.is_saved;
+  const handleToggleFavorite = (item: Listing, isFavorited: boolean) => {
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        showSignInRequired();
+        return;
+      }
 
-    return (
-      <View style={{ marginRight: 12 }}>
-        <ParkingCard
-          data={{
-            id: item.id,
-            title: item.title || item.structure_name,
-            subtitle: `$${item.price_per_hour} per hour`,
-            images: getListingImages(item),
-            isGuestFavorite: !!item.is_guest_favorite,
-            isFavorited,
-          }}
-          onToggleFavorite={() => {
-            void supabase.auth.getSession().then(({ data }) => {
-              if (!data.session) {
-                showSignInRequired();
-                return;
-              }
+      void (async () => {
+        setFavorite(item.id, !isFavorited);
+        try {
+          if (isFavorited) {
+            await unsaveListing(item.id);
+            showSavedRemove("Removed from saved listings");
+          } else {
+            await saveListing(item.id);
+            showSavedSuccess("Added to your saved listings");
+          }
 
-              void (async () => {
-                setFavorite(item.id, !isFavorited);
-                try {
-                  if (isFavorited) {
-                    await unsaveListing(item.id);
-                    showSavedRemove("Removed from saved listings");
-                  } else {
-                    await saveListing(item.id);
-                    showSavedSuccess("Added to your saved listings");
-                  }
-
-                  await Promise.all([
-                    queryClient.invalidateQueries({ queryKey: ["listings"] }),
-                    queryClient.invalidateQueries({ queryKey: ["listing", item.id] }),
-                  ]);
-                } catch (err) {
-                  setFavorite(item.id, isFavorited);
-                  console.error("Failed to update saved listing:", err);
-                }
-              })();
-            });
-          }}
-          onPress={() => navigation.navigate("Details", { id: item.id })}
-        />
-      </View>
-    );
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ["listings"] }),
+            queryClient.invalidateQueries({ queryKey: ["listing", item.id] }),
+          ]);
+        } catch (err) {
+          setFavorite(item.id, isFavorited);
+          console.error("Failed to update saved listing:", err);
+        }
+      })();
+    });
   };
 
   if (isLoading) return <Text>Loading...</Text>;
@@ -300,8 +282,6 @@ export default function HomeScreen({ navigation }: Props) {
     </Pressable>
   );
 
-  const parkingLots = filteredAndSortedListings.slice(0, 3);
-  const lotsNearYou = filteredAndSortedListings.slice(3, 6);
   const showSearchResults = searchResults !== null;
   const trimmedSearch = searchValue.trim();
 
@@ -473,6 +453,7 @@ export default function HomeScreen({ navigation }: Props) {
                     keyExtractor={(item) => item.id}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.searchList}
+                    scrollEnabled={false}
                   />
                 ) : (
                   <Text style={styles.noResults}>No listings found</Text>
@@ -480,27 +461,107 @@ export default function HomeScreen({ navigation }: Props) {
               </View>
             ) : (
               <>
-                <SectionHeader title="Parking Lots" />
-                <FlatList
-                  data={parkingLots}
-                  renderItem={renderCard}
-                  keyExtractor={(i) => i.id}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.rowContent}
-                />
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>Parking Lots</Text>
+                  <View style={styles.viewToggleRow}>
+                    <Pressable
+                      style={[
+                        styles.viewToggleBtn,
+                        viewMode === "list" && styles.viewToggleBtnActive,
+                      ]}
+                      onPress={() => setViewMode("list")}
+                    >
+                      <Ionicons name="list" size={18} color="#111111" />
+                    </Pressable>
+                    <Pressable
+                      style={[
+                        styles.viewToggleBtn,
+                        viewMode === "grid" && styles.viewToggleBtnActive,
+                      ]}
+                      onPress={() => setViewMode("grid")}
+                    >
+                      <Ionicons name="grid" size={18} color="#111111" />
+                    </Pressable>
+                  </View>
+                </View>
 
-                <View style={styles.sectionGap} />
-
-                <SectionHeader title="Lots Near You" />
-                <FlatList
-                  data={lotsNearYou}
-                  renderItem={renderCard}
-                  keyExtractor={(i) => i.id}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.rowContent}
-                />
+                {viewMode === "grid" ? (
+                  <View style={styles.gridContainer}>
+                    {filteredAndSortedListings.map((item) => {
+                      const isFavorited = favorites[item.id] ?? !!item.is_saved;
+                      return (
+                        <View key={item.id} style={styles.gridItem}>
+                          <ParkingCard
+                            data={{
+                              id: item.id,
+                              title: item.title || item.structure_name,
+                              subtitle: `$${item.price_per_hour} per hour`,
+                              images: getListingImages(item),
+                              isGuestFavorite: !!item.is_guest_favorite,
+                              isFavorited,
+                            }}
+                            onToggleFavorite={() =>
+                              handleToggleFavorite(item, isFavorited)
+                            }
+                            onPress={() =>
+                              navigation.navigate("Details", { id: item.id })
+                            }
+                            style={{ width: "100%" }}
+                          />
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <View style={styles.listContainer}>
+                    {filteredAndSortedListings.map((item) => {
+                      const isFavorited = favorites[item.id] ?? !!item.is_saved;
+                      return (
+                        <Pressable
+                          key={item.id}
+                          style={styles.listItem}
+                          onPress={() =>
+                            navigation.navigate("Details", { id: item.id })
+                          }
+                        >
+                          <Image
+                            source={getListingImages(item)[0]}
+                            style={styles.listImage}
+                          />
+                          <View style={styles.listTextWrap}>
+                            <Text style={styles.listTitle} numberOfLines={1}>
+                              {item.title || item.structure_name}
+                            </Text>
+                            <Text style={styles.listSubtitle}>
+                              ${item.price_per_hour} per hour
+                            </Text>
+                            {item.description ? (
+                              <Text
+                                style={styles.listDescription}
+                                numberOfLines={2}
+                              >
+                                {item.description}
+                              </Text>
+                            ) : null}
+                          </View>
+                          <Pressable
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              handleToggleFavorite(item, isFavorited);
+                            }}
+                            hitSlop={10}
+                          >
+                            <Ionicons
+                              name={isFavorited ? "heart" : "heart-outline"}
+                              size={22}
+                              color={isFavorited ? "#EF4444" : "#9CA3AF"}
+                            />
+                          </Pressable>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
               </>
             )}
 
@@ -640,13 +701,77 @@ const styles = StyleSheet.create({
     maxWidth: MAX_WIDTH,
     alignSelf: "center",
   },
-  rowContent: {
-    paddingTop: 4,
-    paddingBottom: 6,
-    paddingRight: 8,
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 20,
+    marginBottom: 12,
   },
-  sectionGap: {
-    height: 6,
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: "500",
+    color: "#111827",
+  },
+  viewToggleRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  viewToggleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F3F4F6",
+  },
+  viewToggleBtnActive: {
+    backgroundColor: "#ECAA00",
+  },
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    paddingVertical: 4,
+  },
+  gridItem: {
+    width: "48%",
+  },
+  listContainer: {
+    flexDirection: "column",
+    gap: 12,
+    paddingVertical: 4,
+  },
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 12,
+    gap: 12,
+  },
+  listImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 14,
+  },
+  listTextWrap: {
+    flex: 1,
+  },
+  listTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  listSubtitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  listDescription: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginTop: 4,
   },
   searchClear: {
     color: "#111827",

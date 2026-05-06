@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Image,
   Pressable,
+  type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -21,11 +22,12 @@ type Props = {
   data: ParkingCardData;
   onToggleFavorite?: () => void;
   onPress?: () => void;
+  style?: ViewStyle;
 };
 
-export default function ParkingCard({ data, onToggleFavorite, onPress }: Props) {
+export default function ParkingCard({ data, onToggleFavorite, onPress, style }: Props) {
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable style={[styles.card, style]} onPress={onPress}>
       <View style={styles.imageWrap}>
         <Image source={data.images[0]} style={styles.image} />
 
