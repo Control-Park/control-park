@@ -22,26 +22,24 @@ function NotificationToast({
   };
 
   const handlePress = () => {
-    closeToast();
     props?.onPress?.();
+    closeToast();
   };
 
   return (
     <Pressable
       onLongPress={closeToast}
       onPress={handlePress}
-      onPressOut={closeToast}
-      disabled={!props?.onPress}
       style={({ pressed }) => [
         styles.notificationCard,
         pressed && props?.onPress ? styles.notificationPressed : null,
       ]}
     >
-      <View style={styles.notificationIconWrap}>
+      <View pointerEvents="none" style={styles.notificationIconWrap}>
         <Ionicons name="chatbubble-ellipses" size={18} color="#111111" />
       </View>
 
-      <View style={styles.notificationContent}>
+      <View pointerEvents="none" style={styles.notificationContent}>
         <Text selectable={false} style={styles.notificationTitle} numberOfLines={1}>
           {text1}
         </Text>

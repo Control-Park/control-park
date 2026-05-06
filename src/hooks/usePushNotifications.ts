@@ -302,14 +302,18 @@ async function handleNotificationPress(
   }
 
   if (payload.type === "new_message") {
-    let conversations =
-      queryClient.getQueryData<ConversationSummary[]>(["conversations"]);
+    let conversations: ConversationSummary[] | undefined;
 
-    if (!conversations) {
+    if (payload.conversationId) {
+      conversations = queryClient.getQueryData<ConversationSummary[]>(["conversations"]);
+    }
+
+    if (!conversations || !payload.conversationId) {
       try {
         conversations = await queryClient.fetchQuery({
           queryKey: ["conversations"],
           queryFn: fetchConversations,
+          staleTime: 0,
         });
       } catch {
         conversations = undefined;
