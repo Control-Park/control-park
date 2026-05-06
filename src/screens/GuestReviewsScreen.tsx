@@ -20,6 +20,7 @@ import type { RootStackParamList } from "../navigation/AppNavigator";
 import { fetchUserReviews } from "../api/reviews";
 import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
+import UserAvatar from "../components/UserAvatar";
 
 type ExtendedRootStackParamList = RootStackParamList & {
   GuestReviews: {
@@ -107,11 +108,28 @@ export default function GuestReviewsScreen() {
           {!isLoading && reviews.length > 0 ? (
             <View style={styles.reviewsList}>
               {reviews.map((review) => (
-                <View key={review.id} style={styles.reviewRow}>
+                <Pressable
+                  key={review.id}
+                  style={({ pressed }) => [
+                    styles.reviewRow,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() =>
+                    navigation.navigate("ViewProfile", {
+                      userId: review.reviewer_id,
+                    })
+                  }
+                >
                   <View style={styles.reviewAvatar}>
-                    <Text style={styles.reviewAvatarText}>
-                      {review.reviewer?.first_name?.[0]?.toUpperCase() ?? "?"}
-                    </Text>
+                    <UserAvatar
+                      imageUri={review.reviewer?.profile_image}
+                      name={
+                        review.reviewer
+                          ? `${review.reviewer.first_name} ${review.reviewer.last_name}`
+                          : undefined
+                      }
+                      userId={review.reviewer_id}
+                    />
                   </View>
 
                   <View style={styles.reviewContent}>
@@ -134,7 +152,7 @@ export default function GuestReviewsScreen() {
                       {review.comment?.trim() ? review.comment : "No written review."}
                     </Text>
                   </View>
-                </View>
+                </Pressable>
               ))}
             </View>
           ) : null}
@@ -249,6 +267,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,
+    overflow: "hidden",
+  },
+  reviewAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   reviewAvatarText: {
     fontSize: 14,

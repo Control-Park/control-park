@@ -16,6 +16,7 @@ import type { RootStackParamList } from "../navigation/AppNavigator";
 import { fetchListingReviews } from "../api/reviews";
 import NotificationsButton from "../components/NotificationsButton";
 import Navbar from "../components/Navbar";
+import UserAvatar from "../components/UserAvatar";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ListingReviews">;
 
@@ -105,9 +106,15 @@ export default function ListingReviewsScreen({ route, navigation }: Props) {
                   }
                 >
                   <View style={styles.reviewAvatar}>
-                    <Text style={styles.reviewAvatarText}>
-                      {review.reviewer?.first_name?.[0]?.toUpperCase() ?? "?"}
-                    </Text>
+                    <UserAvatar
+                      imageUri={review.reviewer?.profile_image}
+                      name={
+                        review.reviewer
+                          ? `${review.reviewer.first_name} ${review.reviewer.last_name}`
+                          : undefined
+                      }
+                      userId={review.reviewer_id}
+                    />
                   </View>
 
                   <View style={styles.reviewContent}>
@@ -249,6 +256,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,
+    overflow: "hidden",
+  },
+  reviewAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   reviewAvatarText: {
     fontSize: 14,

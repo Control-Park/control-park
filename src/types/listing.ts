@@ -23,6 +23,7 @@ export type Listing = {
   rating?: number | null;
   review_count?: number;
   host_name?: string;
+  host_profile_image?: string | null;
   host_type?: string;
   is_popular?: boolean;
   original_price?: number | null;

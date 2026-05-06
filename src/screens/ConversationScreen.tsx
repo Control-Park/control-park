@@ -18,6 +18,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { fetchListingById } from "../api/listings";
+import { fetchUserById } from "../api/user";
 import {
   getOrCreateConversation,
   fetchMessages,
@@ -61,6 +62,10 @@ function toChat(msg: Message, currentUserId: string): ChatMessage {
     text: msg.body,
     timestamp: formatTimestamp(msg.created_at),
   };
+}
+
+function getInitial(name?: string) {
+  return (name?.trim()[0] ?? "?").toUpperCase();
 }
 
 export default function ConversationScreen({ navigation, route }: Props) {
@@ -193,6 +198,12 @@ export default function ConversationScreen({ navigation, route }: Props) {
   const otherProfileId =
     currentUserId === hostId ? guestId : hostId;
   const canOpenOtherProfile = !!otherProfileId;
+  const { data: otherProfile } = useQuery({
+    queryKey: ["user", otherProfileId],
+    queryFn: () => fetchUserById(otherProfileId!),
+    enabled: !!otherProfileId,
+  });
+  const otherProfileImage = otherProfile?.profile_image;
 
   return (
     <View style={styles.container}>
@@ -225,7 +236,16 @@ export default function ConversationScreen({ navigation, route }: Props) {
                 }}
                 hitSlop={8}
               >
-                <Ionicons name="person" size={16} color="#666666" />
+                {otherProfileImage ? (
+                  <Image
+                    source={{ uri: otherProfileImage }}
+                    style={styles.hostAvatarImage}
+                  />
+                ) : (
+                  <Text style={styles.hostAvatarText}>
+                    {getInitial(hostName || "Host")}
+                  </Text>
+                )}
               </Pressable>
 
               <Text style={styles.headerTitle}>{hostName || "Host"}</Text>
@@ -417,9 +437,20 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     marginBottom: 6,
-    backgroundColor: "#F3F3F3",
+    backgroundColor: "#ECAA00",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  hostAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  hostAvatarText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111111",
   },
   headerTitle: {
     fontSize: 18,

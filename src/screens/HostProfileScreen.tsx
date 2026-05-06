@@ -272,7 +272,8 @@ export default function HostProfileScreen({ route }: Props) {
 
   const hostName = useMemo(() => getProfileDisplayName(profile), [profile]);
   const avatarInitial = getProfileInitial(profile);
-  const { profileImageUri } = useProfileImage(profile?.id);
+  const { profileImageUri: localProfileImageUri } = useProfileImage(profile?.id);
+  const profileImageUri = profile?.profile_image || localProfileImageUri;
 
   const balance = stats.wallet_balance;
   const completedBookings = stats.completed_bookings;

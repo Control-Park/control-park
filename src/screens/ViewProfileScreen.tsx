@@ -21,6 +21,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RootStackParamList } from "../navigation/AppNavigator";
 import Navbar from "../components/Navbar";
 import NotificationsButton from "../components/NotificationsButton";
+import UserAvatar from "../components/UserAvatar";
 import { fetchUserById, getMyProfile, updateMyProfile } from "../api/user";
 import { fetchReservations } from "../api/reservations";
 import { fetchUserReviews } from "../api/reviews";
@@ -85,7 +86,9 @@ export default function ViewProfileScreen({ route }: Props) {
   }, [reservations]);
 
   const userId = profile?.id ?? "";
-  const { profileImageUri, setProfileImageUri } = useProfileImage(userId);
+  const { profileImageUri: localProfileImageUri, setProfileImageUri } =
+    useProfileImage(userId);
+  const profileImageUri = profile?.profile_image || localProfileImageUri;
 
   const { data: reviews = [], isLoading: loadingReviews } = useQuery({
     queryKey: ["reviews-user-self-profile", userId],
@@ -179,6 +182,18 @@ export default function ViewProfileScreen({ route }: Props) {
     const nextImageUri = normalizePickedImage(result.assets[0]);
     setProfileImageUri(nextImageUri);
     await saveProfileImageOverride(userId, nextImageUri);
+
+    try {
+      const updatedProfile = await updateMyProfile({
+        profile_image: nextImageUri,
+      });
+      queryClient.setQueryData(["my-profile-view"], updatedProfile);
+      queryClient.setQueryData(["user", updatedProfile.id], updatedProfile);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to update profile picture";
+      Alert.alert("Profile picture saved locally", msg);
+    }
   };
 
   if (isLoading) {
@@ -353,11 +368,26 @@ export default function ViewProfileScreen({ route }: Props) {
 
           {displayedReviews.length > 0 ? (
             displayedReviews.map((r) => (
-              <View key={r.id} style={styles.reviewRow}>
+              <Pressable
+                key={r.id}
+                style={({ pressed }) => [
+                  styles.reviewRow,
+                  pressed && styles.pressed,
+                ]}
+                onPress={() =>
+                  navigation.navigate("ViewProfile", { userId: r.reviewer_id })
+                }
+              >
                 <View style={styles.reviewAvatar}>
-                  <Text style={styles.reviewAvatarText}>
-                    {r.reviewer?.first_name?.[0]?.toUpperCase() ?? "?"}
-                  </Text>
+                  <UserAvatar
+                    imageUri={r.reviewer?.profile_image}
+                    name={
+                      r.reviewer
+                        ? `${r.reviewer.first_name} ${r.reviewer.last_name}`
+                        : undefined
+                    }
+                    userId={r.reviewer_id}
+                  />
                 </View>
 
                 <View style={styles.reviewContent}>
@@ -381,7 +411,7 @@ export default function ViewProfileScreen({ route }: Props) {
                     {r.comment?.trim() ? r.comment : "No written review."}
                   </Text>
                 </View>
-              </View>
+              </Pressable>
             ))
           ) : (
             <View style={styles.emptyReviewsCard}>
@@ -671,6 +701,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,
+    overflow: "hidden",
+  },
+  reviewAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   reviewAvatarText: {
     fontSize: 14,

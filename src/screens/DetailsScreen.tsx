@@ -49,7 +49,7 @@ export default function DetailsScreen({ route, navigation }: Props) {
   const { data: hostProfile } = useQuery({
     queryKey: ["user", listing?.host_id],
     queryFn: () => fetchUserById(listing!.host_id),
-    enabled: !!listing?.host_id && !listing.host_name,
+    enabled: !!listing?.host_id,
   });
 
   useEffect(() => {
@@ -80,8 +80,11 @@ export default function DetailsScreen({ route, navigation }: Props) {
     listing.host_name ?? (hostProfile ? getProfileDisplayName(hostProfile) : undefined);
   const hostType =
     listing.host_type ?? (hostProfile?.host ? "Host" : hostProfile ? "Guest" : undefined);
+  const hostProfileImage = listing.host_profile_image ?? hostProfile?.profile_image;
   const hostInitial =
-    listing.host_name || !hostProfile ? undefined : getProfileInitial(hostProfile);
+    hostProfile
+      ? getProfileInitial(hostProfile)
+      : (hostName?.trim()[0] ?? "").toUpperCase() || undefined;
 
   return (
     <ScrollView
@@ -114,6 +117,8 @@ export default function DetailsScreen({ route, navigation }: Props) {
             review_count={listing.review_count ?? 0}
             isGuestFavorite={listing.is_guest_favorite}
             host_name={hostName}
+            hostId={listing.host_id}
+            hostProfileImage={hostProfileImage}
             host_type={hostType}
             hostInitial={hostInitial}
             onHostPress={() =>

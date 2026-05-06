@@ -19,6 +19,7 @@ export interface UserProfile {
   bio: null | string;
   phone: null | string;
   preferred_name: null | string;
+  profile_image: null | string;
   role: string;
   updated_at: string;
 }
@@ -38,6 +39,7 @@ type UserProfileUpdate = Partial<
     | "last_name"
     | "phone"
     | "preferred_name"
+    | "profile_image"
   >
 >;
 

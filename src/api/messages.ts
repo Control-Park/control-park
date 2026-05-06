@@ -6,8 +6,8 @@ export interface ConversationSummary {
   host_id: string;
   listing_id: string;
   created_at: string;
-  guest?: { first_name: string; last_name: string };
-  host?: { first_name: string; last_name: string };
+  guest?: { first_name: string; last_name: string; profile_image?: null | string };
+  host?: { first_name: string; last_name: string; profile_image?: null | string };
   listing?: { images?: unknown[]; title: string };
   last_message?: { body: string; created_at: string };
 }

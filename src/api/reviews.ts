@@ -13,7 +13,7 @@ export interface Review {
   listing_rating?: number | null;
   listing_review_count?: number;
   listing?: Pick<Listing, "id" | "rating" | "review_count">;
-  reviewer?: { first_name: string; last_name: string };
+  reviewer?: { first_name: string; last_name: string; profile_image?: null | string };
   reservation?: { listing?: { title: string } };
 }
 

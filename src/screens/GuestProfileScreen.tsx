@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -28,6 +29,7 @@ import {
 import { fetchUserReviews } from "../api/reviews";
 import { supabase } from "../utils/supabase";
 import NotificationsButton from "../components/NotificationsButton";
+import UserAvatar from "../components/UserAvatar";
 
 type ExtendedRootStackParamList = RootStackParamList & {
   GuestReviews: {
@@ -242,9 +244,16 @@ export default function GuestProfileScreen() {
 
           <View style={styles.profileRow}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarInitial}>
-                {guest?.first_name?.[0]?.toUpperCase() ?? "G"}
-              </Text>
+              {guest?.profile_image ? (
+                <Image
+                  source={{ uri: guest.profile_image }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Text style={styles.avatarInitial}>
+                  {guest?.first_name?.[0]?.toUpperCase() ?? "G"}
+                </Text>
+              )}
             </View>
 
             <View style={styles.profileInfo}>
@@ -311,11 +320,26 @@ export default function GuestProfileScreen() {
 
           {displayedReviews.length > 0 ? (
             displayedReviews.map((r) => (
-              <View key={r.id} style={styles.reviewRow}>
+              <Pressable
+                key={r.id}
+                style={({ pressed }) => [
+                  styles.reviewRow,
+                  pressed && { opacity: 0.75 },
+                ]}
+                onPress={() =>
+                  navigation.navigate("ViewProfile", { userId: r.reviewer_id })
+                }
+              >
                 <View style={styles.reviewAvatar}>
-                  <Text style={styles.reviewAvatarText}>
-                    {r.reviewer?.first_name?.[0]?.toUpperCase() ?? "?"}
-                  </Text>
+                  <UserAvatar
+                    imageUri={r.reviewer?.profile_image}
+                    name={
+                      r.reviewer
+                        ? `${r.reviewer.first_name} ${r.reviewer.last_name}`
+                        : undefined
+                    }
+                    userId={r.reviewer_id}
+                  />
                 </View>
 
                 <View style={styles.reviewContent}>
@@ -339,7 +363,7 @@ export default function GuestProfileScreen() {
                     {r.comment?.trim() ? r.comment : "No written review."}
                   </Text>
                 </View>
-              </View>
+              </Pressable>
             ))
           ) : (
             <View style={styles.emptyReviewsCard}>
@@ -695,6 +719,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#ECAA00",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
   },
   avatarInitial: {
     fontSize: 28,
@@ -802,6 +832,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,
+    overflow: "hidden",
+  },
+  reviewAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   reviewAvatarText: {
     fontSize: 14,

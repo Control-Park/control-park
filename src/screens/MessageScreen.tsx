@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import {
   Alert,
   ActivityIndicator,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -23,6 +24,7 @@ import {
   fetchConversations,
   ConversationSummary,
 } from "../api/messages";
+import { fetchUserById } from "../api/user";
 import { supabase } from "../utils/supabase";
 
 const MAX_WIDTH = 428;
@@ -43,6 +45,49 @@ function formatTimestamp(iso: string): string {
   const diffH = Math.floor(diffMin / 60);
   if (diffH < 24) return `${diffH}h ago`;
   return date.toLocaleDateString();
+}
+
+function getInitial(name: string) {
+  return (name.trim()[0] ?? "?").toUpperCase();
+}
+
+function ConversationAvatar({
+  imageUri,
+  name,
+  onPress,
+  userId,
+}: {
+  imageUri?: null | string;
+  name: string;
+  onPress: () => void;
+  userId: string;
+}) {
+  const { data: profile } = useQuery({
+    queryKey: ["user", userId],
+    queryFn: () => fetchUserById(userId),
+    enabled: !imageUri && !!userId,
+  });
+  const resolvedImageUri = imageUri || profile?.profile_image;
+
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.avatarCircle,
+        pressed && styles.pressed,
+      ]}
+      onPress={(event) => {
+        event.stopPropagation();
+        onPress();
+      }}
+      hitSlop={8}
+    >
+      {resolvedImageUri ? (
+        <Image source={{ uri: resolvedImageUri }} style={styles.avatarImage} />
+      ) : (
+        <Text style={styles.avatarInitial}>{getInitial(name)}</Text>
+      )}
+    </Pressable>
+  );
 }
 
 export default function MessageScreen({ navigation, route }: Props) {
@@ -196,6 +241,7 @@ export default function MessageScreen({ navigation, route }: Props) {
     const otherName = otherPerson
       ? `${otherPerson.first_name} ${otherPerson.last_name}`
       : isHost ? "Guest" : "Host";
+    const otherProfileImage = otherPerson?.profile_image;
     const listingTitle = conv.listing?.title ?? `Listing ${conv.listing_id.slice(0, 8)}`;
     const listingImage =
       Array.isArray(conv.listing?.images) && conv.listing.images.length > 0
@@ -223,19 +269,12 @@ export default function MessageScreen({ navigation, route }: Props) {
           })
         }
       >
-        <Pressable
-          style={({ pressed }) => [
-            styles.avatarCircle,
-            pressed && styles.pressed,
-          ]}
-          onPress={(event) => {
-            event.stopPropagation();
-            navigation.navigate("ViewProfile", { userId: otherPersonId });
-          }}
-          hitSlop={8}
-        >
-          <Ionicons name="person" size={20} color="#666666" />
-        </Pressable>
+        <ConversationAvatar
+          imageUri={otherProfileImage}
+          name={otherName}
+          onPress={() => navigation.navigate("ViewProfile", { userId: otherPersonId })}
+          userId={otherPersonId}
+        />
 
         <View style={styles.conversationInfo}>
           <View style={styles.conversationTopRow}>
@@ -491,10 +530,21 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#F3F3F3",
+    backgroundColor: "#ECAA00",
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  avatarInitial: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111111",
   },
   conversationInfo: {
     flex: 1,

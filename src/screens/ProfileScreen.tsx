@@ -88,7 +88,10 @@ export default function ProfileScreen() {
   const profileName = profile ? getProfileDisplayName(profile) : displayName;
   const profileRole = formatProfileRole(profile, isAuthenticated);
   const avatarInitial = profile ? getProfileInitial(profile) : (profileName?.[0] ?? "?").toUpperCase();
-  const { profileImageUri } = useProfileImage(profile?.id ?? session?.user?.id);
+  const { profileImageUri: localProfileImageUri } = useProfileImage(
+    profile?.id ?? session?.user?.id,
+  );
+  const profileImageUri = profile?.profile_image || localProfileImageUri;
 
   const menuItems = useMemo(
     () => [

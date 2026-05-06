@@ -2,6 +2,8 @@ import React from "react";
 import { View, Text, Image, Pressable } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
+import UserAvatar from "../UserAvatar";
+
 type Props = {
   title?: string;
   address?: string;
@@ -11,6 +13,8 @@ type Props = {
   review_count?: number;
   isGuestFavorite?: boolean;
   host_name?: string;
+  hostId?: string;
+  hostProfileImage?: null | string;
   host_type?: string;
   hostInitial?: string;
   onHostPress?: () => void;
@@ -39,6 +43,8 @@ export default function ListingHeader({
   review_count,
   isGuestFavorite,
   host_name,
+  hostId,
+  hostProfileImage,
   host_type,
   hostInitial,
   onHostPress,
@@ -128,21 +134,13 @@ export default function ListingHeader({
             onPress={onHostPress}
             style={({ pressed }) => (pressed ? { opacity: 0.7 } : undefined)}
           >
-            {hostInitial ? (
-              <View
-                style={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: 25,
-                  backgroundColor: "#ECAA00",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text style={[textStyle, { fontSize: 20, fontWeight: "700" }]}>
-                  {hostInitial}
-                </Text>
-              </View>
+            {hostId || hostProfileImage || hostInitial ? (
+              <UserAvatar
+                imageUri={hostProfileImage}
+                name={host_name || hostInitial}
+                size={50}
+                userId={hostId}
+              />
             ) : (
               <Image
                 source={require("../../../assets/csulb-logo.png")}
