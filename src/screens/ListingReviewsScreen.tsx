@@ -92,7 +92,18 @@ export default function ListingReviewsScreen({ route, navigation }: Props) {
           {!isLoading && reviews.length > 0 ? (
             <View style={styles.reviewsList}>
               {reviews.map((review) => (
-                <View key={review.id} style={styles.reviewRow}>
+                <Pressable
+                  key={review.id}
+                  style={({ pressed }) => [
+                    styles.reviewRow,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() =>
+                    navigation.navigate("ViewProfile", {
+                      userId: review.reviewer_id,
+                    })
+                  }
+                >
                   <View style={styles.reviewAvatar}>
                     <Text style={styles.reviewAvatarText}>
                       {review.reviewer?.first_name?.[0]?.toUpperCase() ?? "?"}
@@ -123,7 +134,7 @@ export default function ListingReviewsScreen({ route, navigation }: Props) {
                       {review.comment?.trim() ? review.comment : "No written review."}
                     </Text>
                   </View>
-                </View>
+                </Pressable>
               ))}
             </View>
           ) : null}
