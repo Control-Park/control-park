@@ -5,7 +5,11 @@ import { Platform } from "react-native";
 import { QueryClient } from "@tanstack/react-query";
 import { apiBaseUrl } from "../api/client";
 import { fetchConversations, type ConversationSummary } from "../api/messages";
-import { registerPushToken } from "../api/notifications";
+import {
+  fetchNotifications,
+  registerPushToken,
+  type Notification as InAppNotification,
+} from "../api/notifications";
 import {
   navigate,
   navigationRef,
@@ -29,6 +33,8 @@ Notifications.setNotificationHandler({
 const SERVER_URL = apiBaseUrl;
 // Convert http(s) to ws(s) for the WebSocket connection
 const WS_URL = SERVER_URL.replace(/^http/, "ws");
+const NOTIFICATION_POLL_MS = 5000;
+const RECENT_SOCKET_EVENT_MS = 10000;
 
 type NotificationPayload = {
   body?: string;
@@ -44,10 +50,90 @@ type NotificationPayload = {
 export function usePushNotifications(queryClient: QueryClient) {
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const seenNotificationIdsRef = useRef<Set<string>>(new Set());
+  const recentSocketEventsRef = useRef<Map<string, number>>(new Map());
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     registerToken();
+
+    const rememberSocketEvent = (payload: NotificationPayload) => {
+      recentSocketEventsRef.current.set(getNotificationSignature(payload), Date.now());
+    };
+
+    const stopNotificationPolling = () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+
+    const pollNotifications = async (showNewToasts: boolean) => {
+      try {
+        const notifications = await fetchNotifications();
+        queryClient.setQueryData(["notifications"], notifications);
+
+        const unseen = notifications
+          .filter((notification) => !seenNotificationIdsRef.current.has(notification.id))
+          .sort(
+            (a, b) =>
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+          );
+
+        notifications.forEach((notification) => {
+          seenNotificationIdsRef.current.add(notification.id);
+        });
+
+        if (!showNewToasts) {
+          return;
+        }
+
+        for (const notification of unseen) {
+          const payload = toPayload(notification);
+          const signature = getNotificationSignature(payload);
+          const socketEventAt = recentSocketEventsRef.current.get(signature);
+
+          if (socketEventAt && Date.now() - socketEventAt < RECENT_SOCKET_EVENT_MS) {
+            continue;
+          }
+
+          const formatted = formatNotificationContent(payload);
+          showNotification(formatted.title, formatted.body, {
+            ctaLabel: payload.type === "new_message" ? "Open chat" : "Open",
+            onPress: () => {
+              void handleNotificationPress(queryClient, payload);
+            },
+          });
+
+          if (payload.type === "new_message") {
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          }
+
+          if (isReservationNotification(payload) || isBookingRequestNotification(payload)) {
+            queryClient.invalidateQueries({ queryKey: ["reservations"] });
+            queryClient.invalidateQueries({ queryKey: ["hosting-reservations"] });
+            queryClient.invalidateQueries({ queryKey: ["my-reservations-view-profile"] });
+          }
+        }
+      } catch {
+        stopNotificationPolling();
+      }
+    };
+
+    const startNotificationPolling = (accessToken?: string | null) => {
+      stopNotificationPolling();
+      seenNotificationIdsRef.current = new Set();
+
+      if (!accessToken) {
+        return;
+      }
+
+      void pollNotifications(false);
+      pollIntervalRef.current = setInterval(() => {
+        void pollNotifications(true);
+      }, NOTIFICATION_POLL_MS);
+    };
 
     const connectWebSocket = (accessToken?: string | null) => {
       wsRef.current?.close();
@@ -64,6 +150,7 @@ export function usePushNotifications(queryClient: QueryClient) {
           const payload = JSON.parse(event.data as string) as NotificationPayload;
 
           if (payload.title && payload.body) {
+            rememberSocketEvent(payload);
             const formatted = formatNotificationContent(payload);
             showNotification(formatted.title, formatted.body, {
               ctaLabel: payload.type === "new_message" ? "Open chat" : "Open",
@@ -132,21 +219,36 @@ export function usePushNotifications(queryClient: QueryClient) {
 
     supabase.auth.getSession().then(({ data }) => {
       connectWebSocket(data.session?.access_token);
+      startNotificationPolling(data.session?.access_token);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       connectWebSocket(session?.access_token);
+      startNotificationPolling(session?.access_token);
     });
 
     return () => {
       notificationListener.current?.remove();
       responseListener.current?.remove();
       subscription.unsubscribe();
+      stopNotificationPolling();
       wsRef.current?.close();
     };
   }, [queryClient]);
+}
+
+function getNotificationSignature(payload: NotificationPayload) {
+  return [payload.type ?? "", payload.title ?? "", payload.body ?? ""].join("|");
+}
+
+function toPayload(notification: InAppNotification): NotificationPayload {
+  return {
+    body: notification.body,
+    title: notification.title,
+    type: notification.type,
+  };
 }
 
 function formatNotificationContent(payload: NotificationPayload) {
