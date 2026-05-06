@@ -4,6 +4,7 @@ import {
   GestureResponderEvent,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -60,7 +62,12 @@ type HostProfileScreenNavigationProp = NativeStackNavigationProp<
 type Props = NativeStackScreenProps<RootStackParamList, "Profile">;
 
 const MAX_WIDTH = 428;
+const DISMISSED_COMPLETED_REVIEWS_KEY = "dismissed-completed-review-reservations";
 let cachedHostProfile: UserProfile | null = null;
+
+function getCompletedReviewKey(reservation: Pick<CompletedReservation, "id" | "role">) {
+  return `${reservation.id}:${reservation.role}`;
+}
 
 function formatCurrency(amount?: number | null) {
   return new Intl.NumberFormat("en-US", {
@@ -144,6 +151,8 @@ export default function HostProfileScreen({ route }: Props) {
   const [completedReservations, setCompletedReservations] = useState<
     CompletedReservation[]
   >([]);
+  const [dismissedCompletedReviewIds, setDismissedCompletedReviewIds] =
+    useState<Set<string>>(new Set());
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
 
@@ -212,16 +221,38 @@ export default function HostProfileScreen({ route }: Props) {
 
       const completed = await fetchPendingReviews();
       setCompletedReservations(
-        completed.sort(
-          (a, b) =>
-            new Date(b.end_time).getTime() - new Date(a.end_time).getTime(),
-        ),
+        completed
+          .filter(
+            (reservation) =>
+              !dismissedCompletedReviewIds.has(getCompletedReviewKey(reservation)),
+          )
+          .sort(
+            (a, b) =>
+              new Date(b.end_time).getTime() - new Date(a.end_time).getTime(),
+          ),
       );
     } catch (error) {
       console.error("Failed to load host data:", error);
       setListings([]);
     }
-  }, [deletedListingIds]);
+  }, [deletedListingIds, dismissedCompletedReviewIds]);
+
+  useEffect(() => {
+    void AsyncStorage.getItem(DISMISSED_COMPLETED_REVIEWS_KEY).then((value) => {
+      if (!value) {
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) {
+          setDismissedCompletedReviewIds(new Set(parsed.filter(Boolean)));
+        }
+      } catch {
+        setDismissedCompletedReviewIds(new Set());
+      }
+    });
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -323,6 +354,45 @@ export default function HostProfileScreen({ route }: Props) {
     setReviewTarget(null);
     setReviewRating(0);
     setReviewComment("");
+  };
+
+  const dismissCompletedReview = async (reservation: CompletedReservation) => {
+    const key = getCompletedReviewKey(reservation);
+
+    setCompletedReservations((prev) =>
+      prev.filter((item) => getCompletedReviewKey(item) !== key),
+    );
+
+    setDismissedCompletedReviewIds((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      void AsyncStorage.setItem(
+        DISMISSED_COMPLETED_REVIEWS_KEY,
+        JSON.stringify([...next]),
+      );
+      return next;
+    });
+  };
+
+  const confirmDismissCompletedReview = (reservation: CompletedReservation) => {
+    const message =
+      "Leaving a review helps other users know what to expect and improves future parking experiences. Are you sure you want to remove this from your completed listings?";
+
+    if (Platform.OS === "web") {
+      if (window.confirm(message)) {
+        void dismissCompletedReview(reservation);
+      }
+      return;
+    }
+
+    Alert.alert("Remove completed listing?", message, [
+      { text: "Keep review reminder", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: () => void dismissCompletedReview(reservation),
+      },
+    ]);
   };
 
   const addReviewToGuestCache = (guestId: string, review: Review) => {
@@ -860,11 +930,31 @@ export default function HostProfileScreen({ route }: Props) {
                           })}
                         </Text>
                       </View>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={18}
-                        color="#AAAAAA"
-                      />
+                      <View style={styles.completedCardActions}>
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.completedRemoveButton,
+                            pressed && styles.pressed,
+                          ]}
+                          onPress={(event) => {
+                            event.stopPropagation();
+                            confirmDismissCompletedReview(reservation);
+                          }}
+                          hitSlop={8}
+                        >
+                          <Ionicons
+                            name="trash-outline"
+                            size={18}
+                            color="#6B7280"
+                          />
+                        </Pressable>
+
+                        <Ionicons
+                          name="chevron-forward"
+                          size={18}
+                          color="#AAAAAA"
+                        />
+                      </View>
                     </Pressable>
                   );
                 })}
@@ -1776,6 +1866,18 @@ const styles = StyleSheet.create({
   completedCardDate: {
     fontSize: 12,
     color: "#777777",
+  },
+  completedCardActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  completedRemoveButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   reviewModalCard: {
     backgroundColor: "#FFFFFF",
