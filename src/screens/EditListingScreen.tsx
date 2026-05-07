@@ -17,6 +17,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as ImagePicker from "expo-image-picker";
 import { updateListing } from "../api/listings";
 import type { RootStackParamList } from "../navigation/AppNavigator";
+import { getUploadedListingImageUri } from "../utils/listingImages";
 import { normalizePickedImage } from "../utils/localImagePersistence";
 
 type Props = NativeStackScreenProps<RootStackParamList, "EditListing">;
@@ -579,4 +580,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#374151",
   },
-});;
+});
