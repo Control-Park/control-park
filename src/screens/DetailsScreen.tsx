@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, Text, View, Pressable } from "react-native";
+import { Alert, Linking, ScrollView, Text, View, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../utils/supabase";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -85,6 +86,28 @@ export default function DetailsScreen({ route, navigation }: Props) {
     hostProfile
       ? getProfileInitial(hostProfile)
       : (hostName?.trim()[0] ?? "").toUpperCase() || undefined;
+  const handleGetDirections = async () => {
+    const destination = listing.address?.trim();
+
+    if (!destination) {
+      Alert.alert(
+        "Directions unavailable",
+        "This listing does not have an address yet.",
+      );
+      return;
+    }
+
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(
+        "Could not open maps",
+        "Please try again or copy the address into your maps app.",
+      );
+    }
+  };
 
   return (
     <ScrollView
@@ -131,6 +154,23 @@ export default function DetailsScreen({ route, navigation }: Props) {
               })
             }
           />
+        </View>
+
+        <View className="flex items-center justify-center px-6">
+          <View className="h-[1px] w-[100%] bg-[#c5c5c5]" />
+        </View>
+
+        <View className="px-6 py-4">
+          <Pressable
+            className="h-[48px] rounded-full border border-[#111111] flex-row items-center justify-center"
+            onPress={handleGetDirections}
+            style={({ pressed }) => (pressed ? { opacity: 0.75 } : undefined)}
+          >
+            <Ionicons name="navigate-outline" size={18} color="#111111" />
+            <Text className="font-abeezee text-[15px] text-[#111111] ml-2">
+              Get Directions
+            </Text>
+          </Pressable>
         </View>
 
         <View className="flex items-center justify-center px-6">
