@@ -152,6 +152,10 @@ export function usePushNotifications(queryClient: QueryClient) {
 
       const ws = new WebSocket(`${WS_URL}?token=${accessToken}`);
 
+      ws.onopen = () => {
+        stopNotificationPolling();
+      };
+
       ws.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data as string) as NotificationPayload;
@@ -210,6 +214,12 @@ export function usePushNotifications(queryClient: QueryClient) {
         console.warn("WebSocket error:", err);
       };
 
+      ws.onclose = () => {
+        if (wsRef.current === ws) {
+          startNotificationPolling(accessToken);
+        }
+      };
+
       wsRef.current = ws;
     };
 
@@ -230,14 +240,12 @@ export function usePushNotifications(queryClient: QueryClient) {
 
     supabase.auth.getSession().then(({ data }) => {
       connectWebSocket(data.session?.access_token);
-      startNotificationPolling(data.session?.access_token);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       connectWebSocket(session?.access_token);
-      startNotificationPolling(session?.access_token);
     });
 
     return () => {
