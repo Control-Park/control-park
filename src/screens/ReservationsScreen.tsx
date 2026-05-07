@@ -7,6 +7,8 @@ import {
   Pressable,
   Image,
   ActivityIndicator,
+  Alert,
+  Linking,
   Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -133,6 +135,29 @@ export default function ReservationsScreen({ navigation, route }: Props) {
 
   const closeReservationDetails = () => {
     setSelectedReservation(null);
+  };
+
+  const openDirections = async (address?: null | string) => {
+    const destination = address?.trim();
+
+    if (!destination) {
+      Alert.alert(
+        "Directions unavailable",
+        "This reservation does not have an address yet.",
+      );
+      return;
+    }
+
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(
+        "Could not open maps",
+        "Please try again or copy the address into your maps app.",
+      );
+    }
   };
 
   const selectedReservationStart = selectedReservation
@@ -447,9 +472,25 @@ export default function ReservationsScreen({ navigation, route }: Props) {
                   </View>
                 </View>
 
-                <Text style={styles.detailsAddress}>
-                  {selectedReservation.listing?.address ?? "Address not available"}
-                </Text>
+                <View style={styles.detailsAddressRow}>
+                  <Text style={styles.detailsAddress} numberOfLines={2}>
+                    {selectedReservation.listing?.address ?? "Address not available"}
+                  </Text>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.detailsDirectionsButton,
+                      pressed && styles.dismissButtonPressed,
+                    ]}
+                    onPress={() =>
+                      openDirections(selectedReservation.listing?.address)
+                    }
+                    hitSlop={8}
+                  >
+                    <Text style={styles.detailsDirectionsText}>Get Directions</Text>
+                    <Ionicons name="navigate-outline" size={15} color="#111111" />
+                  </Pressable>
+                </View>
 
                 <View style={styles.detailsList}>
                   <View style={styles.detailsRow}>
@@ -768,12 +809,36 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFFFFF",
   },
-  detailsAddress: {
+  detailsAddressRow: {
     marginTop: 8,
     marginBottom: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  detailsAddress: {
+    flex: 1,
     fontSize: 14,
     color: "#6B7280",
     lineHeight: 20,
+  },
+  detailsDirectionsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    flexShrink: 0,
+    borderWidth: 1,
+    borderColor: "#ECAA00",
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    backgroundColor: "#ECAA00",
+  },
+  detailsDirectionsText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#111111",
   },
   detailsList: {
     gap: 12,
