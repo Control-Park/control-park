@@ -59,9 +59,7 @@ export default function NotificationScreen({ navigation }: Props) {
   } = useQuery<Notification[]>({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    refetchInterval: 5000,
+    staleTime: 60_000,
   });
 
   useFocusEffect(

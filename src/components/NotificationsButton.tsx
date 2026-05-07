@@ -18,7 +18,7 @@ export default function NotificationsButton({ onPress }: Props) {
   const { data: notifications = [] } = useQuery({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
-    refetchInterval: 5000,
+    staleTime: 60_000,
   });
   const hasUnreadNotifications = notifications.some(
     (notification) => !notification.is_read,
