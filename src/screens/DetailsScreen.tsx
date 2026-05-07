@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Alert, Linking, ScrollView, Text, View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../utils/supabase";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -17,6 +18,7 @@ import { useWindowDimensions } from "react-native";
 
 import ReportButton from "../components/ReportButton";
 import SaveButton from "../components/SaveButton";
+import NotificationsButton from "../components/NotificationsButton";
 import { useFavoritesStore } from "../context/favoritesStore";
 
 import { useQuery } from "@tanstack/react-query";
@@ -31,6 +33,7 @@ const MAX_WIDTH = 480;
 
 export default function DetailsScreen({ route, navigation }: Props) {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { id } = route.params;
   const { favorites, setFavorite } = useFavoritesStore();
 
@@ -115,6 +118,51 @@ export default function DetailsScreen({ route, navigation }: Props) {
       contentContainerStyle={{ flexGrow: 1 }}
     >
       <View style={{ width: "100%", maxWidth: MAX_WIDTH, alignSelf: "center" }}>
+        <View
+          style={{
+            paddingTop: insets.top + 8,
+            paddingHorizontal: 16,
+            paddingBottom: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={({ pressed }) => [
+              {
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: "#F3F3F3",
+                alignItems: "center",
+                justifyContent: "center",
+              },
+              pressed && { opacity: 0.75 },
+            ]}
+            hitSlop={10}
+          >
+            <Ionicons name="arrow-back" size={20} color="#111111" />
+          </Pressable>
+
+          <Text
+            style={{
+              flex: 1,
+              marginLeft: 10,
+              fontSize: 24,
+              fontWeight: "600",
+              color: "#111111",
+            }}
+          >
+            Details
+          </Text>
+
+          <NotificationsButton
+            onPress={() => navigation.navigate("Notification")}
+          />
+        </View>
+
         <View className="relative">
           <ListingImage
             source={getListingImages(listing)[0]}

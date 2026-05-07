@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { Text, ScrollView, View, TouchableOpacity, StyleSheet } from "react-native";
+import { Text, ScrollView, View, TouchableOpacity, StyleSheet, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import InputFields from "../components/InputFields";
 import CustomButton from "../components/CustomButton";
 import AppleIcon from "../../assets/apple-logo.png";
@@ -16,11 +18,13 @@ import {
 import { useSocialAuth } from "../utils/useSocialAuth";
 import { supabase } from "../utils/supabase";
 import Navbar from "../components/Navbar";
+import NotificationsButton from "../components/NotificationsButton";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 const MAX_WIDTH = 428;
 
 export default function LoginScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -62,7 +66,26 @@ export default function LoginScreen({ navigation }: Props) {
       <ScrollView className="flex-1 bg-white">
         {/* Top section - Tabs */}
         <View className="flex-1 w-full items-center justify-center pb-24">
-          <View className="mt-28">
+          <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              style={({ pressed }) => [
+                styles.backButton,
+                pressed && styles.pressed,
+              ]}
+              hitSlop={10}
+            >
+              <Ionicons name="arrow-back" size={20} color="#111111" />
+            </Pressable>
+
+            <Text style={styles.headerTitle}>Log in</Text>
+
+            <NotificationsButton
+              onPress={() => navigation.navigate("Notification")}
+            />
+          </View>
+
+          <View className="mt-14">
             <View className="flex flex-row justify-center items-center">
               <TouchableOpacity>
                 <Text className="text-[#ECAA00] text-2xl font-bold mr-28">
@@ -171,6 +194,34 @@ export default function LoginScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    width: "100%",
+    maxWidth: MAX_WIDTH,
+    alignSelf: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F3F3F3",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#111111",
+  },
+  pressed: {
+    opacity: 0.75,
+  },
   navbarWrapper: {
     backgroundColor: "#FFFFFF",
   },

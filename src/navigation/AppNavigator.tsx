@@ -102,7 +102,7 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Login"
         component={LoginScreen}
-        options={{ title: "Log in" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Signup"
@@ -122,7 +122,7 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Details"
         component={DetailsScreen}
-        options={{ title: "Details" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Reserve"
